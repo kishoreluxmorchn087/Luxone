@@ -1,3 +1,7 @@
+import { useState } from "react"
+impoet {Eye, Eyeoff } from "lucide-react";
+
+
 type AuthInputProps = {
   type?: string;
   value: string;
@@ -7,7 +11,8 @@ type AuthInputProps = {
 };
 
 const AuthInput = ({
-  type = "text",
+  type={type === "password" && showPassword ? "text" :
+    type} 
   value,
   onChange,
   placeholder,

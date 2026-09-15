@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
-import { changePassword, getAccessToken, getStoredUser } from "../lib/api/authApi";
+import { changePassword, clearAuthSession, getAccessToken, getStoredUser } from "../lib/api/authApi";
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
@@ -23,8 +24,8 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     setError("");
 
-    if (!newPassword || !confirmPassword) {
-      setError("Both fields are required.");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All password fields are required.");
       return;
     }
     if (newPassword.length < 6) {
@@ -43,15 +44,9 @@ export default function ChangePasswordPage() {
 
     setLoading(true);
     try {
-      await changePassword(newPassword, confirmPassword, accessToken);
-
-      // Update stored user: clear must_change_password flag locally
-      if (user) {
-        const updatedUser = { ...user, must_change_password: false };
-        localStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
-      }
-
-      navigate("/home", { replace: true });
+      await changePassword(currentPassword, newPassword, confirmPassword, accessToken);
+      clearAuthSession();
+      navigate("/login", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change password.");
     } finally {
@@ -82,6 +77,21 @@ export default function ChangePasswordPage() {
 
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4" noValidate>
             <div>
+              <label htmlFor="current-password" className="block text-sm font-medium text-slate-700 mb-1.5">
+                Current Password
+              </label>
+              <input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                autoFocus
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+
+            <div>
               <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-1.5">
                 New Password
               </label>
@@ -90,7 +100,6 @@ export default function ChangePasswordPage() {
                   id="new-password"
                   type={showNew ? "text" : "password"}
                   autoComplete="new-password"
-                  autoFocus
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 6 characters"

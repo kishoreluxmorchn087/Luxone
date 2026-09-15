@@ -146,13 +146,18 @@ export async function login(email: string, password: string): Promise<LoginRespo
 }
 
 export async function changePassword(
+  currentPassword: string,
   newPassword: string,
   confirmPassword: string,
   accessToken: string
 ): Promise<ChangePasswordResponse> {
   return apiPost<ChangePasswordResponse>(
     "/auth/change-password/",
-    { new_password: newPassword, confirm_password: confirmPassword },
+    {
+      current_password: currentPassword,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    },
     accessToken
   );
 }
