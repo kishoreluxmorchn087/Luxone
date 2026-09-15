@@ -1,0 +1,11 @@
+{
+  "name": "luxone-crm",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev"
+  },
+  "dependencies": {
+    "vite": "^8.2.1"
+  }
+}

@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+env/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.log
+media/
+import_uploads/
+staticfiles/
+SampleXLSXFile_2.xlsx

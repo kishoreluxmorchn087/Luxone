@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+:root {
+  color-scheme: light;
+  --luxmor-navy: #071a40;
+  --luxmor-indigo: #4537d4;
+  --luxmor-blue: #176de5;
+  --luxmor-cyan: #10bde8;
+  --luxmor-surface: #ffffff;
+  --luxmor-canvas: #f4f7fc;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  background: var(--luxmor-canvas);
+  color: #101c35;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgb(69 55 212 / 18%);
+  color: var(--luxmor-navy);
+}
+
+.luxmor-app-shell {
+  background:
+    radial-gradient(circle at 100% 0%, rgb(16 189 232 / 8%), transparent 26rem),
+    var(--luxmor-canvas);
+}
+
+.luxmor-sidebar {
+  background:
+    radial-gradient(circle at 10% 5%, rgb(69 55 212 / 48%), transparent 14rem),
+    linear-gradient(180deg, #071a40 0%, #08162f 55%, #050d20 100%);
+  box-shadow: 10px 0 35px rgb(5 13 32 / 14%);
+}
+
+.luxmor-main {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.luxmor-topbar {
+  box-shadow: 0 1px 0 rgb(15 23 42 / 3%), 0 8px 30px rgb(15 23 42 / 3%);
+}
+
+.luxmor-main :where(.bg-white) {
+  border-color: #e4eaf4;
+}
+
+.luxmor-main :where(.shadow-sm) {
+  box-shadow: 0 8px 28px rgb(15 35 75 / 6%);
+}
+
+.luxmor-main :where(input, select, textarea):focus {
+  border-color: var(--luxmor-indigo);
+  box-shadow: 0 0 0 3px rgb(69 55 212 / 10%);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button[class*="bg-blue-600"],
+button[class*="from-blue-500"],
+button[class*="from-blue-600"],
+button[class*="from-[#359de9]"],
+button[class*="to-[#365eea]"] {
+  border-color: transparent;
+  background-color: var(--luxmor-indigo);
+  background-image: linear-gradient(135deg, var(--luxmor-indigo) 0%, var(--luxmor-blue) 60%, var(--luxmor-cyan) 130%);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgb(40 74 210 / 20%);
+}
+
+button[class*="bg-blue-600"]:hover,
+button[class*="from-blue-500"]:hover,
+button[class*="from-blue-600"]:hover,
+button[class*="from-[#359de9]"]:hover,
+button[class*="to-[#365eea]"]:hover {
+  background-color: #382bbd;
+  background-image: linear-gradient(135deg, #382bbd 0%, #1264d8 65%, #0daed5 130%);
+  box-shadow: 0 12px 28px rgb(40 74 210 / 26%);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
