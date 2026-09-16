@@ -128,19 +128,24 @@ class HomeDashboardView(APIView):
 
     def get(self, request):
         today = timezone.localdate()
-        customers = list(Account.objects.select_related("account_owner").all()[:200])
+        active_accounts = Account.objects.filter(is_active=True)
+        customers = list(active_accounts.select_related("account_owner")[:200])
         leads_today = Lead.objects.filter(created_at__date=today).count()
         deals_updated_today_qs = Deal.objects.select_related("account", "lead", "deal_owner", "stage").filter(updated_at__date=today)
         tasks_due_today_qs = Task.objects.filter(due_date=today)
         meetings_today_qs = Meeting.objects.filter(start_date__date=today)
 
         repeat_revenue = Deal.objects.filter(is_won=True).aggregate(total=Sum("amount")).get("total") or 0
-        inactive_customers = Account.objects.filter(updated_at__date__lt=today - timedelta(days=45)).count()
-        vip_customers = Deal.objects.filter(Q(amount__gte=300000) | Q(expected_revenue__gte=300000)).values("account_id").distinct().count()
+        inactive_customers = active_accounts.filter(updated_at__date__lt=today - timedelta(days=45)).count()
+        vip_customers = Deal.objects.filter(
+            Q(amount__gte=300000) | Q(expected_revenue__gte=300000),
+            account__is_active=True,
+        ).values("account_id").distinct().count()
 
         top_customers = []
         customer_rows = (
             Deal.objects.select_related("account")
+            .filter(account__is_active=True)
             .values("account_id", "account__account_name")
             .annotate(revenue=Sum("amount"), deals=Count("id"))
             .order_by("-revenue")[:5]
@@ -189,12 +194,12 @@ class HomeDashboardView(APIView):
                 "tasks_due_today": tasks_due_today_qs.count(),
                 "meetings_today": meetings_today_qs.count(),
                 "deals_updated_today": deals_updated_today_qs.count(),
-                "customers_added_today": Account.objects.filter(created_at__date=today).count(),
+                "customers_added_today": active_accounts.filter(created_at__date=today).count(),
             },
             "summary_cards": [
                 {
                     "title": "Customers Added Today",
-                    "value": Account.objects.filter(created_at__date=today).count(),
+                    "value": active_accounts.filter(created_at__date=today).count(),
                     "note": "New accounts created today",
                     "trend": f"{Lead.objects.filter(created_at__date__gte=today - timedelta(days=6)).count()} leads in the last 7 days",
                 },
@@ -227,7 +232,7 @@ class HomeDashboardView(APIView):
                 {"label": "Due Today", "value": tasks_due_today_qs.count()},
                 {"label": "Meetings Today", "value": meetings_today_qs.count()},
                 {"label": "Updated Deals", "value": deals_updated_today_qs.count()},
-                {"label": "New Customers", "value": Account.objects.filter(created_at__date=today).count()},
+                {"label": "New Customers", "value": active_accounts.filter(created_at__date=today).count()},
             ],
             "action_queue": [
                 {"title": "Customers to follow up", "count": tasks_due_today_qs.count()},
@@ -236,10 +241,10 @@ class HomeDashboardView(APIView):
                 {"title": "Customers eligible for offers or loyalty rewards", "count": max(vip_customers, 0)},
             ],
             "segments": [
-                {"name": "New", "count": Account.objects.filter(created_at__date__gte=today - timedelta(days=6)).count()},
+                {"name": "New", "count": active_accounts.filter(created_at__date__gte=today - timedelta(days=6)).count()},
                 {"name": "Repeat", "count": Deal.objects.values("account_id").annotate(total=Count("id")).filter(total__gte=2).count()},
                 {"name": "VIP", "count": vip_customers},
-                {"name": "At-risk", "count": Account.objects.filter(updated_at__date__lt=today - timedelta(days=20), updated_at__date__gte=today - timedelta(days=45)).count()},
+                {"name": "At-risk", "count": active_accounts.filter(updated_at__date__lt=today - timedelta(days=20), updated_at__date__gte=today - timedelta(days=45)).count()},
                 {"name": "Inactive", "count": inactive_customers},
             ],
             "recent_activity": recent_activity[:6],

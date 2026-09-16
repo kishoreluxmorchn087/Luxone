@@ -1,4 +1,4 @@
-import random
+import secrets
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import OTP
@@ -8,7 +8,7 @@ def generate_and_send_otp(email):
     OTP.objects.filter(email=email, is_verified=False).update(is_verified=True)
 
     # Generate 6 digit OTP
-    code = f"{random.randint(100000, 999999)}"
+    code = f"{secrets.randbelow(900000) + 100000}"
 
     # Save to DB
     OTP.objects.create(email=email, code=code)
@@ -20,7 +20,7 @@ def generate_and_send_otp(email):
         send_mail(
             subject,
             message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [email],
             fail_silently=False,
         )

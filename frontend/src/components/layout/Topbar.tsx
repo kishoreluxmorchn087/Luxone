@@ -555,10 +555,12 @@ export default function Topbar({
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="relative">
             <button
+              type="button"
+              aria-label="Notifications"
               onClick={() => { setNotificationsOpen((prev) => !prev); setEmailInboxOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
-              <Bell size={16} />
+              <Bell size={16} aria-hidden="true"/>
               {unreadCount > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
                   {unreadCount}
@@ -631,10 +633,12 @@ export default function Topbar({
 
           <div className="relative">
             <button
+              type="button"
+              aria-label="Email Inbox"
               onClick={() => { setEmailInboxOpen((prev) => !prev); setNotificationsOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
-              <Mail size={16} />
+              <Mail size={16} aria-hidden="true" />
               {unreadEmailCount > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
                   {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
@@ -666,10 +670,11 @@ export default function Topbar({
                     )}
                     <button
                       type="button"
+                      aria-label="Close email inbox panel"
                       onClick={() => setEmailInboxOpen(false)}
                       className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
-                      <X size={14} />
+                      <X size={14} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -734,17 +739,21 @@ export default function Topbar({
           </div>
 
             <button
+              type="button"
+              aria-label="Calendar"
               onClick={() => navigate("/calendar")}
               className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
-              <CalendarDays size={16} />
+              <CalendarDays size={16} aria-hidden="true" />
             </button>
 
             <button
+              type="button"
+              aria-label="Profile"
               onClick={() => setProfileOpen(true)}
               className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
-              <User size={16} />
+              <User size={16} aria-hidden="true" />
             </button>
         </div>
       </header>
@@ -764,10 +773,12 @@ export default function Topbar({
                 </h2>
 
                 <button
+                  type="button"
+                  aria-label="Close profile panel"
                   onClick={() => setProfileOpen(false)}
                   className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100"
                 >
-                  <X size={18} />
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
 
