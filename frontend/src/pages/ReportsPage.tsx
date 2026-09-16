@@ -102,10 +102,9 @@ export default function ReportsPage() {
   );
 
   const handleGenerate = async (page = 1) => {
-    if (!filters.report_key) return;
+    if (!ensureReportSelected()) return;
     try {
       setRunningReport(true);
-      setError("");
       const response = await runReport({
         reportKey: filters.report_key,
         date_from: filters.date_from,
@@ -123,7 +122,7 @@ export default function ReportsPage() {
   };
 
   const handleExport = async (format: "csv" | "xlsx") => {
-    if (!filters.report_key) return;
+    if (!ensureReportSelected()) return;
     try {
       setExporting(format);
       await exportReport(
@@ -144,6 +143,16 @@ export default function ReportsPage() {
   };
 
   const availableReportCount = catalog.length;
+
+  const ensureReportSelected = () => {
+    if (!filters.report_key) {
+      setError("Please select a report before generating or exporting.");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
 
   return (
     <DashboardLayout>
