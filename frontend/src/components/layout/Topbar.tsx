@@ -559,8 +559,7 @@ export default function Topbar({
               aria-label="Notifications"
               title="Notifications"
               onClick={() => { setNotificationsOpen((prev) => !prev); setEmailInboxOpen(false); }}
-              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
-            >
+              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"            >
               <Bell size={16} aria-hidden="true"/>
               {unreadCount > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
@@ -638,7 +637,7 @@ export default function Topbar({
               aria-label="Email Inbox"
               title="Email"
               onClick={() => { setEmailInboxOpen((prev) => !prev); setNotificationsOpen(false); }}
-              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
+              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
             >
               <Mail size={16} aria-hidden="true" />
               {unreadEmailCount > 0 && (
@@ -745,7 +744,7 @@ export default function Topbar({
               aria-label="Calendar"
               title="Calender"
               onClick={() => navigate("/calendar")}
-              className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
+              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
             >
               <CalendarDays size={16} aria-hidden="true" />
             </button>
@@ -755,7 +754,7 @@ export default function Topbar({
               aria-label="Profile"
               title="Profile"
               onClick={() => setProfileOpen(true)}
-              className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
+              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
             >
               <User size={16} aria-hidden="true" />
             </button>
