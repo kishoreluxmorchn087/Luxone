@@ -557,6 +557,7 @@ export default function Topbar({
             <button
               type="button"
               aria-label="Notifications"
+              title="Notifications"
               onClick={() => { setNotificationsOpen((prev) => !prev); setEmailInboxOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
@@ -635,6 +636,7 @@ export default function Topbar({
             <button
               type="button"
               aria-label="Email Inbox"
+              title="Email"
               onClick={() => { setEmailInboxOpen((prev) => !prev); setNotificationsOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
@@ -741,6 +743,7 @@ export default function Topbar({
             <button
               type="button"
               aria-label="Calendar"
+              title="Calender"
               onClick={() => navigate("/calendar")}
               className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
@@ -750,6 +753,7 @@ export default function Topbar({
             <button
               type="button"
               aria-label="Profile"
+              title="Profile"
               onClick={() => setProfileOpen(true)}
               className="flex h-[32px] w-[32px] items-center justify-center rounded-md hover:bg-slate-100"
             >
@@ -775,6 +779,7 @@ export default function Topbar({
                 <button
                   type="button"
                   aria-label="Close profile panel"
+                  title="Close Profile"
                   onClick={() => setProfileOpen(false)}
                   className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100"
                 >
