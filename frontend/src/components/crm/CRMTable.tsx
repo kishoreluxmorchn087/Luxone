@@ -54,6 +54,7 @@ type CRMTableProps<T extends CRMRecord> = {
   onToggleHideColumn: (columnKey: string) => void;
   onTogglePinColumn: (columnKey: string) => void;
   onFilterColumn: (columnKey: string, value: string) => void;
+  variant?: "default" | "bordered";
 };
 
 export default function CRMTable<T extends CRMRecord>({
@@ -77,6 +78,7 @@ export default function CRMTable<T extends CRMRecord>({
   onToggleHideColumn,
   onTogglePinColumn,
   onFilterColumn,
+  variant = "default",
 }: CRMTableProps<T>) {
   const isLongTextColumn = (columnKey: string) => {
     const normalized = columnKey.toLowerCase();
@@ -121,13 +123,13 @@ export default function CRMTable<T extends CRMRecord>({
   return (
     <div className="overflow-visible rounded-xl border border-slate-200 bg-white pb-1">
       <div className="overflow-x-auto overflow-y-visible">
-      <table className="w-full min-w-[1180px] divide-y divide-slate-200 text-left">
+      <table className={`w-full min-w-[1180px] text-left ${variant === "bordered" ? "border-collapse border border-slate-300" : "divide-y divide-slate-200"}`}>
         <thead className="bg-slate-50">
           <tr>
-            <th className="w-10 px-2 py-3" />
-            {showNotes ? <th className="w-10 px-2 py-3" /> : null}
-            {showActivity ? <th className="w-10 px-2 py-3" /> : null}
-            <th className="w-12 px-3 py-3">
+            <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} />
+            {showNotes ? <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} /> : null}
+            {showActivity ? <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} /> : null}
+            <th className={`w-12 px-3 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}>
               <input
                 type="checkbox"
                 checked={allChecked}
@@ -141,7 +143,7 @@ export default function CRMTable<T extends CRMRecord>({
                 key={column.key}
                 className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
                   pinnedColumn === column.key ? "sticky z-30 bg-slate-50" : ""
-                }`}
+                } ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}
                 style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
               >
                 <div ref={openHeaderMenu === column.key ? menuRef : null}>
@@ -176,10 +178,13 @@ export default function CRMTable<T extends CRMRecord>({
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-slate-100">
+        <tbody className={variant === "default" ? "divide-y divide-slate-100" : ""}>
           {rows.map((row) => (
-            <tr key={row.id} className="hover:bg-slate-50">
-              <td className="px-2 py-2" onClick={(event) => event.stopPropagation()}>
+            <tr key={row.id} className="group transition-colors duration-200 hover:bg-blue-50/30">
+              <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : "relative"}`} onClick={(event) => event.stopPropagation()}>
+                {variant === "default" && (
+                  <div className="absolute left-0 top-0 h-full w-[3px] scale-y-50 bg-gradient-to-b from-blue-400 to-blue-600 opacity-0 transition-all duration-300 group-hover:scale-y-100 group-hover:opacity-100"></div>
+                )}
                 <CRMRowMoreOptionsMenu
                   actions={rowActions}
                   onClickAction={(actionKey) => onRowAction(actionKey, row)}
@@ -187,13 +192,13 @@ export default function CRMTable<T extends CRMRecord>({
               </td>
 
               {showNotes ? (
-                <td className="px-2 py-2" onClick={(event) => event.stopPropagation()}>
+                <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
                   <CRMRowUtilityIcons showActivity={false} onOpenNotes={() => onOpenNotes?.(row)} />
                 </td>
               ) : null}
 
               {showActivity ? (
-                <td className="px-2 py-2" onClick={(event) => event.stopPropagation()}>
+                <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
                   {(row as { nextActivity?: ActivityBadge }).nextActivity ? (
                     <ActivityReminderBadge
                       activity={(row as { nextActivity: ActivityBadge }).nextActivity}
@@ -208,7 +213,7 @@ export default function CRMTable<T extends CRMRecord>({
                 </td>
               ) : null}
 
-              <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
+              <td className={`px-3 py-2 ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(row.id)}
@@ -220,7 +225,7 @@ export default function CRMTable<T extends CRMRecord>({
               {visibleColumns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-4 py-3 text-sm text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""}`}
+                  className={`px-4 py-3 text-sm text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""} ${variant === "bordered" ? "border border-slate-300" : ""}`}
                   style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
                 >
                   <button
