@@ -67,6 +67,8 @@ export type ContactRecord = {
   firstName: string;
   lastName: string;
   accountName: string;
+  assistant?: string;
+  assistantPhone?: string;
   contactOwner: string;
   ownerEmail?: string;
   email: string;
@@ -84,6 +86,12 @@ export type ContactRecord = {
   createdAt: string;
   updatedAt: string;
   accountId?: string;
+  country?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  description?: string;
   createdFromLeadId?: string;
   createdFromLeadName?: string;
 };
@@ -91,6 +99,7 @@ export type ContactRecord = {
 export type AccountRecord = {
   id: string;
   accountName: string;
+  accountType?: string;
   accountOwner: string;
   ownerEmail?: string;
   accountSite: string;
