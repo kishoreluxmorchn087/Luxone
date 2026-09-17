@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
@@ -637,3 +638,26 @@ class UserManagementViewSet(viewsets.ViewSet):
             permission_classes=[IsAuthenticated])
     def me(self, request):
         return Response(UserDetailSerializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=["patch"],
+        url_path="me/profile-image",
+        permission_classes=[IsAuthenticated],
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def update_profile_image(self, request):
+        user = request.user
+
+        profile_image = request.FILES.get("profile_image")
+
+        if not profile_image:
+            return Response(
+                {"detail": "No profile image was provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.profile_image = profile_image
+        user.save(update_fields=["profile_image"])
+
+        return Response(UserDetailSerializer(user).data)
