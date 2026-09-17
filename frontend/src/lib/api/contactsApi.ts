@@ -43,6 +43,12 @@ type BackendContact = {
   account_name?: string | null;
   account_info?: { name?: string | null } | null;
   contact_name?: string | null;
+  country?: string | null;
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  description?: string | null;
   created_at?: string;
   updated_at?: string;
   lead_conversion_reference?: {
@@ -110,6 +116,12 @@ function normalizeContact(item: BackendContact): ContactRecord {
     createdAt: item.created_at ?? "",
     updatedAt: item.updated_at ?? "",
     accountId: item.account ? String(item.account) : undefined,
+    country: item.country ?? "",
+    street: item.street ?? "",
+    city: item.city ?? "",
+    state: item.state ?? "",
+    zipCode: item.zip_code ?? "",
+    description: item.description ?? "",
     createdFromLeadId: item.lead_conversion_reference ? String(item.lead_conversion_reference.id) : undefined,
     createdFromLeadName: item.lead_conversion_reference
       ? `${item.lead_conversion_reference.first_name} ${item.lead_conversion_reference.last_name}`.trim()
@@ -278,7 +290,7 @@ export async function getContacts(options?: { pageSize?: number; maxPages?: numb
 
 export async function getContactById(id: string): Promise<ContactRecord | null> {
   try {
-    const data = await apiRequest<BackendContact>(endpoint(`/contacts/${id}`));
+    const data = await apiRequest<BackendContact>(endpoint(`/contacts/${id}`), { forceFresh: true, cacheTtlMs: 0 });
     return normalizeContact(data);
   } catch (error) {
     if (error instanceof Error && error.message.includes("404")) {
