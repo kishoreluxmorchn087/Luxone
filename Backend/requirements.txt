@@ -8,6 +8,7 @@ drf-yasg==1.21.15
 gunicorn==23.0.0
 inflection==0.5.1
 packaging==26.0
+Pillow==11.3.0
 psycopg2-binary==2.9.11
 openpyxl==3.1.5
 PyJWT==2.11.0
