@@ -12,12 +12,6 @@ def generate_and_send_otp(email):
     email = email.strip().lower()
     # Invalidate previous OTPs for this email
     with transaction.atomic():
-        if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and (
-            not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD
-        ):
-            logger.error("OTP email delivery is not configured: SMTP credentials are missing")
-            return False
-
         OTP.objects.filter(email__iexact=email, is_verified=False).update(is_verified=True)
 
         # Generate 6 digit OTP
