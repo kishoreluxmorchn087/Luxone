@@ -278,7 +278,7 @@ class SendOTPView(APIView):
             if user:
                 if generate_and_send_otp(email):
                     return Response(custom_response(success=True, message="OTP sent successfully to " + email), status=status.HTTP_200_OK)
-                return Response(custom_response(success=False, message="Failed to send OTP"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(custom_response(success=False, message="OTP email delivery is unavailable. Check the configured email provider."), status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
@@ -319,7 +319,7 @@ class ForgotPasswordView(APIView):
             if user:
                 if generate_and_send_otp(email):
                     return Response(custom_response(success=True, message="OTP sent successfully"), status=status.HTTP_200_OK)
-                return Response(custom_response(success=False, message="Failed to send OTP"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(custom_response(success=False, message="OTP email delivery is unavailable. Check the configured email provider."), status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
