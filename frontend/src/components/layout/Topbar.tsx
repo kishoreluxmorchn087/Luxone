@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   CalendarDays,
+  KeyRound,
   Menu,
   User,
   X,
@@ -227,6 +228,7 @@ const getPageTitle = (pathname: string) => {
   if (pathname === "/reports") return "Reports";
   if (pathname === "/analytics") return "Analytics";
   if (pathname === "/my-requests") return "My Requests";
+  if (pathname === "/change-password") return "Change Password";
   return "";
 };
 
@@ -845,6 +847,14 @@ export default function Topbar({
               </div>
 
               <div className="border-t border-slate-200 p-4">
+                <button
+                  type="button"
+                  onClick={() => { setProfileOpen(false); navigate("/change-password"); }}
+                  className="mb-2 flex w-full items-center justify-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                >
+                  <KeyRound size={16} />
+                  Change Password
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center justify-center gap-2 rounded-md bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
