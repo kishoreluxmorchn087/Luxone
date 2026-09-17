@@ -12,6 +12,7 @@ type BackendAccount = {
   website?: string | null;
   phone?: string | null;
   industry?: string | null;
+  account_type?: string | null;
   annual_revenue?: string | null;
   employee_count?: number | null;
   employees?: number | null;
@@ -55,6 +56,7 @@ function normalizeAccount(item: BackendAccount): AccountRecord {
   return {
     id: String(item.id),
     accountName,
+    accountType: item.account_type ?? "",
     accountOwner:
       item.owner_name ??
       item.owner_email ??
@@ -135,7 +137,7 @@ export async function getAccounts(options?: { pageSize?: number; cacheTtlMs?: nu
 
 export async function getAccountById(id: string): Promise<AccountRecord | null> {
   try {
-    const data = await apiRequest<BackendAccount>(endpoint(`/accounts/${id}`));
+    const data = await apiRequest<BackendAccount>(endpoint(`/accounts/${id}`), { forceFresh: true, cacheTtlMs: 0 });
     return normalizeAccount(data);
   } catch (error) {
     if (error instanceof Error && error.message.includes("404")) {

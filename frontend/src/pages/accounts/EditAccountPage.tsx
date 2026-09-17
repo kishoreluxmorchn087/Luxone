@@ -69,7 +69,7 @@ export default function EditAccountPage() {
         setInitialValues({
           accountOwner: account.accountOwner,
           accountName: account.accountName,
-          accountType: "",
+          accountType: account.accountType ?? "",
           phone: account.phone,
           website: account.website,
           industry: account.industry,
