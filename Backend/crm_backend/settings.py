@@ -150,9 +150,9 @@ def get_database_config() -> dict:
 
     config = {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'tenant_zora'),
+        'NAME': os.getenv('DB_NAME', 'CRM'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'zora'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'Zora'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
