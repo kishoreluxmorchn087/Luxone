@@ -116,6 +116,30 @@ class AuthenticationApiTests(APITestCase):
         self.assertEqual(OTP.objects.filter(email=self.user.email).count(), 0)
         mocked_send_mail.assert_called_once()
 
+    @patch("authentication.services.send_mail")
+    def test_password_reset_otp_must_match_before_reset(self, mocked_send_mail):
+        self.client.post(
+            "/api/auth/forgot-password",
+            {"email": self.user.email},
+            format="json",
+        )
+        otp = OTP.objects.get(email=self.user.email, is_verified=False)
+
+        valid_response = self.client.post(
+            "/api/auth/verify-reset-otp",
+            {"email": self.user.email, "otp": otp.code},
+            format="json",
+        )
+        invalid_response = self.client.post(
+            "/api/auth/verify-reset-otp",
+            {"email": self.user.email, "otp": "000000"},
+            format="json",
+        )
+
+        self.assertEqual(valid_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(invalid_response.data["message"], "Invalid or expired OTP")
+
     def test_change_password_updates_password_with_correct_current_password(self):
         self.client.force_authenticate(user=self.user)
 
