@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 
+from .models import OTP
 from .views import get_tenant_user_for_email
 
 
@@ -102,6 +103,18 @@ class AuthenticationApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mocked_send_mail.assert_called_once()
         self.assertEqual(mocked_send_mail.call_args.args[2], "otp@crm.example")
+
+    @patch("authentication.services.send_mail", side_effect=OSError("SMTP unavailable"))
+    def test_forgot_password_rolls_back_otp_when_email_delivery_fails(self, mocked_send_mail):
+        response = self.client.post(
+            "/api/auth/forgot-password",
+            {"email": self.user.email},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(OTP.objects.filter(email=self.user.email).count(), 0)
+        mocked_send_mail.assert_called_once()
 
     def test_change_password_updates_password_with_correct_current_password(self):
         self.client.force_authenticate(user=self.user)
