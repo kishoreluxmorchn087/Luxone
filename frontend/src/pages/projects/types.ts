@@ -27,6 +27,15 @@ export interface ProjectTask {
   priority: ProjectPriority;
 }
 
+export function getProjectTaskProgress(tasks: ProjectTask[] | undefined, fallback = 0) {
+  if (!tasks) return fallback;
+  if (tasks.length === 0) return 0;
+
+  return Math.round(
+    (tasks.filter((task) => task.status.trim().toLowerCase() === "completed").length / tasks.length) * 100
+  );
+}
+
 export interface ProjectIssue {
   id: string | number;
   title: string;
