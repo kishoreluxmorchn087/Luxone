@@ -1157,7 +1157,7 @@ function ModalShell({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-6">
-      <div className="flex max-h-[92vh] w-full max-w-[860px] flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-215 flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="border-b border-slate-200 px-6 py-5">
           <div className="flex items-center justify-between">
             <h2 className="text-[34px] font-semibold text-slate-900">{title}</h2>
