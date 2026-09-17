@@ -93,6 +93,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [filterOpen, setFilterOpen] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
+  const [activeView, setActiveView] = useState<"list" | "table" | "chart" | "layout" | "map" | "panels">("list");
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
   useEffect(() => {
@@ -161,6 +162,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
+          activeViewType={activeView}
+          onViewTypeChange={setActiveView}
         />
 
         {meta.extraHeaderAction && (
@@ -225,16 +228,18 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
             )}
 
             <div className="min-w-0 flex-1 space-y-3">
-              <CRMTable
-                rows={paginatedRows as any}
-                columns={visibleColumns as any}
-                rowActions={meta.rowActions}
-                selectedIds={selectedIds}
-                hiddenColumns={hiddenColumns}
-                pinnedColumn={pinnedColumn}
-                columnFilters={columnFilters}
-                showNotes={moduleKey === "vendors"}
-                showActivity={moduleKey === "vendors"}
+              {activeView === "list" || activeView === "table" ? (
+                <CRMTable
+                  rows={paginatedRows as any}
+                  columns={visibleColumns as any}
+                  rowActions={meta.rowActions}
+                  selectedIds={selectedIds}
+                  hiddenColumns={hiddenColumns}
+                  pinnedColumn={pinnedColumn}
+                  columnFilters={columnFilters}
+                  showNotes={moduleKey === "vendors"}
+                  showActivity={moduleKey === "vendors"}
+                  variant={activeView === "table" ? "bordered" : "default"}
                 onToggleAll={(checked) => {
                   setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                 }}
@@ -303,13 +308,69 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
                 onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
               />
+              ) : activeView === "panels" ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-6 shadow-sm ring-1 ring-slate-900/5">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {paginatedRows.map((row: any) => (
+                      <div 
+                        key={row.id} 
+                        onClick={() => navigate(`${meta.baseRoute}/${row.id}`)}
+                        className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg"
+                      >
+                        <div className="absolute left-0 top-0 h-full w-[4px] bg-gradient-to-b from-blue-400 to-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+                        <div className="mb-4 flex items-start justify-between">
+                          <h3 className="truncate font-semibold text-slate-800 transition-colors group-hover:text-blue-600">
+                            {row.subject || row.name || row.productName || "Unnamed Record"}
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {visibleColumns.slice(0, 4).map((col: any) => (
+                            <div key={col.key} className="flex justify-between text-sm">
+                              <span className="text-slate-500">{col.title}</span>
+                              <span className="font-medium text-slate-700 truncate max-w-[120px] text-right">
+                                {row[col.key] || "-"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {paginatedRows.length === 0 && (
+                      <div className="col-span-full py-12 text-center text-slate-500">
+                        No records found.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-96 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-center">
+                  <div className="rounded-full bg-slate-50 p-4">
+                    <span className="text-4xl text-slate-400">🚧</span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium text-slate-900 capitalize">
+                    {activeView === "layout" ? "Grid" : activeView} View
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    The {activeView === "layout" ? "Grid" : activeView} view is currently under construction for the {meta.title} module.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("list")}
+                    className="mt-6 rounded-md bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                  >
+                    Return to List View
+                  </button>
+                </div>
+              )}
 
-              <CRMPagination
-                page={page}
-                pageSize={pageSize}
-                totalItems={processedRows.length}
-                onPageChange={setPage}
-              />
+              {activeView === "list" || activeView === "table" || activeView === "panels" ? (
+                <CRMPagination
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={processedRows.length}
+                  onPageChange={setPage}
+                />
+              ) : null}
             </div>
           </div>
         )}
