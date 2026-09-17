@@ -297,7 +297,7 @@ export default function ReportsPage() {
               {reportData.summary_cards.map((card) => (
                 <article
                   key={card.key}
-                  className={`rounded-[24px] border px-5 py-5 shadow-[0_10px_28px_rgba(52,37,19,0.05)] ${toneClasses(card.tone)}`}
+                  className={`rounded-3xl border px-5 py-5 shadow-[0_10px_28px_rgba(52,37,19,0.05)] ${toneClasses(card.tone)}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>

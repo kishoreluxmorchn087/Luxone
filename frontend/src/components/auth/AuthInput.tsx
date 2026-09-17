@@ -27,7 +27,7 @@ const AuthInput = ({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className={`h-[44px] w-full rounded-[12px] border bg-white px-4 pr-11 text-[15px] text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
+          className={`h-11 w-full rounded-xl border bg-white px-4 pr-11 text-[15px] text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
             error
               ? "border-red-300 focus:border-red-400 focus:ring-red-100"
               : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
