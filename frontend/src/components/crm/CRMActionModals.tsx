@@ -881,10 +881,27 @@ export function MassUpdateModal({
     deals: ["Qualification", "Needs Analysis", "Value Proposition", "Identify Decision Makers", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"],
     contacts: [],
     accounts: ["Analyst", "Competitor", "Customer", "Distributor", "Integrator", "Investor", "Partner", "Press", "Prospect", "Reseller", "Other"],
+    products: ["Software", "Hardware", "Service", "Subscription", "Add-on"],
+    vendors: ["Active", "Inactive", "Pending"],
+    quotes: ["Draft", "Negotiation", "Delivered", "On Hold", "Confirmed", "Closed Accepted", "Closed Lost"],
+    "sales-orders": ["Created", "Approved", "Delivered", "Cancelled"],
+    "purchase-orders": ["Draft", "Issued", "Received", "Cancelled"],
+    invoices: ["Draft", "Sent", "Paid", "Partially Paid", "Overdue", "Cancelled"],
   };
 
   const options = statusOptions[module] ?? [];
-  const statusLabel = module === "leads" ? "Lead Status" : module === "deals" ? "Stage" : module === "accounts" ? "Account Type" : "Status";
+   const statusLabel =
+    module === "leads"
+      ? "Lead Status"
+      : module === "deals"
+      ? "Stage"
+      : module === "accounts"
+      ? "Account Type"
+      : module === "products"
+      ? "Product Category"
+      : module === "quotes"
+      ? "Quote Stage"
+      : "Status";
 
   useEffect(() => {
     if (open) { setOwner(""); setStatus(""); setError(null); }
@@ -897,6 +914,9 @@ export function MassUpdateModal({
       if (module === "leads") updates.lead_status = status;
       else if (module === "deals") updates.stage = status;
       else if (module === "accounts") updates.account_type = status;
+       else if (module === "products") updates.product_category = status;
+      else if (module === "quotes") updates.quote_stage = status;
+      else updates.status = status;
     }
     if (Object.keys(updates).length === 0) {
       setError("Please fill in at least one field to update.");
