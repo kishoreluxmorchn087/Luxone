@@ -44,7 +44,7 @@ type ActivityTask = {
   due_date?: string | null;
   status?: string | null;
   priority?: string | null;
-};
+}; 
 
 type ActivityMeeting = {
   id: number | string;
