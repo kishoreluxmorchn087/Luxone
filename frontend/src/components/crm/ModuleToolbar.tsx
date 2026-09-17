@@ -28,6 +28,8 @@ type ModuleToolbarProps = {
   onCreateClick: () => void;
   onApplySort?: (columnKey: string | null, direction: "asc" | "desc") => void;
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
+  activeViewType?: "list" | "table" | "chart" | "layout" | "map" | "panels";
+  onViewTypeChange?: (view: "list" | "table" | "chart" | "layout" | "map" | "panels") => void;
 };
 
 const defaultSortFields = [
@@ -62,6 +64,8 @@ export default function ModuleToolbar({
   onCreateClick,
   onApplySort,
   onMassAction,
+  activeViewType = "list",
+  onViewTypeChange,
 }: ModuleToolbarProps) {
   const navigate = useNavigate();
 
@@ -72,7 +76,9 @@ export default function ModuleToolbar({
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [ellipsisMenuOpen, setEllipsisMenuOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const ellipsisMenuRef = useRef<HTMLDivElement | null>(null);
+  const viewMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedField, setSelectedField] = useState(fields[0] ?? "None");
   const [selectedOrder, setSelectedOrder] = useState<"Ascending" | "Descending">(
@@ -145,6 +151,13 @@ export default function ModuleToolbar({
         setEllipsisMenuOpen(false);
       }
 
+      if (
+        viewMenuRef.current &&
+        !viewMenuRef.current.contains(event.target as Node)
+      ) {
+        setViewMenuOpen(false);
+      }
+
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
@@ -205,9 +218,31 @@ export default function ModuleToolbar({
             {viewName}
           </button>
 
-          <button type="button" className={toolbarIconButtonClass}>
-            <Ellipsis size={18} />
-          </button>
+          <div className="relative" ref={viewMenuRef}>
+            <button
+              type="button"
+              onClick={() => setViewMenuOpen((prev) => !prev)}
+              className={toolbarIconButtonClass}
+            >
+              <Ellipsis size={18} />
+            </button>
+            {viewMenuOpen && (
+              <div className="absolute left-0 top-[42px] z-50 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                {(["Edit View", "Rename", "Clone", "Share", "Delete"] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setViewMenuOpen(false)}
+                    className={`block w-full px-4 py-2 text-left text-sm transition hover:bg-slate-100 ${
+                      item === "Delete" ? "text-red-600 hover:bg-red-50" : "text-slate-700"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -317,29 +352,101 @@ export default function ModuleToolbar({
             <>
               <div className="mx-1 h-5 w-px bg-slate-200" />
 
-              <button className="flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100">
-                <ListFilter size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("list")}
+                  className={activeViewType === "list" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <ListFilter size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    List View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
-                <PanelsTopLeft size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("panels")}
+                  className={activeViewType === "panels" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <PanelsTopLeft size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    Layout View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
-                <Table size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("table")}
+                  className={activeViewType === "table" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <Table size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    Table View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
-                <ChartPie size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("chart")}
+                  className={activeViewType === "chart" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <ChartPie size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    Chart View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
-                <LayoutGrid size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("layout")}
+                  className={activeViewType === "layout" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    Grid View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
-                <MapPin size={16} />
-              </button>
+              <div className="group relative">
+                <button 
+                  type="button"
+                  onClick={() => onViewTypeChange?.("map")}
+                  className={activeViewType === "map" ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100" : toolbarIconButtonClass}
+                >
+                  <MapPin size={16} />
+                </button>
+                <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white shadow-md">
+                    Map View
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -ml-1 border-4 border-transparent border-b-slate-800"></div>
+                </div>
+              </div>
 
               <button className={toolbarIconButtonClass}>
                 <ChevronDown size={16} />
