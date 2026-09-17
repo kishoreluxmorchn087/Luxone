@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
-import { changePassword, clearAuthSession, getAccessToken, getStoredUser } from "../lib/api/authApi";
+import { changePassword, getAccessToken, getStoredUser } from "../lib/api/authApi";
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ export default function ChangePasswordPage() {
 
   const user = getStoredUser();
   const accessToken = getAccessToken();
+  const isForcedChange = user?.must_change_password === true;
 
   const inputCls =
     "w-full rounded-[8px] border border-[#cfd7e6] px-3 py-2.5 text-sm text-slate-800 outline-none transition-colors focus:border-[#359de9] focus:ring-2 focus:ring-[#359de9]/10";
@@ -45,8 +46,10 @@ export default function ChangePasswordPage() {
     setLoading(true);
     try {
       await changePassword(currentPassword, newPassword, confirmPassword, accessToken);
-      clearAuthSession();
-      navigate("/login", { replace: true });
+      if (user) {
+        localStorage.setItem("loggedInUser", JSON.stringify({ ...user, must_change_password: false }));
+      }
+      navigate("/home", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change password.");
     } finally {
@@ -56,23 +59,24 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center px-4">
-      <div className="w-full max-w-[420px]">
+      <div className="w-full max-w-105">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
             <ShieldCheck size={28} className="text-[#359de9]" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1f2d3d]">Set Your Password</h1>
+          <h1 className="text-2xl font-bold text-[#1f2d3d]">
+            {isForcedChange ? "Set Your Password" : "Change Password"}
+          </h1>
           <p className="mt-2 text-sm text-slate-500">
-            {user?.email
-              ? `Welcome, ${user.name || user.email.split("@")[0]}!`
-              : "Welcome!"}{" "}
-            Please set a new password to continue.
+            {isForcedChange
+              ? `${user?.email ? `Welcome, ${user.name || user.email.split("@")[0]}! ` : ""}Please set a new password to continue.`
+              : "Update your password to keep your account secure."}
           </p>
         </div>
 
         <div className="rounded-[20px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.08)] p-8">
-          <div className="mb-5 rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            <strong>Security Notice:</strong> Your account was created by an administrator. You must set a personal password before accessing the system.
+          <div className="mb-5 rounded-lgrder border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            <strong>Security Notice:</strong> Use a password you do not reuse elsewhere.
           </div>
 
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4" noValidate>
@@ -142,7 +146,7 @@ export default function ChangePasswordPage() {
             </div>
 
             {error && (
-              <div className="rounded-[6px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
                 {error}
               </div>
             )}
@@ -150,14 +154,14 @@ export default function ChangePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-linear-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {loading ? (
                 <Loader2 size={15} className="animate-spin" />
               ) : (
                 <KeyRound size={15} />
               )}
-              {loading ? "Saving…" : "Set Password & Continue"}
+              {loading ? "Saving..." : isForcedChange ? "Set Password & Continue" : "Change Password"}
             </button>
           </form>
         </div>
