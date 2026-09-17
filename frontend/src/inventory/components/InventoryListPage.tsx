@@ -6,14 +6,11 @@ import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
+import type { CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
-import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal } from "../../components/crm/CRMActionModals";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
-import InventoryCardGrid from "./InventoryCardGrid";
 
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
@@ -96,8 +93,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [filterOpen, setFilterOpen] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
-  const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
   useEffect(() => {
@@ -133,44 +128,18 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-      let output = filterRecords(rows, visibleColumns as unknown as CRMColumn<CRMRecord>[], combined, globalSearch);    if (sortState) {
+    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
+    if (sortState) {
       output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
     }
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
+  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return processedRows.slice(start, start + pageSize);
   }, [page, pageSize, processedRows]);
-const handleMassDelete = async () => {
-    const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
-    await Promise.all(targetIds.map((id) => deleteInventoryRecord(moduleKey, id)));
-    setSelectedIds([]);
-    setMassAction(null);
-    void load();
-  };
-
-  const handleMassUpdate = async (updates: Record<string, string>) => {
-    const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
-    const cleanedUpdates: Record<string, unknown> = { ...updates };
-    if (cleanedUpdates.owner && isNaN(Number(cleanedUpdates.owner))) {
-      delete cleanedUpdates.owner;
-    }
-    if (Object.keys(cleanedUpdates).length === 0) return;
-    await Promise.all(
-      targetIds.map((id) =>
-        apiRequest(`${meta.baseRoute}/${id}/`, {
-          method: "PATCH",
-          body: JSON.stringify(cleanedUpdates),
-        })
-      )
-    );
-    setSelectedIds([]);
-    setMassAction(null);
-    void load();
-  };
 
   if (loading) {
     return <div className="p-6 text-sm text-slate-600">Loading {meta.title.toLowerCase()}...</div>;
@@ -192,9 +161,6 @@ const handleMassDelete = async () => {
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onMassAction={setMassAction}
         />
 
         {meta.extraHeaderAction && (
@@ -259,83 +225,6 @@ const handleMassDelete = async () => {
             )}
 
             <div className="min-w-0 flex-1 space-y-3">
-                             {viewMode === "list" && (
-                <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  {paginatedRows.map((row) => {
-                    const r = row as Record<string, unknown>;
-                    const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
-                    const badge = String(r.productCategory || r.category || r.status || r.productType || "");
-                    const isSelected = selectedIds.includes(row.id);
-                    const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
-                    const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
-
-                    return (
-                      <div
-                        key={row.id}
-                        className={`flex items-center justify-between p-4 transition-colors hover:bg-slate-50 ${
-                          isSelected ? "bg-blue-50/40" : ""
-                        }`}
-                      >
-                        <div className="flex min-w-0 flex-1 items-center gap-4">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              setSelectedIds((prev) =>
-                                e.target.checked ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id)
-                              );
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div
-                            onClick={() => navigate(`${meta.baseRoute}/${row.id}`)}
-                            className="min-w-0 flex-1 cursor-pointer"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="truncate font-semibold text-slate-900 hover:text-blue-600">{title}</span>
-                              {badge && (
-                                <span className="shrink-0 rounded bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
-                                  {badge}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                              {Boolean(r.productCode) && <span>SKU: {String(r.productCode)}</span>}
-                              {Boolean(r.vendorName || r.owner) && <span>{String(r.vendorName || r.owner)}</span>}
-                              {r.quantityInStock !== undefined && <span>Stock: {String(r.quantityInStock)}</span>}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-4 pl-4">
-                          {unitPrice !== undefined && (
-                            <div className="text-right">
-                              <div className="text-base font-bold text-slate-900">{formatMoney(unitPrice)}</div>
-                              {Boolean(r.billingCycle) && (
-                                <div className="text-xs text-slate-500">{String(r.billingCycle)}</div>
-                              )}
-                            </div>
-                          )}
-                          {grandTotal !== undefined && unitPrice === undefined && (
-                            <div className="text-right">
-                              <div className="text-base font-bold text-slate-900">{formatMoney(grandTotal)}</div>
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => navigate(`${meta.baseRoute}/${row.id}`)}
-                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                          >
-                            View
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {viewMode === "table" && (
               <CRMTable
                 rows={paginatedRows as any}
                 columns={visibleColumns as any}
@@ -353,8 +242,58 @@ const handleMassDelete = async () => {
                   setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
                 }}
                 onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
-                onRowAction={handleRowAction}
-               
+                onRowAction={async (actionKey, row) => {
+                  if (actionKey === "open" || actionKey === "edit") {
+                    navigate(`${meta.baseRoute}/${row.id}`);
+                    return;
+                  }
+                  if (actionKey === "preview") {
+                    navigate(`${meta.baseRoute}/${row.id}?preview=1`);
+                    return;
+                  }
+                  if (actionKey === "duplicate") {
+                    navigate(`${meta.baseRoute}/create?duplicate=${encodeURIComponent(row.id)}`);
+                    return;
+                  }
+                  if (actionKey === "delete") {
+                    await deleteInventoryRecord(moduleKey, row.id);
+                    void load();
+                    return;
+                  }
+                  if (actionKey === "convert-to-sales-order") {
+                    const response = await convertQuoteToSalesOrder(row.id);
+                    navigate(`/sales-orders/${response.id}`);
+                    return;
+                  }
+                  if (actionKey === "convert-to-invoice") {
+                    const response = await convertSalesOrderToInvoice(row.id);
+                    navigate(`/invoices/${response.id}`);
+                    return;
+                  }
+                  if (actionKey === "create-service-appointment") {
+                    const query =
+                      moduleKey === "sales-orders"
+                        ? `?salesOrder=${encodeURIComponent(row.id)}`
+                        : `?invoice=${encodeURIComponent(row.id)}`;
+                    navigate(`/services/appointments/create${query}`);
+                    return;
+                  }
+                  if (actionKey === "create-project") {
+                    const inventoryRow = row as any;
+                    const params = new URLSearchParams({
+                      sourceModule: moduleKey,
+                      sourceId: row.id,
+                      sourceLabel: String(inventoryRow.subject || inventoryRow.name || meta.singular),
+                      name: String(inventoryRow.subject || meta.singular),
+                      accountName: String(inventoryRow.accountName || ""),
+                      contactName: String(inventoryRow.contactName || ""),
+                      dealName: String(inventoryRow.dealName || ""),
+                      owner: String(inventoryRow.owner || ""),
+                      dueDate: String(inventoryRow.dueDate || ""),
+                    });
+                    navigate(`/projects/create?${params.toString()}`);
+                  }
+                }}
                 onSortColumn={(columnKey, direction) => setSortState({ key: columnKey, direction })}
                 onToggleHideColumn={(columnKey) => {
                   setHiddenColumns((prev) =>
@@ -364,23 +303,6 @@ const handleMassDelete = async () => {
                 onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
                 onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
               />
-              ) : (
-                <InventoryCardGrid
-                  rows={paginatedRows as any}
-                  moduleKey={moduleKey}
-                  columns={visibleColumns as any}
-                  rowActions={meta.rowActions}
-                  selectedIds={selectedIds}
-                  onToggleAll={(checked) => {
-                    setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
-                  }}
-                  onToggleRow={(id, checked) => {
-                    setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
-                  }}
-                  onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
-                  onRowAction={handleRowAction}
-                />
-              )}
 
               <CRMPagination
                 page={page}
