@@ -10,7 +10,7 @@ import type {
   ProjectMeeting,
   ProjectMeetingAttendanceRecord,
 } from "./types";
-import { getProjectTaskProgress } from "./types";
+import { getCompletedProjectTaskCount, getProjectTaskProgress } from "./types";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "./ProjectStatusBadge";
 import { CalendarDays, FileText, FolderKanban, ArrowLeft, Pencil, Plus, Trash2, Check, X, Eye } from "lucide-react";
 
@@ -115,7 +115,7 @@ export default function ProjectDetailPage() {
   }, []);
 
   const completedTasks = useMemo(
-    () => project?.tasks?.filter((t) => t.status === "Completed").length ?? 0,
+    () => getCompletedProjectTaskCount(project?.tasks),
     [project]
   );
   const taskProgress = getProjectTaskProgress(project?.tasks, project?.progress ?? 0);

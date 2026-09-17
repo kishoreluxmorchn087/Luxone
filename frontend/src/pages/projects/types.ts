@@ -27,13 +27,20 @@ export interface ProjectTask {
   priority: ProjectPriority;
 }
 
+function isCompletedTask(task: ProjectTask) {
+  const status = String(task.status ?? "").trim().toLowerCase().replace(/[_-]+/g, " ");
+  return ["completed", "complete", "done", "closed"].includes(status);
+}
+
+export function getCompletedProjectTaskCount(tasks: ProjectTask[] | undefined) {
+  return Array.isArray(tasks) ? tasks.filter(isCompletedTask).length : 0;
+}
+
 export function getProjectTaskProgress(tasks: ProjectTask[] | undefined, fallback = 0) {
-  if (!tasks) return fallback;
+  if (!Array.isArray(tasks)) return fallback;
   if (tasks.length === 0) return 0;
 
-  return Math.round(
-    (tasks.filter((task) => task.status.trim().toLowerCase() === "completed").length / tasks.length) * 100
-  );
+  return Math.round((getCompletedProjectTaskCount(tasks) / tasks.length) * 100);
 }
 
 export interface ProjectIssue {
