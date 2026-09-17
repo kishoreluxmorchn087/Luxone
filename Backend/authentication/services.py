@@ -29,8 +29,13 @@ def generate_and_send_otp(email):
                 [email],
                 fail_silently=False,
             )
-        except Exception:
-            logger.exception("Failed to send OTP email to %s", email)
+        except Exception as exc:
+            logger.exception(
+                "Failed to send OTP email to %s using %s: %s",
+                email,
+                settings.EMAIL_BACKEND,
+                exc,
+            )
             transaction.set_rollback(True)
             return False
 
