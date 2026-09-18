@@ -13,6 +13,11 @@ import {
   MapPin,
   Search,
   Check,
+  Trash2,
+  RefreshCw,
+  Share2,
+  Download,
+  Printer,
 } from "lucide-react";
 
 type ModuleToolbarProps = {
@@ -190,7 +195,10 @@ export default function ModuleToolbar({
   };
 
   const toolbarIconButtonClass =
-    "flex cursor-pointer items-center justify-center rounded-md p-2 text-slate-600 transition duration-150 hover:bg-slate-100 hover:shadow-sm active:bg-slate-200";
+    "relative flex cursor-pointer items-center justify-center rounded-lg p-2 text-slate-500 transition-all duration-200 hover:bg-gradient-to-b hover:from-slate-50 hover:to-slate-100 hover:text-slate-700 hover:shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:scale-95 active:bg-slate-200";
+
+  const toolbarIconActiveClass =
+    "relative flex cursor-pointer items-center justify-center rounded-lg bg-gradient-to-b from-blue-50 to-blue-100/80 p-2 text-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.15),inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-blue-200/60 transition-all duration-200 hover:from-blue-100 hover:to-blue-150 hover:shadow-[0_4px_12px_rgba(37,99,235,0.2)] active:scale-95";
 
   return (
     <>
@@ -310,7 +318,7 @@ export default function ModuleToolbar({
 
           {!hidePostSortIconStrip && (
             <>
-              <div className="mx-1 h-5 w-px bg-slate-200" />
+              <div className="mx-1.5 h-5 w-px bg-slate-200" />
 
               <button
                 type="button"
