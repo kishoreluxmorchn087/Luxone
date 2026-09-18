@@ -107,6 +107,7 @@ type FullUserDetail = {
   name?: string;
   role: string;
   role_display?: string;
+  profile_image?: string | null;
   department?: string;
   department_display?: string;
   status?: string;
@@ -829,7 +830,15 @@ export default function Topbar({
                     : fullUser?.status === "inactive" ? "bg-slate-100 text-slate-500"
                       : "bg-blue-100 text-blue-700"
                     }`}>
-                    {displayName[0]}
+                    {fullUser?.profile_image ? (
+                     <img
+                      src={`http://localhost:8000${fullUser.profile_image}`}
+                       alt={`${displayName} profile`}
+                      className="h-full w-full rounded-full object-cover"
+                         />
+                        ) : (
+                            displayName[0]
+                           )}
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-bold text-slate-900">{displayName}</h3>
