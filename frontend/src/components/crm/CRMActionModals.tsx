@@ -881,7 +881,7 @@ export function MassUpdateModal({
     deals: ["Qualification", "Needs Analysis", "Value Proposition", "Identify Decision Makers", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"],
     contacts: [],
     accounts: ["Analyst", "Competitor", "Customer", "Distributor", "Integrator", "Investor", "Partner", "Press", "Prospect", "Reseller", "Other"],
-  };
+      };
 
   const options = statusOptions[module] ?? [];
   const statusLabel = module === "leads" ? "Lead Status" : module === "deals" ? "Stage" : module === "accounts" ? "Account Type" : "Status";
@@ -896,7 +896,9 @@ export function MassUpdateModal({
     if (status) {
       if (module === "leads") updates.lead_status = status;
       else if (module === "deals") updates.stage = status;
-      else if (module === "accounts") updates.account_type = status;
+      else if (module === "accounts") updates.account_type = status;      else if (module === "products") updates.product_category = status;
+      else if (module === "quotes") updates.quote_stage = status;
+      else updates.status = status;
     }
     if (Object.keys(updates).length === 0) {
       setError("Please fill in at least one field to update.");
