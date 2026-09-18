@@ -28,6 +28,8 @@ type ModuleToolbarProps = {
   onCreateClick: () => void;
   onApplySort?: (columnKey: string | null, direction: "asc" | "desc") => void;
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
+  viewMode?: "list" | "table" | "grid" | "kanban" | "chart";
+  onViewModeChange?: (mode: "list" | "table" | "grid" | "kanban" | "chart") => void;
 };
 
 const defaultSortFields = [
@@ -62,6 +64,8 @@ export default function ModuleToolbar({
   onCreateClick,
   onApplySort,
   onMassAction,
+  viewMode = "table",
+  onViewModeChange,
 }: ModuleToolbarProps) {
   const navigate = useNavigate();
 
@@ -157,19 +161,10 @@ export default function ModuleToolbar({
     };
   }, []);
 
-  useEffect(() => {
-    if (fields.length === 0) {
-      setSelectedField("None");
-      return;
-    }
-
-    if (!fields.includes(selectedField)) {
-      setSelectedField(fields[0]);
-    }
-  }, [fields, selectedField]);
+  const currentField = fields.includes(selectedField) ? selectedField : (fields[0] ?? "None");
 
   const handleApplySort = () => {
-    const mappedKey = sortFieldKeyMap?.[selectedField] ?? null;
+    const mappedKey = sortFieldKeyMap?.[currentField] ?? null;
     const direction = selectedOrder === "Ascending" ? "asc" : "desc";
     onApplySort?.(mappedKey, direction);
     setSortModalOpen(false);
@@ -317,31 +312,86 @@ export default function ModuleToolbar({
             <>
               <div className="mx-1 h-5 w-px bg-slate-200" />
 
-              <button className="flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100">
+              <button
+                type="button"
+                id="module-toolbar-list-view"
+                title="List View"
+                aria-label="List View"
+                onClick={() => onViewModeChange?.("list")}
+                className={
+                  viewMode === "list"
+                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
+                    : toolbarIconButtonClass
+                }
+              >
                 <ListFilter size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button
+                type="button"
+                id="module-toolbar-panels-view"
+                title="Panels View"
+                aria-label="Panels View"
+                onClick={() => onViewModeChange?.("kanban")}
+                className={
+                  viewMode === "kanban"
+                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
+                    : toolbarIconButtonClass
+                }
+              >
                 <PanelsTopLeft size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button
+                type="button"
+                id="module-toolbar-table-view"
+                title="Table View"
+                aria-label="Table View"
+                onClick={() => onViewModeChange?.("table")}
+                className={
+                  viewMode === "table"
+                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
+                    : toolbarIconButtonClass
+                }
+              >
                 <Table size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button
+                type="button"
+                id="module-toolbar-chart-view"
+                title="Chart View"
+                aria-label="Chart View"
+                onClick={() => onViewModeChange?.("chart")}
+                className={
+                  viewMode === "chart"
+                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
+                    : toolbarIconButtonClass
+                }
+              >
                 <ChartPie size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button
+                type="button"
+                id="module-toolbar-grid-view"
+                title="Grid View"
+                aria-label="Grid View"
+                onClick={() => onViewModeChange?.("grid")}
+                className={
+                  viewMode === "grid"
+                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
+                    : toolbarIconButtonClass
+                }
+              >
                 <LayoutGrid size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button type="button" title="Map View" aria-label="Map View" className={toolbarIconButtonClass}>
                 <MapPin size={16} />
               </button>
 
-              <button className={toolbarIconButtonClass}>
+              <button type="button" title="More Views" aria-label="More Views" className={toolbarIconButtonClass}>
                 <ChevronDown size={16} />
               </button>
             </>
@@ -368,7 +418,7 @@ export default function ModuleToolbar({
                     }}
                     className="flex h-[38px] w-full cursor-pointer items-center justify-between rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 transition hover:bg-slate-50"
                   >
-                    <span className="truncate">{selectedField}</span>
+                    <span className="truncate">{currentField}</span>
                     <ChevronDown size={16} className="text-slate-500" />
                   </button>
 
