@@ -307,7 +307,8 @@ export default function LoginPage() {
                   </div>
                   <div className="relative">
                     <input
-                      id="password" type={showPassword ? "text" : "password"}
+                      id="password" 
+                      type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       maxLength={PASSWORD_MAX_LENGTH}
                       value={password}
@@ -317,10 +318,12 @@ export default function LoginPage() {
                         if (error) setError("");
                       }}
                       placeholder="Enter your password"
-                      className={inputCls + " pr-10"}
+                      className={inputCls + " pr-16"}
                     />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)}
-                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600 text-xs" tabIndex={-1}>
+                    <button type="button" 
+                    onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
