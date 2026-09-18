@@ -6,7 +6,7 @@ import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMRecord } from "../../lib/shared/crmTypes";
+import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
@@ -96,7 +96,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [filterOpen, setFilterOpen] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"list" | "table" | "chart" | "layout" | "map" | "panels">("list");
+  const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
+  const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
   useEffect(() => {
@@ -132,12 +133,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
+    let output = filterRecords(rows, visibleColumns as unknown as CRMColumn<CRMRecord>[], combined, globalSearch);
     if (sortState) {
-      output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
+      output = sortRecords(output, sortState.key as keyof CRMRecord & string, sortState.direction);
     }
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
+  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
@@ -548,14 +549,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 </div>
               )}
 
-              {activeView === "list" || activeView === "table" || activeView === "panels" ? (
-                <CRMPagination
-                  page={page}
-                  pageSize={pageSize}
-                  totalItems={processedRows.length}
-                  onPageChange={setPage}
-                />
-              ) : null}
+              <CRMPagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={processedRows.length}
+                onPageChange={setPage}
+              />
             </div>
           </div>
         )}
