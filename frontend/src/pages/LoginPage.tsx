@@ -176,7 +176,7 @@ export default function LoginPage() {
     if (!fpEmail.trim()) { setFpError("Email is required."); return; }
     setFpLoading(true);
     try {
-      await authPost("/auth/forgot-password/", { email: fpEmail.trim() });
+        await authPost("/auth/forgot-password/", { email: fpEmail.trim() });
       setStep("forgot-otp");
     } catch (err) {
       setFpError(err instanceof Error ? err.message : "Failed to send OTP.");
@@ -190,7 +190,18 @@ export default function LoginPage() {
     e.preventDefault();
     setFpError("");
     if (!fpOtp.trim()) { setFpError("Enter the OTP sent to your email."); return; }
-    setStep("forgot-reset");
+    setFpLoading(true);
+    try {
+      await authPost("/auth/verify-reset-otp/", {
+        email: fpEmail.trim(),
+        otp: fpOtp.trim(),
+      });
+      setStep("forgot-reset");
+    } catch (err) {
+      setFpError(err instanceof Error ? err.message : "Invalid or expired OTP.");
+    } finally {
+      setFpLoading(false);
+    }
   };
 
   // ── Forgot: reset password ─────────────────────────────────────────────────
