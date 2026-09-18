@@ -6,7 +6,7 @@ import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
+import type { CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
@@ -14,7 +14,6 @@ import { MassDeleteModal, MassUpdateModal } from "../../components/crm/CRMAction
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
-import InventoryCardGrid from "./InventoryCardGrid";
 
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
@@ -133,44 +132,18 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-      let output = filterRecords(rows, visibleColumns as unknown as CRMColumn<CRMRecord>[], combined, globalSearch);    if (sortState) {
+    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
+    if (sortState) {
       output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
     }
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
+  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return processedRows.slice(start, start + pageSize);
   }, [page, pageSize, processedRows]);
-const handleMassDelete = async () => {
-    const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
-    await Promise.all(targetIds.map((id) => deleteInventoryRecord(moduleKey, id)));
-    setSelectedIds([]);
-    setMassAction(null);
-    void load();
-  };
-
-  const handleMassUpdate = async (updates: Record<string, string>) => {
-    const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
-    const cleanedUpdates: Record<string, unknown> = { ...updates };
-    if (cleanedUpdates.owner && isNaN(Number(cleanedUpdates.owner))) {
-      delete cleanedUpdates.owner;
-    }
-    if (Object.keys(cleanedUpdates).length === 0) return;
-    await Promise.all(
-      targetIds.map((id) =>
-        apiRequest(`${meta.baseRoute}/${id}/`, {
-          method: "PATCH",
-          body: JSON.stringify(cleanedUpdates),
-        })
-      )
-    );
-    setSelectedIds([]);
-    setMassAction(null);
-    void load();
-  };
 
   const handleMassDelete = async () => {
     const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);

@@ -170,10 +170,19 @@ export default function ModuleToolbar({
     };
   }, []);
 
-    const currentField = fields.includes(selectedField) ? selectedField : (fields[0] ?? "None");
+  useEffect(() => {
+    if (fields.length === 0) {
+      setSelectedField("None");
+      return;
+    }
+
+    if (!fields.includes(selectedField)) {
+      setSelectedField(fields[0]);
+    }
+  }, [fields, selectedField]);
 
   const handleApplySort = () => {
-     const mappedKey = sortFieldKeyMap?.[currentField] ?? null;
+    const mappedKey = sortFieldKeyMap?.[selectedField] ?? null;
     const direction = selectedOrder === "Ascending" ? "asc" : "desc";
     onApplySort?.(mappedKey, direction);
     setSortModalOpen(false);
@@ -439,8 +448,7 @@ export default function ModuleToolbar({
                 </div>
               </div>
 
-             <button 
-              <button type="button" title="More Views" aria-label="More Views" className={toolbarIconButtonClass}>
+              <button className={toolbarIconButtonClass}>
                 <ChevronDown size={16} />
               </button>
             </>
@@ -467,7 +475,7 @@ export default function ModuleToolbar({
                     }}
                     className="flex h-[38px] w-full cursor-pointer items-center justify-between rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 transition hover:bg-slate-50"
                   >
-                    <span className="truncate">{currentField}</span>
+                    <span className="truncate">{selectedField}</span>
                     <ChevronDown size={16} className="text-slate-500" />
                   </button>
 
