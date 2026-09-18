@@ -10,6 +10,7 @@ import type {
   ProjectMeeting,
   ProjectMeetingAttendanceRecord,
 } from "./types";
+import { getCompletedProjectTaskCount, getProjectTaskProgress } from "./types";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "./ProjectStatusBadge";
 import { CalendarDays, FileText, FolderKanban, ArrowLeft, Pencil, Plus, Trash2, Check, X, Eye } from "lucide-react";
 
@@ -114,9 +115,10 @@ export default function ProjectDetailPage() {
   }, []);
 
   const completedTasks = useMemo(
-    () => project?.tasks?.filter((t) => t.status === "Completed").length ?? 0,
+    () => getCompletedProjectTaskCount(project?.tasks),
     [project]
   );
+  const taskProgress = getProjectTaskProgress(project?.tasks, project?.progress ?? 0);
 
   const filteredTasks = useMemo(() => {
     const tasks = project?.tasks || [];
@@ -350,6 +352,19 @@ export default function ProjectDetailPage() {
             <InfoCard label="Account" value={project.account_name ?? ""} />
             <InfoCard label="Contact" value={project.contact_name ?? ""} />
             <InfoCard label="Deal" value={project.deal_name ?? ""} />
+          </div>
+
+          <div className="mt-6">
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span className="font-medium text-slate-700">Progress</span>
+              <span className="text-slate-500">{taskProgress}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100">
+              <div
+                className="h-2 rounded-full bg-blue-600 transition-[width]"
+                style={{ width: `${taskProgress}%` }}
+              />
+            </div>
           </div>
 
           {project.source_module && project.source_record_id ? (
@@ -896,7 +911,7 @@ function TaskModal({
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Description</label>
                 <textarea
-                  className={`${inputCls} min-h-[110px] resize-none`}
+                  className={`${inputCls} min-h-27.5 resize-none`}
                   value={form.description ?? ""}
                   onChange={(e) => setForm((previous) => ({ ...previous, description: e.target.value }))}
                   placeholder="Enter task description"
@@ -1179,7 +1194,7 @@ function EditableTasksTable({
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Description</label>
               <textarea
-                className={`${inputCls} min-h-[110px] resize-none bg-white`}
+                className={`${inputCls} min-h-27.5 resize-none bg-white`}
                 value={form.description ?? ""}
                 onChange={(e) => setForm((previous) => ({ ...previous, description: e.target.value }))}
                 placeholder="Enter task description"

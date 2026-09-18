@@ -890,7 +890,7 @@ export function MassUpdateModal({
   };
 
   const options = statusOptions[module] ?? [];
-  const statusLabel =
+   const statusLabel =
     module === "leads"
       ? "Lead Status"
       : module === "deals"
@@ -914,7 +914,7 @@ export function MassUpdateModal({
       if (module === "leads") updates.lead_status = status;
       else if (module === "deals") updates.stage = status;
       else if (module === "accounts") updates.account_type = status;
-      else if (module === "products") updates.product_category = status;
+       else if (module === "products") updates.product_category = status;
       else if (module === "quotes") updates.quote_stage = status;
       else updates.status = status;
     }

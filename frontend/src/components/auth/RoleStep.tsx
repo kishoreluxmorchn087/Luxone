@@ -94,7 +94,7 @@ const RoleStep = ({ email, role, onContinue, onBack }: RoleStepProps) => {
       <div className={`mb-5 rounded-2xl border-2 ${config.border} ${config.bg} p-5`}>
         {/* Icon + label row */}
         <div className="mb-4 flex items-center gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${config.gradient} text-white shadow-sm`}>
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br ${config.gradient} text-white shadow-sm`}>
             {config.icon}
           </div>
           <div>
@@ -112,7 +112,7 @@ const RoleStep = ({ email, role, onContinue, onBack }: RoleStepProps) => {
         <ul className="space-y-1.5">
           {config.access.map((item) => (
             <li key={item} className="flex items-center gap-2 text-[13px] text-slate-600">
-              <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-br ${config.gradient}`} />
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-linear-to-br ${config.gradient}`} />
               {item}
             </li>
           ))}

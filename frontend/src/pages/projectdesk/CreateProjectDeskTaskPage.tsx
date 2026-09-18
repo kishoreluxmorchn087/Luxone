@@ -233,7 +233,7 @@ export default function CreateProjectDeskTaskPage() {
               <div className="md:col-span-2">
                 <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
                 <textarea
-                  className={`${inputCls} min-h-[140px] resize-none`}
+                  className={`${inputCls} min-h-35 resize-none`}
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                   placeholder="Enter task description"

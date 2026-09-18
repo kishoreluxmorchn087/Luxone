@@ -176,7 +176,7 @@ export default function LoginPage() {
     if (!fpEmail.trim()) { setFpError("Email is required."); return; }
     setFpLoading(true);
     try {
-      await authPost("/auth/forgot-password/", { email: fpEmail.trim() });
+        await authPost("/auth/forgot-password/", { email: fpEmail.trim() });
       setStep("forgot-otp");
     } catch (err) {
       setFpError(err instanceof Error ? err.message : "Failed to send OTP.");
@@ -190,7 +190,18 @@ export default function LoginPage() {
     e.preventDefault();
     setFpError("");
     if (!fpOtp.trim()) { setFpError("Enter the OTP sent to your email."); return; }
-    setStep("forgot-reset");
+    setFpLoading(true);
+    try {
+      await authPost("/auth/verify-reset-otp/", {
+        email: fpEmail.trim(),
+        otp: fpOtp.trim(),
+      });
+      setStep("forgot-reset");
+    } catch (err) {
+      setFpError(err instanceof Error ? err.message : "Invalid or expired OTP.");
+    } finally {
+      setFpLoading(false);
+    }
   };
 
   // ── Forgot: reset password ─────────────────────────────────────────────────
@@ -229,7 +240,7 @@ export default function LoginPage() {
       <section className="relative hidden min-h-screen overflow-hidden bg-[#061532] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="absolute -left-24 top-20 h-80 w-80 rounded-full bg-indigo-600/30 blur-3xl" />
         <div className="absolute -right-20 bottom-16 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="relative z-10"><img src={luxmorWordmark} alt="Luxmor AI Technologies" className="h-20 w-auto max-w-[390px] rounded-2xl bg-white object-contain px-4 shadow-2xl" /></div>
+        <div className="relative z-10"><img src={luxmorWordmark} alt="Luxmor AI Technologies" className="h-20 w-auto max-w-97.5 rounded-2xl bg-white object-contain px-4 shadow-2xl" /></div>
         <div className="relative z-10 max-w-xl">
           <span className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">Customer intelligence, reimagined</span>
           <h1 className="mt-7 text-5xl font-bold leading-[1.08] tracking-tight">Turn every relationship into momentum.</h1>
@@ -239,7 +250,7 @@ export default function LoginPage() {
         <p className="relative z-10 text-xs text-slate-500">© 2026 Luxmor AI Technologies Pvt Ltd</p>
       </section>
       <section className="flex min-h-screen items-center justify-center bg-[#f6f8fc] px-4 py-10 sm:px-10">
-      <div className="w-full max-w-[430px]">
+      <div className="w-full max-w-107.5">
         <div className="mb-7 lg:hidden"><img src={luxmorWordmark} alt="Luxmor AI Technologies" className="mx-auto h-16 w-auto max-w-full rounded-xl bg-white object-contain px-3 shadow-sm" /></div>
         <div className="mb-7">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">LuxOne CRM</p>
@@ -255,7 +266,7 @@ export default function LoginPage() {
               <h2 className="mb-6 text-[18px] font-semibold text-[#071a40]">Sign in to your account</h2>
 
               {fpSuccess && (
-                <div className="mb-4 rounded-[6px] border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-700">
+                <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-700">
                   {fpSuccess}
                 </div>
               )}
@@ -301,7 +312,7 @@ export default function LoginPage() {
                       maxLength={PASSWORD_MAX_LENGTH}
                       value={password}
                       onChange={(e) => {
-                        setPassword(e.target.value.replace(/\s/g, "").slice(0, PASSWORD_MAX_LENGTH));
+                        setPassword(e.target.value.slice(0, PASSWORD_MAX_LENGTH));
                         setLoginErrors((current) => ({ ...current, password: undefined }));
                         if (error) setError("");
                       }}
@@ -319,13 +330,13 @@ export default function LoginPage() {
                 </div>
 
                 {error && (
-                  <div className="rounded-[6px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
                     {error}
                   </div>
                 )}
 
                 <button type="submit" disabled={loading}
-                  className="mt-2 w-full rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                  className="mt-2 w-full rounded-lg bg-linear-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                   {loading ? "Signing in…" : "Sign in"}
                 </button>
               </form>
@@ -347,11 +358,11 @@ export default function LoginPage() {
                 </div>
 
                 {fpError && (
-                  <div className="rounded-[6px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
                 )}
 
                 <button type="submit" disabled={fpLoading}
-                  className="w-full rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
+                  className="w-full rounded-lg bg-linear-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
                   {fpLoading ? "Sending…" : "Send OTP"}
                 </button>
 
@@ -381,11 +392,11 @@ export default function LoginPage() {
                 </div>
 
                 {fpError && (
-                  <div className="rounded-[6px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
                 )}
 
                 <button type="submit" disabled={fpOtp.length < 6}
-                  className="w-full rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
+                  className="w-full rounded-lg bg-linear-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
                   Verify OTP
                 </button>
 
@@ -431,11 +442,11 @@ export default function LoginPage() {
                 </div>
 
                 {fpError && (
-                  <div className="rounded-[6px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">{fpError}</div>
                 )}
 
                 <button type="submit" disabled={fpLoading}
-                  className="w-full rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
+                  className="w-full rounded-lg bg-linear-to-b from-[#359de9] to-[#365eea] py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
                   {fpLoading ? "Resetting…" : "Reset Password"}
                 </button>
 

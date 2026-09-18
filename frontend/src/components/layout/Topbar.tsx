@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CalendarDays,
+  KeyRound,
   Menu,
   User,
   X,
@@ -44,7 +45,7 @@ type ActivityTask = {
   due_date?: string | null;
   status?: string | null;
   priority?: string | null;
-};
+}; 
 
 type ActivityMeeting = {
   id: number | string;
@@ -227,6 +228,7 @@ const getPageTitle = (pathname: string) => {
   if (pathname === "/reports") return "Reports";
   if (pathname === "/analytics") return "Analytics";
   if (pathname === "/my-requests") return "My Requests";
+  if (pathname === "/change-password") return "Change Password";
   return "";
 };
 
@@ -254,6 +256,30 @@ export default function Topbar({
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([]);
 
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        notificationsOpen &&
+        notificationRef.current &&
+        !notificationRef.current.contains(e.target as Node)
+      ) {
+        setNotificationsOpen(false);
+      }
+      if (
+        emailInboxOpen &&
+        emailRef.current &&
+        !emailRef.current.contains(e.target as Node)
+      ) {
+        setEmailInboxOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notificationsOpen, emailInboxOpen]);
+
   useEffect(() => {
     const savedUser = localStorage.getItem("loggedInUser");
     if (savedUser) {
@@ -271,7 +297,7 @@ export default function Topbar({
     setLoadingFull(true);
     apiRequest<FullUserDetail>("/auth/manage-users/me/")
       .then((data) => setFullUser(data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingFull(false));
   }, [profileOpen, fullUser]);
 
@@ -486,7 +512,7 @@ export default function Topbar({
           setUnreadEmailCount(filtered.length);
           setRecentUnreadEmails(filtered);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 60_000);
@@ -513,7 +539,7 @@ export default function Topbar({
         void apiRequest(`/email/${emailId}/`, {
           method: "PATCH",
           body: JSON.stringify({ is_read: true }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
       setUnreadEmailCount((count) => Math.max(0, count - 1));
       setRecentUnreadEmails((prev) => prev.filter((email) => String(email.id) !== emailId));
@@ -538,29 +564,32 @@ export default function Topbar({
 
   return (
     <>
-      <header className="luxmor-topbar flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
+      <header className="luxmor-topbar relative z-50 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
         <div className="flex min-w-0 items-center">
           <button
             type="button"
             onClick={() => setSidebarOpen((prev) => !prev)}
             className="mr-3 flex h-[36px] w-[36px] items-center justify-center rounded-md hover:bg-slate-100 md:hidden"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            data-tooltip={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
-            <Menu size={18} />
+            <span className="sr-only">{sidebarOpen ? "Close sidebar" : "Open sidebar"}</span>
+            <Menu size={18} aria-hidden="true" />
           </button>
 
           <div><h1 className="truncate text-[18px] font-bold tracking-tight text-[#071a40]">{pageTitle}</h1><p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 sm:block">LuxOne Workspace</p></div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <div className="relative">
+          <div className="relative" ref={notificationRef}>
             <button
               type="button"
               aria-label="Notifications"
-              title="Notifications"
+              data-tooltip="Notifications"
               onClick={() => { setNotificationsOpen((prev) => !prev); setEmailInboxOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"            >
-              <Bell size={16} aria-hidden="true"/>
+              <span className="sr-only">Notifications</span>
+              <Bell size={16} aria-hidden="true" />
               {unreadCount > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
                   {unreadCount}
@@ -580,8 +609,10 @@ export default function Topbar({
                     onClick={handleClearNotifications}
                     className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     aria-label="Clear today's notifications"
+                    data-tooltip="Clear notifications"
                   >
-                    <X size={14} />
+                    <span className="sr-only">Clear today's notifications</span>
+                    <X size={14} aria-hidden="true" />
                   </button>
                 </div>
 
@@ -603,15 +634,13 @@ export default function Topbar({
                           key={item.id}
                           type="button"
                           onClick={() => handleNotificationClick(item)}
-                          className={`mb-2 flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition ${
-                            isRead
-                              ? "border-slate-100 bg-slate-50 text-slate-500"
-                              : "border-blue-100 bg-blue-50/70 text-slate-800 hover:bg-blue-50"
-                          }`}
+                          className={`mb-2 flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition ${isRead
+                            ? "border-slate-100 bg-slate-50 text-slate-500"
+                            : "border-blue-100 bg-blue-50/70 text-slate-800 hover:bg-blue-50"
+                            }`}
                         >
-                          <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-                            isRead ? "bg-slate-200 text-slate-500" : "bg-blue-600 text-white"
-                          }`}>
+                          <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isRead ? "bg-slate-200 text-slate-500" : "bg-blue-600 text-white"
+                            }`}>
                             {index + 1}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -631,14 +660,15 @@ export default function Topbar({
             )}
           </div>
 
-          <div className="relative">
+          <div className="relative" ref={emailRef}>
             <button
               type="button"
               aria-label="Email Inbox"
-              title="Email"
+              data-tooltip="Email"
               onClick={() => { setEmailInboxOpen((prev) => !prev); setNotificationsOpen(false); }}
               className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
             >
+              <span className="sr-only">Email Inbox</span>
               <Mail size={16} aria-hidden="true" />
               {unreadEmailCount > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
@@ -658,9 +688,9 @@ export default function Topbar({
                     {unreadEmailCount > 0 && (
                       <button
                         type="button"
-                        title="Mark all as read"
+                        data-tooltip="Mark all as read"
                         onClick={() => {
-                          void apiRequest("/email/mark-all-read/", { method: "POST" }).catch(() => {});
+                          void apiRequest("/email/mark-all-read/", { method: "POST" }).catch(() => { });
                           setUnreadEmailCount(0);
                           setRecentUnreadEmails([]);
                         }}
@@ -672,9 +702,11 @@ export default function Topbar({
                     <button
                       type="button"
                       aria-label="Close email inbox panel"
+                      data-tooltip="Close"
                       onClick={() => setEmailInboxOpen(false)}
                       className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
+                      <span className="sr-only">Close email inbox panel</span>
                       <X size={14} aria-hidden="true" />
                     </button>
                   </div>
@@ -693,7 +725,7 @@ export default function Topbar({
                         onClick={() => {
                           setEmailInboxOpen(false);
                           // mark as read
-                          void apiRequest(`/email/${email.id}/`, { method: "PATCH", body: JSON.stringify({ is_read: true }) }).catch(() => {});
+                          void apiRequest(`/email/${email.id}/`, { method: "PATCH", body: JSON.stringify({ is_read: true }) }).catch(() => { });
                           setUnreadEmailCount((c) => Math.max(0, c - 1));
                           setRecentUnreadEmails((prev) => prev.filter((e) => e.id !== email.id));
                           navigate(`/email/${email.id}`);
@@ -711,11 +743,11 @@ export default function Topbar({
                           <p className="mt-0.5 text-[11px] text-slate-400">
                             {email.received_at
                               ? new Date(email.received_at).toLocaleString("en-GB", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                               : ""}
                           </p>
                         </div>
@@ -739,25 +771,28 @@ export default function Topbar({
             )}
           </div>
 
-            <button
-              type="button"
-              aria-label="Calendar"
-              title="Calender"
-              onClick={() => navigate("/calendar")}
-              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
-            >
-              <CalendarDays size={16} aria-hidden="true" />
-            </button>
+          <button
+            type="button"
+            aria-label="Calendar"
+            data-tooltip="Calendar"
+            onClick={() => navigate("/calendar")}
+            className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
+          >
+            <span className="sr-only">Calendar</span>
+            <CalendarDays size={16} aria-hidden="true" />
+          </button>
 
-            <button
-              type="button"
-              aria-label="Profile"
-              title="Profile"
-              onClick={() => setProfileOpen(true)}
-              className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
-            >
-              <User size={16} aria-hidden="true" />
-            </button>
+          <button
+            type="button"
+            aria-label="Profile"
+            data-tooltip="Profile"
+            data-tooltip-align="right"
+            onClick={() => setProfileOpen(true)}
+            className="relative flex h-[32px] w-[32px] items-center justify-center rounded-md text-slate-700 transition-all duration-200 hover:bg-slate-100 hover:text-blue-600"
+          >
+            <span className="sr-only">Profile</span>
+            <User size={16} aria-hidden="true" />
+          </button>
         </div>
       </header>
 
@@ -778,10 +813,11 @@ export default function Topbar({
                 <button
                   type="button"
                   aria-label="Close profile panel"
-                  title="Close Profile"
+                  data-tooltip="Close"
                   onClick={() => setProfileOpen(false)}
                   className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100"
                 >
+                  <span className="sr-only">Close profile panel</span>
                   <X size={18} aria-hidden="true" />
                 </button>
               </div>
@@ -789,27 +825,24 @@ export default function Topbar({
               <div className="flex-1 overflow-y-auto p-5">
                 {/* Avatar + name */}
                 <div className="mb-5 flex items-center gap-4">
-                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl font-bold uppercase ${
-                    fullUser?.status === "terminated" ? "bg-red-100 text-red-600"
+                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl font-bold uppercase ${fullUser?.status === "terminated" ? "bg-red-100 text-red-600"
                     : fullUser?.status === "inactive" ? "bg-slate-100 text-slate-500"
-                    : "bg-blue-100 text-blue-700"
-                  }`}>
+                      : "bg-blue-100 text-blue-700"
+                    }`}>
                     {displayName[0]}
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-bold text-slate-900">{displayName}</h3>
                     <p className="truncate text-xs text-slate-400">{displayEmail}</p>
                     {fullUser?.status && (
-                      <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        fullUser.status === "active" ? "bg-green-100 text-green-700"
+                      <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${fullUser.status === "active" ? "bg-green-100 text-green-700"
                         : fullUser.status === "inactive" ? "bg-amber-100 text-amber-700"
-                        : "bg-red-100 text-red-700"
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          fullUser.status === "active" ? "bg-green-500"
+                          : "bg-red-100 text-red-700"
+                        }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${fullUser.status === "active" ? "bg-green-500"
                           : fullUser.status === "inactive" ? "bg-amber-500"
-                          : "bg-red-500"
-                        }`} />
+                            : "bg-red-500"
+                          }`} />
                         {fullUser.status_display || fullUser.status}
                       </span>
                     )}
@@ -845,6 +878,14 @@ export default function Topbar({
               </div>
 
               <div className="border-t border-slate-200 p-4">
+                <button
+                  type="button"
+                  onClick={() => { setProfileOpen(false); navigate("/change-password"); }}
+                  className="mb-2 flex w-full items-center justify-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                >
+                  <KeyRound size={16} />
+                  Change Password
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center justify-center gap-2 rounded-md bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"

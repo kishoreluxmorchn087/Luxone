@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     CheckEmailView, LoginView, SendOTPView,
-    VerifyOTPView, ForgotPasswordView, ResetPasswordView,
+    VerifyOTPView, VerifyPasswordResetOTPView, ForgotPasswordView, ResetPasswordView,
     ChangePasswordView, ModulePermissionsView,
     UserListView, UserManagementViewSet,
 )
@@ -16,6 +16,7 @@ urlpatterns = [
     re_path(r'^login/?$', LoginView.as_view(), name='login'),
     re_path(r'^send-otp/?$', SendOTPView.as_view(), name='send-otp'),
     re_path(r'^verify-otp/?$', VerifyOTPView.as_view(), name='verify-otp'),
+    re_path(r'^verify-reset-otp/?$', VerifyPasswordResetOTPView.as_view(), name='verify-reset-otp'),
     re_path(r'^forgot-password/?$', ForgotPasswordView.as_view(), name='forgot-password'),
     re_path(r'^reset-password/?$', ResetPasswordView.as_view(), name='reset-password'),
     re_path(r'^change-password/?$', ChangePasswordView.as_view(), name='change-password'),

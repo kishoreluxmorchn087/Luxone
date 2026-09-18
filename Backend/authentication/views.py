@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
@@ -278,7 +279,7 @@ class SendOTPView(APIView):
             if user:
                 if generate_and_send_otp(email):
                     return Response(custom_response(success=True, message="OTP sent successfully to " + email), status=status.HTTP_200_OK)
-                return Response(custom_response(success=False, message="Failed to send OTP"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(custom_response(success=False, message="OTP email delivery is unavailable. Check the configured email provider."), status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
@@ -307,6 +308,31 @@ class VerifyOTPView(APIView):
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerifyPasswordResetOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=VerifyOTPSerializer)
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email'].strip().lower()
+        code = serializer.validated_data['otp'].strip()
+        if not get_user_by_email(email):
+            return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
+
+        otp_record = OTP.objects.filter(
+            email__iexact=email,
+            code=code,
+            is_verified=False,
+        ).order_by('-created_at').first()
+        if not otp_record or not otp_record.is_valid():
+            return Response(custom_response(success=False, message="Invalid or expired OTP"), status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response(custom_response(success=True, message="OTP verified successfully"), status=status.HTTP_200_OK)
+
+
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
@@ -319,7 +345,7 @@ class ForgotPasswordView(APIView):
             if user:
                 if generate_and_send_otp(email):
                     return Response(custom_response(success=True, message="OTP sent successfully"), status=status.HTTP_200_OK)
-                return Response(custom_response(success=False, message="Failed to send OTP"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(custom_response(success=False, message="OTP email delivery is unavailable. Check the configured email provider."), status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
@@ -637,3 +663,26 @@ class UserManagementViewSet(viewsets.ViewSet):
             permission_classes=[IsAuthenticated])
     def me(self, request):
         return Response(UserDetailSerializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=["patch"],
+        url_path="me/profile-image",
+        permission_classes=[IsAuthenticated],
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def update_profile_image(self, request):
+        user = request.user
+
+        profile_image = request.FILES.get("profile_image")
+
+        if not profile_image:
+            return Response(
+                {"detail": "No profile image was provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.profile_image = profile_image
+        user.save(update_fields=["profile_image"])
+
+        return Response(UserDetailSerializer(user).data)
