@@ -13,6 +13,11 @@ import {
   MapPin,
   Search,
   Check,
+  Trash2,
+  RefreshCw,
+  Share2,
+  Download,
+  Printer,
 } from "lucide-react";
 
 type ModuleToolbarProps = {
@@ -28,6 +33,8 @@ type ModuleToolbarProps = {
   onCreateClick: () => void;
   onApplySort?: (columnKey: string | null, direction: "asc" | "desc") => void;
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
+  viewMode?: "list" | "table" | "grid" | "kanban" | "chart";
+  onViewModeChange?: (mode: "list" | "table" | "grid" | "kanban" | "chart") => void;
 };
 
 const defaultSortFields = [
@@ -62,6 +69,8 @@ export default function ModuleToolbar({
   onCreateClick,
   onApplySort,
   onMassAction,
+  viewMode = "table",
+  onViewModeChange,
 }: ModuleToolbarProps) {
   const navigate = useNavigate();
 
@@ -72,7 +81,9 @@ export default function ModuleToolbar({
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [ellipsisMenuOpen, setEllipsisMenuOpen] = useState(false);
+  const [leftEllipsisMenuOpen, setLeftEllipsisMenuOpen] = useState(false);
   const ellipsisMenuRef = useRef<HTMLDivElement | null>(null);
+  const leftEllipsisMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedField, setSelectedField] = useState(fields[0] ?? "None");
   const [selectedOrder, setSelectedOrder] = useState<"Ascending" | "Descending">(
@@ -145,6 +156,13 @@ export default function ModuleToolbar({
         setEllipsisMenuOpen(false);
       }
 
+      if (
+        leftEllipsisMenuRef.current &&
+        !leftEllipsisMenuRef.current.contains(event.target as Node)
+      ) {
+        setLeftEllipsisMenuOpen(false);
+      }
+
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
@@ -157,19 +175,10 @@ export default function ModuleToolbar({
     };
   }, []);
 
-  useEffect(() => {
-    if (fields.length === 0) {
-      setSelectedField("None");
-      return;
-    }
-
-    if (!fields.includes(selectedField)) {
-      setSelectedField(fields[0]);
-    }
-  }, [fields, selectedField]);
+  const currentField = fields.includes(selectedField) ? selectedField : (fields[0] ?? "None");
 
   const handleApplySort = () => {
-    const mappedKey = sortFieldKeyMap?.[selectedField] ?? null;
+    const mappedKey = sortFieldKeyMap?.[currentField] ?? null;
     const direction = selectedOrder === "Ascending" ? "asc" : "desc";
     onApplySort?.(mappedKey, direction);
     setSortModalOpen(false);
@@ -195,7 +204,10 @@ export default function ModuleToolbar({
   };
 
   const toolbarIconButtonClass =
-    "flex cursor-pointer items-center justify-center rounded-md p-2 text-slate-600 transition duration-150 hover:bg-slate-100 hover:shadow-sm active:bg-slate-200";
+    "relative flex cursor-pointer items-center justify-center rounded-lg p-2 text-slate-500 transition-all duration-200 hover:bg-gradient-to-b hover:from-slate-50 hover:to-slate-100 hover:text-slate-700 hover:shadow-[0_2px_8px_rgba(15,23,42,0.08)] active:scale-95 active:bg-slate-200";
+
+  const toolbarIconActiveClass =
+    "relative flex cursor-pointer items-center justify-center rounded-lg bg-gradient-to-b from-blue-50 to-blue-100/80 p-2 text-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.15),inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-blue-200/60 transition-all duration-200 hover:from-blue-100 hover:to-blue-150 hover:shadow-[0_4px_12px_rgba(37,99,235,0.2)] active:scale-95";
 
   return (
     <>
@@ -205,9 +217,48 @@ export default function ModuleToolbar({
             {viewName}
           </button>
 
-          <button type="button" className={toolbarIconButtonClass}>
-            <Ellipsis size={18} />
-          </button>
+          <div className="relative" ref={leftEllipsisMenuRef}>
+            <button
+              type="button"
+              onClick={() => setLeftEllipsisMenuOpen((prev) => !prev)}
+              className={`flex cursor-pointer items-center justify-center rounded-lg border p-2 transition-all duration-200 ${
+                leftEllipsisMenuOpen
+                  ? "border-blue-200 bg-blue-50 text-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.12)]"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+              }`}
+            >
+              <Ellipsis size={18} />
+            </button>
+
+            {leftEllipsisMenuOpen && (
+              <div className="absolute left-0 top-[42px] z-50 min-w-[200px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-[0_10px_40px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.04)]">
+                <button
+                  type="button"
+                  onClick={() => setLeftEllipsisMenuOpen(false)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  <Share2 size={14} className="text-slate-400" />
+                  Share View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeftEllipsisMenuOpen(false)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  <Download size={14} className="text-slate-400" />
+                  Export
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeftEllipsisMenuOpen(false)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  <Printer size={14} className="text-slate-400" />
+                  Print View
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -315,33 +366,81 @@ export default function ModuleToolbar({
 
           {!hidePostSortIconStrip && (
             <>
-              <div className="mx-1 h-5 w-px bg-slate-200" />
+              <div className="mx-1.5 h-5 w-px bg-slate-200" />
 
-              <button className="flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-100">
-                <ListFilter size={16} />
-              </button>
+              <div className="flex items-center gap-1 rounded-xl bg-slate-50/80 p-1">
+                <button
+                  type="button"
+                  id="module-toolbar-list-view"
+                  data-tooltip="List View"
+                  aria-label="List View"
+                  onClick={() => onViewModeChange?.("list")}
+                  className={viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}
+                >
+                  <ListFilter size={16} />
+                </button>
 
-              <button className={toolbarIconButtonClass}>
-                <PanelsTopLeft size={16} />
-              </button>
+                <button
+                  type="button"
+                  id="module-toolbar-panels-view"
+                  data-tooltip="Panel View"
+                  aria-label="Panel View"
+                  onClick={() => onViewModeChange?.("kanban")}
+                  className={viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}
+                >
+                  <PanelsTopLeft size={16} />
+                </button>
 
-              <button className={toolbarIconButtonClass}>
-                <Table size={16} />
-              </button>
+                <button
+                  type="button"
+                  id="module-toolbar-table-view"
+                  data-tooltip="Table View"
+                  aria-label="Table View"
+                  onClick={() => onViewModeChange?.("table")}
+                  className={viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}
+                >
+                  <Table size={16} />
+                </button>
 
-              <button className={toolbarIconButtonClass}>
-                <ChartPie size={16} />
-              </button>
+                <button
+                  type="button"
+                  id="module-toolbar-chart-view"
+                  data-tooltip="Chart View"
+                  aria-label="Chart View"
+                  onClick={() => onViewModeChange?.("chart")}
+                  className={viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}
+                >
+                  <ChartPie size={16} />
+                </button>
 
-              <button className={toolbarIconButtonClass}>
-                <LayoutGrid size={16} />
-              </button>
+                <button
+                  type="button"
+                  id="module-toolbar-grid-view"
+                  data-tooltip="Grid View"
+                  aria-label="Grid View"
+                  onClick={() => onViewModeChange?.("grid")}
+                  className={viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}
+                >
+                  <LayoutGrid size={16} />
+                </button>
 
-              <button className={toolbarIconButtonClass}>
-                <MapPin size={16} />
-              </button>
+                <button
+                  type="button"
+                  id="module-toolbar-map-view"
+                  data-tooltip="Map View"
+                  aria-label="Map View"
+                  className={toolbarIconButtonClass}
+                >
+                  <MapPin size={16} />
+                </button>
+              </div>
 
-              <button className={toolbarIconButtonClass}>
+              <button
+                type="button"
+                data-tooltip="More Views"
+                aria-label="More Views"
+                className={toolbarIconButtonClass}
+              >
                 <ChevronDown size={16} />
               </button>
             </>
@@ -368,7 +467,7 @@ export default function ModuleToolbar({
                     }}
                     className="flex h-[38px] w-full cursor-pointer items-center justify-between rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 transition hover:bg-slate-50"
                   >
-                    <span className="truncate">{selectedField}</span>
+                    <span className="truncate">{currentField}</span>
                     <ChevronDown size={16} className="text-slate-500" />
                   </button>
 
