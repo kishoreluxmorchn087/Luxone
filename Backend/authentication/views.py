@@ -308,6 +308,31 @@ class VerifyOTPView(APIView):
         return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerifyPasswordResetOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=VerifyOTPSerializer)
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(custom_response(success=False, message=serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email'].strip().lower()
+        code = serializer.validated_data['otp'].strip()
+        if not get_user_by_email(email):
+            return Response(custom_response(success=False, message="User not registered"), status=status.HTTP_404_NOT_FOUND)
+
+        otp_record = OTP.objects.filter(
+            email__iexact=email,
+            code=code,
+            is_verified=False,
+        ).order_by('-created_at').first()
+        if not otp_record or not otp_record.is_valid():
+            return Response(custom_response(success=False, message="Invalid or expired OTP"), status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response(custom_response(success=True, message="OTP verified successfully"), status=status.HTTP_200_OK)
+
+
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
