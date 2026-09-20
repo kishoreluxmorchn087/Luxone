@@ -81,9 +81,10 @@ export default function ModuleToolbar({
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [ellipsisMenuOpen, setEllipsisMenuOpen] = useState(false);
-  const [leftEllipsisMenuOpen, setLeftEllipsisMenuOpen] = useState(false);
   const ellipsisMenuRef = useRef<HTMLDivElement | null>(null);
-  const leftEllipsisMenuRef = useRef<HTMLDivElement | null>(null);
+  
+  const [topEllipsisOpen, setTopEllipsisOpen] = useState(false);
+  const topEllipsisRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedField, setSelectedField] = useState(fields[0] ?? "None");
   const [selectedOrder, setSelectedOrder] = useState<"Ascending" | "Descending">(
@@ -157,10 +158,10 @@ export default function ModuleToolbar({
       }
 
       if (
-        leftEllipsisMenuRef.current &&
-        !leftEllipsisMenuRef.current.contains(event.target as Node)
+        topEllipsisRef.current &&
+        !topEllipsisRef.current.contains(event.target as Node)
       ) {
-        setLeftEllipsisMenuOpen(false);
+        setTopEllipsisOpen(false);
       }
 
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -217,44 +218,29 @@ export default function ModuleToolbar({
             {viewName}
           </button>
 
-          <div className="relative" ref={leftEllipsisMenuRef}>
-            <button
-              type="button"
-              onClick={() => setLeftEllipsisMenuOpen((prev) => !prev)}
-              className={`flex cursor-pointer items-center justify-center rounded-lg border p-2 transition-all duration-200 ${
-                leftEllipsisMenuOpen
-                  ? "border-blue-200 bg-blue-50 text-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.12)]"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
-              }`}
+          <div className="relative" ref={topEllipsisRef}>
+            <button 
+              type="button" 
+              onClick={() => setTopEllipsisOpen((prev) => !prev)}
+              className={toolbarIconButtonClass}
             >
               <Ellipsis size={18} />
             </button>
-
-            {leftEllipsisMenuOpen && (
-              <div className="absolute left-0 top-[42px] z-50 min-w-[200px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-[0_10px_40px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.04)]">
+            {topEllipsisOpen && (
+              <div className="absolute left-0 top-[40px] z-50 min-w-[150px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => setLeftEllipsisMenuOpen(false)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  onClick={() => setTopEllipsisOpen(false)}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
                 >
-                  <Share2 size={14} className="text-slate-400" />
-                  Share View
+                  Manage Views
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLeftEllipsisMenuOpen(false)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  onClick={() => setTopEllipsisOpen(false)}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
                 >
-                  <Download size={14} className="text-slate-400" />
-                  Export
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLeftEllipsisMenuOpen(false)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                >
-                  <Printer size={14} className="text-slate-400" />
-                  Print View
+                  Page Settings
                 </button>
               </div>
             )}
@@ -368,80 +354,90 @@ export default function ModuleToolbar({
             <>
               <div className="mx-1.5 h-5 w-px bg-slate-200" />
 
-              <div className="flex items-center gap-1 rounded-xl bg-slate-50/80 p-1">
-                <button
-                  type="button"
-                  id="module-toolbar-list-view"
-                  data-tooltip="List View"
-                  aria-label="List View"
-                  onClick={() => onViewModeChange?.("list")}
-                  className={viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}
-                >
-                  <ListFilter size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  id="module-toolbar-panels-view"
-                  data-tooltip="Panel View"
-                  aria-label="Panel View"
-                  onClick={() => onViewModeChange?.("kanban")}
-                  className={viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}
-                >
-                  <PanelsTopLeft size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  id="module-toolbar-table-view"
-                  data-tooltip="Table View"
-                  aria-label="Table View"
-                  onClick={() => onViewModeChange?.("table")}
-                  className={viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}
-                >
-                  <Table size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  id="module-toolbar-chart-view"
-                  data-tooltip="Chart View"
-                  aria-label="Chart View"
-                  onClick={() => onViewModeChange?.("chart")}
-                  className={viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}
-                >
-                  <ChartPie size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  id="module-toolbar-grid-view"
-                  data-tooltip="Grid View"
-                  aria-label="Grid View"
-                  onClick={() => onViewModeChange?.("grid")}
-                  className={viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}
-                >
-                  <LayoutGrid size={16} />
-                </button>
-
-                <button
-                  type="button"
-                  id="module-toolbar-map-view"
-                  data-tooltip="Map View"
-                  aria-label="Map View"
-                  className={toolbarIconButtonClass}
-                >
-                  <MapPin size={16} />
-                </button>
-              </div>
+              <button
+                type="button"
+                id="module-toolbar-list-view"
+                aria-label="List View"
+                onClick={() => onViewModeChange?.("list")}
+                className={`group ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+              >
+                <ListFilter size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  List View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
 
               <button
                 type="button"
-                data-tooltip="More Views"
-                aria-label="More Views"
-                className={toolbarIconButtonClass}
+                id="module-toolbar-panels-view"
+                aria-label="Panels View"
+                onClick={() => onViewModeChange?.("kanban")}
+                className={`group ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
+                <PanelsTopLeft size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Layout View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="module-toolbar-table-view"
+                aria-label="Table View"
+                onClick={() => onViewModeChange?.("table")}
+                className={`group ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+              >
+                <Table size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Table View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="module-toolbar-chart-view"
+                aria-label="Chart View"
+                onClick={() => onViewModeChange?.("chart")}
+                className={`group ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+              >
+                <ChartPie size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Chart View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="module-toolbar-grid-view"
+                aria-label="Grid View"
+                onClick={() => onViewModeChange?.("grid")}
+                className={`group ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+              >
+                <LayoutGrid size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Grid View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
+
+              <button type="button" aria-label="Map View" className={`group ${toolbarIconButtonClass}`}>
+                <MapPin size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Map View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
+              </button>
+
+              <button type="button" aria-label="More Views" className={`group ${toolbarIconButtonClass}`}>
                 <ChevronDown size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  More Views
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
             </>
           )}
