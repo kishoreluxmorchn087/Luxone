@@ -3,6 +3,12 @@
 from django.db import migrations
 
 
+def set_legacy_team_default(apps, schema_editor):
+    User = apps.get_model("authentication", "User")
+    User.objects.filter(team__isnull=True).update(team="general")
+    User.objects.filter(team="").update(team="general")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,18 +16,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="""
-                UPDATE authentication_user
-                SET team = 'general'
-                WHERE team IS NULL OR team = '';
-
-                ALTER TABLE authentication_user
-                ALTER COLUMN team SET DEFAULT 'general';
-            """,
-            reverse_sql="""
-                ALTER TABLE authentication_user
-                ALTER COLUMN team DROP DEFAULT;
-            """,
-        ),
+        migrations.RunPython(set_legacy_team_default, migrations.RunPython.noop),
     ]
