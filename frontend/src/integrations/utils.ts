@@ -124,5 +124,12 @@ export function splitCommaValues(value: string) {
 }
 
 export function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  const email = value.trim();
+  const [localPart, domain] = email.split("@");
+
+  if (!localPart || domain.toLowerCase() !== "gmail.com" || email.includes("..") || localPart.startsWith(".") || localPart.endsWith(".")) {
+    return false;
+  }
+
+  return /^[^\s@]+@gmail\.com$/i.test(email);
 }
