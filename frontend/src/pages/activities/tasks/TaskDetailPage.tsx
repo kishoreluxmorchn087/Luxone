@@ -105,7 +105,7 @@ export default function TaskDetailPage() {
       { label: "Created", value: formatDate(task.created_at) },
     ];
   }, [task]);
-
+  
   return (
     <DashboardLayout>
       <div className="px-6 py-6">
