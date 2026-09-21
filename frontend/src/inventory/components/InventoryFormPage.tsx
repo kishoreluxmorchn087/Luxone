@@ -776,6 +776,9 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       const hasInvalidQuantityRow = itemRows.some(
         (item) => String(item.product || "").trim().length > 0 && Number(item.quantity || 0) <= 0
       );
+      const hasNegativeValueRow = itemRows.some(
+        (item) => [item.quantity, item.listPrice, item.discount, item.tax].some((value) => Number(value || 0) < 0)
+      );
 
       if (!hasSelectedProduct) {
         setError("Add at least one item and select a product from the dropdown.");
@@ -789,6 +792,11 @@ export default function InventoryFormPage({ moduleKey }: Props) {
 
       if (hasInvalidQuantityRow) {
         setError("Each selected item needs a quantity greater than 0.");
+        return;
+      }
+
+      if (hasNegativeValueRow) {
+        setError("Quantity, list price, discount, and tax must be zero or greater.");
         return;
       }
     }
