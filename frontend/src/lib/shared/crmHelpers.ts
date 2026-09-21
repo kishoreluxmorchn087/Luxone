@@ -10,19 +10,12 @@ export function sortRecords<T extends CRMRecord>(
     const valueA = String(a[key] ?? "");
     const valueB = String(b[key] ?? "");
 
-    const maybeNumA = Number(valueA.replace(/[^0-9.-]/g, ""));
-    const maybeNumB = Number(valueB.replace(/[^0-9.-]/g, ""));
-    const bothNumeric = !Number.isNaN(maybeNumA) && !Number.isNaN(maybeNumB);
+    const cmp = valueA.localeCompare(valueB, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
 
-    if (bothNumeric) {
-      return direction === "asc" ? maybeNumA - maybeNumB : maybeNumB - maybeNumA;
-    }
-
-    const aLower = valueA.toLowerCase();
-    const bLower = valueB.toLowerCase();
-    if (aLower < bLower) return direction === "asc" ? -1 : 1;
-    if (aLower > bLower) return direction === "asc" ? 1 : -1;
-    return 0;
+    return direction === "asc" ? cmp : -cmp;
   });
 
   return cloned;
