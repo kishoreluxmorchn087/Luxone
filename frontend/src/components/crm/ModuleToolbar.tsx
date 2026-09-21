@@ -13,11 +13,6 @@ import {
   MapPin,
   Search,
   Check,
-  Trash2,
-  RefreshCw,
-  Share2,
-  Download,
-  Printer,
 } from "lucide-react";
 
 type ModuleToolbarProps = {
