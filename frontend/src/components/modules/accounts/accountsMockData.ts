@@ -170,4 +170,17 @@ export const accountModuleConfig: CRMModuleConfig<AccountRecord> = {
       items: ["Contacts", "Deals", "Cases", "Emails", "Invoices", "Quotes", "Sales Orders"],
     },
   ],
+  sortFields: [
+    "None",
+    "Account Name",
+    "Phone",
+    "Website",
+    "Account Owner"
+  ],
+  sortFieldKeyMap: {
+    "Account Name": "accountName",
+    "Phone": "phone",
+    "Website": "website",
+    "Account Owner": "accountOwner"
+  },
 };
