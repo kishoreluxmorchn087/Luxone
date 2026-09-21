@@ -318,7 +318,7 @@ export default function LoginPage() {
                         if (error) setError("");
                       }}
                       placeholder="Enter your password"
-                      className={inputCls + " pr-16"}
+                      className={inputCls + " pr-10"}
                     />
                     <button
                       type="button"
