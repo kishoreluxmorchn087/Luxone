@@ -536,6 +536,15 @@ export async function createDomainMapping(accountType: string, domain: string) {
   );
 }
 
+export async function updateDomainMapping(id: string, accountType: string, domain: string) {
+  return mapDomainMapping(
+    await apiRequest<any>(`/settings/domain-mapping/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ account_type: accountType, domain }),
+    })
+  );
+}
+
 export async function verifyDomainMapping(id: string) {
   return mapDomainMapping(
     await apiRequest<any>("/settings/domain-mapping/verify/", { method: "POST", body: JSON.stringify({ id: Number(id) }) })
