@@ -320,10 +320,12 @@ export default function LoginPage() {
                       placeholder="Enter your password"
                       className={inputCls + " pr-16"}
                     />
-                    <button type="button" 
-                    onClick={() => setShowPassword((v) => !v)}
-                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
