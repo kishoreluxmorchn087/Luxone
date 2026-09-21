@@ -16,6 +16,8 @@ export default function InventoryDocumentItemsTable({
   onChange,
   showDescription = true,
 }: InventoryDocumentItemsTableProps) {
+  const nonNegativeNumber = (value: string) => Math.max(0, Number(value) || 0);
+
   const updateItem = (index: number, next: Partial<InventoryLineItem>) => {
     const updated = [...items];
     updated[index] = recalculateLineItem({ ...updated[index], ...next });
@@ -89,16 +91,18 @@ export default function InventoryDocumentItemsTable({
                 <td className="px-3 py-3">
                   <input
                     type="number"
+                    min={0}
                     value={item.quantity}
-                    onChange={(event) => updateItem(index, { quantity: Number(event.target.value) })}
+                    onChange={(event) => updateItem(index, { quantity: nonNegativeNumber(event.target.value) })}
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
                 <td className="px-3 py-3">
                   <input
                     type="number"
+                    min={0}
                     value={item.listPrice}
-                    onChange={(event) => updateItem(index, { listPrice: Number(event.target.value) })}
+                    onChange={(event) => updateItem(index, { listPrice: nonNegativeNumber(event.target.value) })}
                     className="h-[36px] w-28 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
@@ -106,16 +110,18 @@ export default function InventoryDocumentItemsTable({
                 <td className="px-3 py-3">
                   <input
                     type="number"
+                    min={0}
                     value={item.discount}
-                    onChange={(event) => updateItem(index, { discount: Number(event.target.value) })}
+                    onChange={(event) => updateItem(index, { discount: nonNegativeNumber(event.target.value) })}
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
                 <td className="px-3 py-3">
                   <input
                     type="number"
+                    min={0}
                     value={item.tax}
-                    onChange={(event) => updateItem(index, { tax: Number(event.target.value) })}
+                    onChange={(event) => updateItem(index, { tax: nonNegativeNumber(event.target.value) })}
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
