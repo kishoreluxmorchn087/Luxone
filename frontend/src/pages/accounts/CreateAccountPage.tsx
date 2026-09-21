@@ -27,7 +27,18 @@ const sections: CRMCreateSection[] = [
     title: "Account Information",
     fields: [
       { name: "accountOwner", label: "Account Owner", type: "owner", readOnly: true },
-      { name: "accountName", label: "Account Name", type: "text", required: true },
+      {
+  name: "accountName",
+  label: "Account Name",
+  type: "text",
+  required: true,
+  validateValue: (value) => {
+    if (!/[A-Za-z0-9]/.test(value)) {
+      return "Account Name must contain letters or numbers.";
+    }
+    return null;
+  },
+},
       { name: "accountType", label: "Account Type", type: "select", options: ACCOUNT_TYPE_OPTIONS },
       { name: "phone", label: "Phone", type: "text" },
       { name: "website", label: "Website", type: "text" },
