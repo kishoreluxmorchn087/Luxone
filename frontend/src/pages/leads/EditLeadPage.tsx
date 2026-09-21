@@ -121,7 +121,7 @@ const sections: CRMCreateSection[] = [
         label: "Company",
         type: "text",
         required: true,
-        sanitizeValue: sanitizeAlphaSpace,
+      
         validateValue: validateRequired("Company"),
       },
       { name: "email", label: "Email", type: "email", required: true, validateValue: validateRequiredEmail },
