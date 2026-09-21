@@ -82,6 +82,9 @@ export default function ModuleToolbar({
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [ellipsisMenuOpen, setEllipsisMenuOpen] = useState(false);
   const ellipsisMenuRef = useRef<HTMLDivElement | null>(null);
+  
+  const [topEllipsisOpen, setTopEllipsisOpen] = useState(false);
+  const topEllipsisRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedField, setSelectedField] = useState(fields[0] ?? "None");
   const [selectedOrder, setSelectedOrder] = useState<"Ascending" | "Descending">(
@@ -154,6 +157,13 @@ export default function ModuleToolbar({
         setEllipsisMenuOpen(false);
       }
 
+      if (
+        topEllipsisRef.current &&
+        !topEllipsisRef.current.contains(event.target as Node)
+      ) {
+        setTopEllipsisOpen(false);
+      }
+
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
@@ -208,9 +218,33 @@ export default function ModuleToolbar({
             {viewName}
           </button>
 
-          <button type="button" className={toolbarIconButtonClass}>
-            <Ellipsis size={18} />
-          </button>
+          <div className="relative" ref={topEllipsisRef}>
+            <button 
+              type="button" 
+              onClick={() => setTopEllipsisOpen((prev) => !prev)}
+              className={toolbarIconButtonClass}
+            >
+              <Ellipsis size={18} />
+            </button>
+            {topEllipsisOpen && (
+              <div className="absolute left-0 top-[40px] z-50 min-w-[150px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setTopEllipsisOpen(false)}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                >
+                  Manage Views
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTopEllipsisOpen(false)}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                >
+                  Page Settings
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -323,84 +357,87 @@ export default function ModuleToolbar({
               <button
                 type="button"
                 id="module-toolbar-list-view"
-                title="List View"
                 aria-label="List View"
                 onClick={() => onViewModeChange?.("list")}
-                className={
-                  viewMode === "list"
-                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
-                    : toolbarIconButtonClass
-                }
+                className={`group ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ListFilter size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  List View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
               <button
                 type="button"
                 id="module-toolbar-panels-view"
-                title="Panels View"
                 aria-label="Panels View"
                 onClick={() => onViewModeChange?.("kanban")}
-                className={
-                  viewMode === "kanban"
-                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
-                    : toolbarIconButtonClass
-                }
+                className={`group ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <PanelsTopLeft size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Layout View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
               <button
                 type="button"
                 id="module-toolbar-table-view"
-                title="Table View"
                 aria-label="Table View"
                 onClick={() => onViewModeChange?.("table")}
-                className={
-                  viewMode === "table"
-                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
-                    : toolbarIconButtonClass
-                }
+                className={`group ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <Table size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Table View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
               <button
                 type="button"
                 id="module-toolbar-chart-view"
-                title="Chart View"
                 aria-label="Chart View"
                 onClick={() => onViewModeChange?.("chart")}
-                className={
-                  viewMode === "chart"
-                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
-                    : toolbarIconButtonClass
-                }
+                className={`group ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ChartPie size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Chart View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
               <button
                 type="button"
                 id="module-toolbar-grid-view"
-                title="Grid View"
                 aria-label="Grid View"
                 onClick={() => onViewModeChange?.("grid")}
-                className={
-                  viewMode === "grid"
-                    ? "flex cursor-pointer items-center justify-center rounded-md bg-blue-50 p-2 text-blue-600 transition duration-150 hover:bg-blue-100 hover:shadow-sm active:bg-blue-200"
-                    : toolbarIconButtonClass
-                }
+                className={`group ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <LayoutGrid size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Grid View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
-              <button type="button" title="Map View" aria-label="Map View" className={toolbarIconButtonClass}>
+              <button type="button" aria-label="Map View" className={`group ${toolbarIconButtonClass}`}>
                 <MapPin size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  Map View
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
 
-              <button type="button" title="More Views" aria-label="More Views" className={toolbarIconButtonClass}>
+              <button type="button" aria-label="More Views" className={`group ${toolbarIconButtonClass}`}>
                 <ChevronDown size={16} />
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
+                  More Views
+                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
+                </span>
               </button>
             </>
           )}
