@@ -10,6 +10,7 @@ export default function DomainMappingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [editingMapping, setEditingMapping] = useState<DomainMapping | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [publishedServices, setPublishedServices] = useState(0);
 
@@ -52,7 +53,7 @@ export default function DomainMappingPage() {
     try {
       await navigator.clipboard.writeText(value);
     } catch (err) {
-      setError(err instanceof Error ? `${label} could not be copied.` : `${label} could not be copied.`);
+      setError(`${label} could not be copied.`);
     }
   };
 
@@ -64,7 +65,7 @@ export default function DomainMappingPage() {
             <h1 className="text-lg font-semibold text-slate-900">Domain Mapping</h1>
             <p className="text-sm text-slate-500">Map custom domains for CRM, Sandbox, and Portal-facing service experiences.</p>
           </div>
-          <button type="button" onClick={() => setOpen(true)} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">Map Domain</button>
+          <button type="button" onClick={() => { setEditingMapping(null); setOpen(true); }} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">Map Domain</button>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -103,6 +104,13 @@ export default function DomainMappingPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
+                      onClick={() => { setEditingMapping(row); setOpen(true); }}
+                      className="rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-700"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => void handleCopy(row.cnameTarget, "CNAME target")}
                       className="rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-700"
                     >
@@ -130,7 +138,12 @@ export default function DomainMappingPage() {
           </div>
         ) : null}
       </div>
-      <DomainMappingModal open={open} onClose={() => setOpen(false)} onSaved={() => void load()} />
+      <DomainMappingModal
+        open={open}
+        initialMapping={editingMapping}
+        onClose={() => { setOpen(false); setEditingMapping(null); }}
+        onSaved={() => void load()}
+      />
     </DashboardLayout>
   );
 }

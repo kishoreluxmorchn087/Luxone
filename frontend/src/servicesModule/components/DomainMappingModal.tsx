@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import CRMModalBase from "../../components/crm/CRMModalBase";
-import { createDomainMapping, verifyDomainMapping } from "../api";
+import { createDomainMapping, updateDomainMapping, verifyDomainMapping } from "../api";
 import { domainMappingSteps } from "../config";
+import type { DomainMapping } from "../types";
 
-type Props = {
+type Props = Readonly<{
   open: boolean;
+  initialMapping: DomainMapping | null;
   onClose: () => void;
   onSaved: () => void;
-};
+}>;
 
-export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
+export default function DomainMappingModal({ open, initialMapping, onClose, onSaved }: Props) {
   const [step, setStep] = useState(0);
   const [accountType, setAccountType] = useState<"crm" | "sandbox" | "portals">("crm");
   const [domain, setDomain] = useState("");
@@ -18,14 +20,20 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (open && initialMapping) {
+      setStep(0);
+      setAccountType(initialMapping.accountType);
+      setDomain(initialMapping.domain);
+      setMappingId(initialMapping.id);
+      setError(null);
+    } else if (!open) {
       setStep(0);
       setAccountType("crm");
       setDomain("");
       setMappingId("");
       setError(null);
     }
-  }, [open]);
+  }, [initialMapping, open]);
 
   const handleNext = async () => {
     try {
@@ -34,6 +42,12 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
       if (step === 1) {
         if (!domain.trim()) {
           setError("Domain is required.");
+          return;
+        }
+        if (initialMapping) {
+          await updateDomainMapping(initialMapping.id, accountType, domain);
+          onSaved();
+          onClose();
           return;
         }
         const created = await createDomainMapping(accountType, domain);
@@ -53,10 +67,18 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
     }
   };
 
+  const actionLabel = saving
+    ? "Working..."
+    : initialMapping && step === 1
+      ? "Save Changes"
+      : step === 2
+        ? "Link and Verify"
+        : "Next";
+
   return (
     <CRMModalBase
       open={open}
-      title="Map Domain"
+      title={initialMapping ? "Edit Domain Mapping" : "Map Domain"}
       footer={
         <>
           <button type="button" onClick={onClose} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">
@@ -68,7 +90,7 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
             </button>
           ) : null}
           <button type="button" disabled={saving} onClick={() => void handleNext()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">
-            {saving ? "Working..." : step === 2 ? "Link and Verify" : "Next"}
+            {actionLabel}
           </button>
         </>
       }
@@ -91,7 +113,7 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
               { label: "Portals", value: "portals" },
             ].map((item) => (
               <label key={item.value} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
-                <input type="radio" checked={accountType === item.value} onChange={() => setAccountType(item.value as any)} />
+                <input type="radio" checked={accountType === item.value} onChange={() => setAccountType(item.value as "crm" | "sandbox" | "portals")} />
                 {item.label}
               </label>
             ))}
@@ -101,8 +123,8 @@ export default function DomainMappingModal({ open, onClose, onSaved }: Props) {
         {step === 1 ? (
           <div className="space-y-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Domain / URL</label>
-              <input value={domain} onChange={(e) => setDomain(e.target.value)} className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm" placeholder="support.yourcompany.com" />
+              <label htmlFor="domain-mapping-domain" className="mb-1.5 block text-sm font-medium text-slate-700">Domain / URL</label>
+              <input id="domain-mapping-domain" value={domain} onChange={(e) => setDomain(e.target.value)} className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm" placeholder="support.yourcompany.com" />
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
               <p>Prerequisite: create a CNAME record for your chosen domain.</p>
