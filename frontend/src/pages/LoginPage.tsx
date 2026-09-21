@@ -321,12 +321,13 @@ export default function LoginPage() {
                       className={inputCls + " pr-10"}
                     />
                     <button
-                       type="button"
-                       onClick={() => setShowPassword((v) => !v)}
-                        className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
->
-                        {showPassword ? "Hide" : "Show"}
-                        </button>
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
                   </div>
                   {loginErrors.password && (
                     <p className="mt-1.5 text-xs text-red-600">{loginErrors.password}</p>

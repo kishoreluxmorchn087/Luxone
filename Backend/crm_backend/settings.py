@@ -123,14 +123,22 @@ WSGI_APPLICATION = 'crm_backend.wsgi.application'
 
 
 # Database
-# Supports Neon-style DATABASE_URL for production and DB_* for local development.
+# Supports Neon-style DATABASE_URL for production, DB_* for local PostgreSQL,
+# and a local SQLite fallback so the app can run without external database setup.
 def get_database_config() -> dict:
     database_url = os.getenv('DATABASE_URL', '').strip()
     if database_url:
         parsed = urlparse(database_url)
         scheme = parsed.scheme.split('+', 1)[0]
+
+        if scheme == 'sqlite':
+            return {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / unquote((parsed.path or 'db.sqlite3')),
+            }
+
         if scheme not in {'postgres', 'postgresql'}:
-            raise ValueError('Only postgres/postgresql DATABASE_URL schemes are supported.')
+            raise ValueError('Only postgres/postgresql/sqlite DATABASE_URL schemes are supported.')
 
         query_options = {key: values[-1] for key, values in parse_qs(parsed.query).items() if values}
         if 'sslmode' not in query_options:
@@ -148,10 +156,24 @@ def get_database_config() -> dict:
             config['OPTIONS'] = query_options
         return config
 
+    db_engine = os.getenv('DB_ENGINE', '').strip().lower()
+    if db_engine in {'sqlite', 'sqlite3'}:
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+
+    postgres_user = os.getenv('DB_USER', '').strip()
+    if not postgres_user:
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+
     config = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'CRM'),
-        'USER': os.getenv('DB_USER', 'postgres'),
+        'USER': postgres_user,
         'PASSWORD': os.getenv('DB_PASSWORD', 'Zora'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
