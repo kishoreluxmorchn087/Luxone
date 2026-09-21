@@ -1,5 +1,6 @@
 from __future__ import annotations
 import html
+import re
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -42,6 +43,11 @@ from .services import validate_relay_configuration
 from .utils import normalize_email, record_display_name
 
 User = get_user_model()
+VALID_EMAIL_ERROR = "Enter a valid Gmail address"
+STRICT_EMAIL_PATTERN = re.compile(
+    r"^[^\s@]+@gmail\.com$",
+    re.IGNORECASE,
+)
 
 
 class EmailProviderIntegrationListSerializer(serializers.ModelSerializer):
@@ -162,16 +168,25 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
         return super().to_internal_value(payload)
 
     def validate_email_address(self, value):
-        return normalize_email(value)
+        value = normalize_email(value)
+        if not STRICT_EMAIL_PATTERN.fullmatch(value) or ".." in value:
+            raise serializers.ValidationError(VALID_EMAIL_ERROR)
+        try:
+            validate_email(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(VALID_EMAIL_ERROR) from exc
+        return value
 
     def validate_reply_to_address(self, value):
         if value in ("", None):
             return None
         value = normalize_email(value)
+        if not STRICT_EMAIL_PATTERN.fullmatch(value) or ".." in value:
+            raise serializers.ValidationError(VALID_EMAIL_ERROR)
         try:
             validate_email(value)
         except DjangoValidationError as exc:
-            raise serializers.ValidationError("Enter a valid email address") from exc
+            raise serializers.ValidationError(VALID_EMAIL_ERROR) from exc
         return value
 
     def validate(self, data):
@@ -181,7 +196,7 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
             try:
                 validate_email(reply_to)
             except DjangoValidationError as exc:
-                raise serializers.ValidationError({"reply_to_address": "Enter a valid email address"}) from exc
+                raise serializers.ValidationError({"reply_to_address": VALID_EMAIL_ERROR}) from exc
 
         email = data.get("email_address")
         if not email and self.instance:
