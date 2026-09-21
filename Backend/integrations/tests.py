@@ -16,6 +16,32 @@ from .services import create_synced_email_message, run_provider_sync
 from .utils import build_portal_tracking_key
 
 
+class EmailProviderValidationTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="provider-validation@example.com",
+            password="StrongPass123",
+            is_active=True,
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_create_rejects_invalid_email_address(self):
+        response = self.client.post(
+            "/api/integrations/email/providers/",
+            {
+                "provider_type": EmailProviderIntegration.ProviderType.GMAIL,
+                "protocol_type": EmailProviderIntegration.ProtocolType.IMAP_OAUTH,
+                "email_address": "not-an-email",
+                "display_name": "CRM",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["email_address"][0], "Enter a valid Gmail address")
+        self.assertFalse(EmailProviderIntegration.objects.exists())
+
+
 class IntegrationLinkingTests(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
