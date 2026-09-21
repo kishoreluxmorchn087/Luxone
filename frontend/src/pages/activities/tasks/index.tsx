@@ -33,6 +33,24 @@ const TASK_FILTER_SECTIONS: FilterSection[] = [
 
 const GROUP_BY_OPTIONS = ["Tasks by Status", "Tasks by Priority", "Tasks by Owner", "Tasks by Due Date"];
 
+const TASK_SORT_FIELDS = [
+  "Priority",
+  "Status",
+  "Due Date",
+  "Task Owner",
+  "Created Date",
+  "Modified Date",
+];
+
+const TASK_SORT_FIELD_KEYS = {
+  Priority: "priority",
+  Status: "status",
+  "Due Date": "due_date",
+  "Task Owner": "owner",
+  "Created Date": "created_at",
+  "Modified Date": "updated_at",
+};
+
 export default function TasksPage() {
   const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState(false);
@@ -54,6 +72,8 @@ export default function TasksPage() {
           viewName="All Tasks"
           createButtonLabel="Create Task"
           showImportActions={false}
+          sortFields={TASK_SORT_FIELDS}
+          sortFieldKeyMap={TASK_SORT_FIELD_KEYS}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate("/tasks/create")}
