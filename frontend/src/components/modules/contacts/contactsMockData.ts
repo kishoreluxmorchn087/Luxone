@@ -148,10 +148,22 @@ export const contactModuleConfig: CRMModuleConfig<ContactRecord> = {
   relatedListItems: [...contactRelatedList],
   headerActions: ["Convert", "Add Tags", "Send Email", "Edit", "More"],
   rowActions: contactRowActions,
-  sortFields: ["Contact ID", "Contact Name"],
+  sortFields: [
+    "None",
+    "Contact ID",
+    "Contact Name",
+    "Account Name",
+    "Email",
+    "Phone",
+    "Contact Owner"
+  ],
   sortFieldKeyMap: {
     "Contact ID": "contactId",
     "Contact Name": "contactName",
+    "Account Name": "accountName",
+    "Email": "email",
+    "Phone": "phone",
+    "Contact Owner": "contactOwner",
   },
   filterSections: [
     {
