@@ -444,16 +444,18 @@ export default function CreateCampaignPage() {
 
             <div className="flex items-center justify-end gap-5 border-t border-[#d9e1ef] px-8 py-3">
               <button
-            type="button"
-             onClick={() => {
+               type="button"
+              onClick={() => {
               if (id) {
-                 navigate(`/public/campaigns/${id}/form`);
-               }
-                      }}
-                   className="text-[14px] text-[#1d4ed8] hover:underline"
-               >
-               Create Form Views
-               </button>
+                navigate(`/public/campaigns/${id}/form`);
+              } else {
+              alert("Please save the campaign first.");
+              }
+             }}
+             className="text-[14px] text-[#1d4ed8] hover:underline"
+             >
+             Create Form Views
+            </button>
 
             </div>
           </div>
