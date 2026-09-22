@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import calendar
+import ipaddress
+import re
 from datetime import date as date_cls, datetime, time as time_cls
+from urllib.parse import urlparse
 
 from django.db import transaction
 from django.db.models import Count, Q
@@ -35,6 +38,40 @@ from .models import (
     ServiceMemberAssignment,
     ServicesModuleSettings,
 )
+
+
+PUBLIC_DOMAIN_LABEL_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
+PRIVATE_DOMAIN_SUFFIXES = (".localhost", ".local", ".internal", ".test", ".invalid", ".example")
+
+
+def validate_public_domain(value: str) -> str:
+    raw_value = (value or "").strip().lower()
+    if not raw_value:
+        raise ValidationError("Domain is required.")
+
+    candidate = raw_value if "://" in raw_value else f"https://{raw_value}"
+    parsed = urlparse(candidate)
+    hostname = (parsed.hostname or "").rstrip(".")
+    if parsed.scheme not in {"http", "https"} or not hostname or parsed.username or parsed.password:
+        raise ValidationError("Enter a valid public domain or URL.")
+
+    try:
+        ip_address = ipaddress.ip_address(hostname)
+    except ValueError:
+        ip_address = None
+    if ip_address is not None:
+        if not ip_address.is_global:
+            raise ValidationError("Local or private IP addresses are not allowed.")
+        raise ValidationError("Enter a public domain name instead of an IP address.")
+
+    if hostname == "localhost" or hostname.endswith(PRIVATE_DOMAIN_SUFFIXES):
+        raise ValidationError("Local or internal domains are not allowed.")
+
+    labels = hostname.split(".")
+    if len(labels) < 2 or len(hostname) > 253 or any(not PUBLIC_DOMAIN_LABEL_PATTERN.fullmatch(label) for label in labels):
+        raise ValidationError("Enter a valid public domain or URL.")
+
+    return hostname
 
 
 def get_services_settings() -> ServicesModuleSettings:
@@ -573,6 +610,7 @@ def get_hierarchy_preference():
 
 
 def verify_domain_mapping(mapping: ServiceDomainMapping):
+    mapping.domain = validate_public_domain(mapping.domain)
     mapping.verification_status = ServiceDomainMapping.VerificationStatus.VERIFIED
-    mapping.save(update_fields=["verification_status", "updated_at"])
+    mapping.save(update_fields=["domain", "verification_status", "updated_at"])
     return mapping

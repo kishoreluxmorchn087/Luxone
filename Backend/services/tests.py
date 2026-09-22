@@ -10,9 +10,9 @@ from contacts.models import Contact
 from leads.models import Lead
 from support.models import SupportCase
 
-from .models import CRMService, ServiceAppointment, ServiceMemberAssignment
+from .models import CRMService, ServiceAppointment, ServiceDomainMapping, ServiceMemberAssignment
 from .serializers import AppointmentSerializer, JobSheetSerializer, ServiceDetailSerializer
-from .services import create_or_update_appointment
+from .services import create_or_update_appointment, verify_domain_mapping
 
 User = get_user_model()
 
@@ -57,6 +57,44 @@ class ServicesTestMixin:
         }
         defaults.update(overrides)
         return SupportCase.objects.create(**defaults)
+
+
+class DomainMappingValidationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="domain-admin@example.com", password="password123")
+        self.client.force_authenticate(self.user)
+
+    def test_rejects_localhost_and_plain_text_domains(self):
+        for domain in ("http://localhost:5173", "internal-portal"):
+            response = self.client.post(
+                "/api/settings/domain-mapping/",
+                {"account_type": "portals", "domain": domain},
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertFalse(ServiceDomainMapping.objects.exists())
+
+    def test_public_domain_can_be_verified(self):
+        create_response = self.client.post(
+            "/api/settings/domain-mapping/",
+            {"account_type": "portals", "domain": "https://portal.example.com/path"},
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        mapping = ServiceDomainMapping.objects.get()
+        self.assertEqual(mapping.domain, "portal.example.com")
+        self.assertEqual(mapping.verification_status, ServiceDomainMapping.VerificationStatus.PENDING)
+
+        verify_response = self.client.post(
+            "/api/settings/domain-mapping/verify/",
+            {"id": mapping.id},
+            format="json",
+        )
+
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(verify_response.data["verification_status"], ServiceDomainMapping.VerificationStatus.VERIFIED)
 
 
 class ServiceDetailSerializerTests(ServicesTestMixin, TestCase):

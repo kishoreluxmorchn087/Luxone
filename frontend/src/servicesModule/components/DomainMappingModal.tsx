@@ -44,6 +44,10 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
           setError("Domain is required.");
           return;
         }
+        if (!isPublicDomain(domain)) {
+          setError("Enter a valid public domain or URL. Local and internal addresses are not allowed.");
+          return;
+        }
         if (initialMapping) {
           await updateDomainMapping(initialMapping.id, accountType, domain);
           onSaved();
@@ -148,5 +152,27 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
       </div>
     </CRMModalBase>
   );
+}
+
+function isPublicDomain(value: string) {
+  const rawValue = value.trim();
+  const candidate = rawValue.includes("://") ? rawValue : `https://${rawValue}`;
+
+  try {
+    const url = new URL(candidate);
+    const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+    if (!/^https?:$/.test(url.protocol) || !hostname || hostname === "localhost" || hostname.split(".").length < 2) {
+      return false;
+    }
+    if ([".local", ".internal", ".test", ".invalid", ".example"].some((suffix) => hostname.endsWith(suffix))) {
+      return false;
+    }
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)) {
+      return false;
+    }
+    return hostname.split(".").every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+  } catch {
+    return false;
+  }
 }
 
