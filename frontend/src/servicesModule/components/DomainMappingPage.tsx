@@ -11,6 +11,7 @@ export default function DomainMappingPage() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verificationNotice, setVerificationNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [publishedServices, setPublishedServices] = useState(0);
 
   const load = async () => {
@@ -39,8 +40,14 @@ export default function DomainMappingPage() {
     try {
       setVerifyingId(id);
       setError(null);
-      await verifyDomainMapping(id);
+      setVerificationNotice(null);
+      const verifiedMapping = await verifyDomainMapping(id);
       await load();
+      setVerificationNotice(
+        verifiedMapping.verificationStatus === "verified"
+          ? { tone: "success", message: `${verifiedMapping.domain} was verified successfully.` }
+          : { tone: "error", message: `${verifiedMapping.domain} could not be verified. Check its DNS record and try again.` },
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to verify domain mapping.");
     } finally {
@@ -52,27 +59,7 @@ export default function DomainMappingPage() {
 
   const handleCopy = async (value: string, label: string, rowId?: string) => {
     try {
-      // Try the modern Clipboard API first
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-        await navigator.clipboard.writeText(value);
-      } else {
-        // Fallback for non-HTTPS / older browsers
-        const textarea = document.createElement("textarea");
-        textarea.value = value;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.left = "-9999px";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      // Show "Copied!" feedback
-      if (rowId) {
-        setCopiedId(rowId);
-        setTimeout(() => setCopiedId(null), 2000);
-      }
+      await navigator.clipboard.writeText(value);
     } catch {
       setError(`${label} could not be copied.`);
     }
@@ -108,6 +95,14 @@ export default function DomainMappingPage() {
           </div>
         </div>
         {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">{error}</div> : null}
+        {verificationNotice ? (
+          <div
+            role="status"
+            className={`rounded-xl border p-4 text-sm ${verificationNotice.tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-rose-200 bg-rose-50 text-rose-600"}`}
+          >
+            {verificationNotice.message}
+          </div>
+        ) : null}
         {loading ? <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading domain mappings...</div> : null}
         {!loading && !rows.length ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-8 py-16 text-center">
@@ -138,9 +133,14 @@ export default function DomainMappingPage() {
                       type="button"
                       onClick={() => void handleVerify(row.id)}
                       disabled={verifyingId === row.id}
-                      className="rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
+                      className="inline-flex min-w-23 items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-wait disabled:opacity-60"
                     >
-                      {verifyingId === row.id ? "Verifying..." : "Verify Now"}
+                      {verifyingId === row.id ? (
+                        <>
+                          <span aria-hidden="true" className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                          Verifying...
+                        </>
+                      ) : "Verify Now"}
                     </button>
                   </div>
                 }
