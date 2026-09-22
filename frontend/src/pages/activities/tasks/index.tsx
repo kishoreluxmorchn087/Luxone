@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import ModuleToolbar from "../../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
-import TasksKanbanBoard, { type TasksKanbanBoardHandle } from "./TasksKanbanBoard";
+import TasksKanbanBoard, { type TasksGroupBy, type TasksKanbanBoardHandle } from "./TasksKanbanBoard";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 
 type FilterMap = Record<string, string>;
@@ -31,7 +31,7 @@ const TASK_FILTER_SECTIONS: FilterSection[] = [
   },
 ];
 
-const GROUP_BY_OPTIONS = ["Tasks by Status", "Tasks by Priority", "Tasks by Owner", "Tasks by Due Date"];
+const GROUP_BY_OPTIONS: TasksGroupBy[] = ["Tasks by Status", "Tasks by Priority", "Tasks by Owner", "Tasks by Due Date"];
 
 const TASK_SORT_FIELDS = [
   "Priority",
@@ -55,7 +55,7 @@ export default function TasksPage() {
   const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterMap>({});
-  const [groupBy, setGroupBy] = useState("Tasks by Status");
+  const [groupBy, setGroupBy] = useState<TasksGroupBy>("Tasks by Status");
   const [groupByOpen, setGroupByOpen] = useState(false);
   const boardRef = useRef<TasksKanbanBoardHandle>(null);
 
@@ -128,7 +128,7 @@ export default function TasksPage() {
           )}
 
           <div className="min-w-0 flex-1 overflow-auto">
-            <TasksKanbanBoard ref={boardRef} filters={filters} />
+            <TasksKanbanBoard ref={boardRef} filters={filters} groupBy={groupBy} />
           </div>
         </div>
       </div>

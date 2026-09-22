@@ -35,6 +35,7 @@ type ApiResponse =
 
 type NormalizedFilter = { key: string; value: string };
 type DragState = { taskId: string | number; fromColumn: TaskStatusColumn };
+export type TasksGroupBy = "Tasks by Status" | "Tasks by Priority" | "Tasks by Owner" | "Tasks by Due Date";
 
 const KANBAN_COLUMNS: TaskStatusColumn[] = [
   "Not Started",
@@ -83,6 +84,13 @@ function getOwnerName(owner: TaskRecord["owner"]) {
   const first = owner.first_name || "";
   const last = owner.last_name || "";
   return `${first} ${last}`.trim() || null;
+}
+
+function getTaskGroupValue(task: TaskRecord, groupBy: TasksGroupBy) {
+  if (groupBy === "Tasks by Priority") return task.priority?.trim() || "Normal";
+  if (groupBy === "Tasks by Owner") return getOwnerName(task.owner) || "Unassigned";
+  if (groupBy === "Tasks by Due Date") return task.due_date || task.dueDate || "No due date";
+  return mapTaskStatusToColumn(task.status);
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
@@ -200,7 +208,7 @@ function TaskKanbanColumn({
   onDragEnd,
   onDrop,
 }: {
-  title: TaskStatusColumn;
+  title: string;
   tasks: TaskRecord[];
   draggingId: string | number | null;
   selectedIds: Set<string | number>;
@@ -211,7 +219,7 @@ function TaskKanbanColumn({
   onOpenAccount: (id: TaskRecord["account_id"]) => void;
   onDragStart: (e: React.DragEvent, task: TaskRecord) => void;
   onDragEnd: () => void;
-  onDrop: (column: TaskStatusColumn) => void;
+  onDrop?: (column: TaskStatusColumn) => void;
 }) {
   const [isOver, setIsOver] = useState(false);
   const allSelected = tasks.length > 0 && tasks.every((t) => selectedIds.has(t.id));
@@ -239,7 +247,11 @@ function TaskKanbanColumn({
       <div
         onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
         onDragLeave={() => setIsOver(false)}
-        onDrop={(e) => { e.preventDefault(); setIsOver(false); onDrop(title); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsOver(false);
+          if (onDrop && KANBAN_COLUMNS.includes(title as TaskStatusColumn)) onDrop(title as TaskStatusColumn);
+        }}
         className={`flex-1 overflow-y-auto p-2.5 transition-colors
           ${isOver ? "bg-teal-50/40 ring-2 ring-inset ring-teal-200" : "bg-slate-50/50"}`}
         style={{ minHeight: 120, maxHeight: "calc(100vh - 260px)" }}
@@ -468,8 +480,8 @@ export type TasksKanbanBoardHandle = {
 
 const TasksKanbanBoard = forwardRef<
   TasksKanbanBoardHandle,
-  { filters?: Record<string, string>; onSelectionChange?: (ids: (string | number)[]) => void }
->(function TasksKanbanBoard({ filters = {}, onSelectionChange }, ref) {
+  { filters?: Record<string, string>; groupBy?: TasksGroupBy; onSelectionChange?: (ids: (string | number)[]) => void }
+>(function TasksKanbanBoard({ filters = {}, groupBy = "Tasks by Status", onSelectionChange }, ref) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -512,12 +524,25 @@ const TasksKanbanBoard = forwardRef<
   }, []);
 
   const groupedTasks = useMemo(() => {
+    if (groupBy !== "Tasks by Status") {
+      const groups = new Map<string, TaskRecord[]>();
+      for (const task of filteredTasks) {
+        const value = getTaskGroupValue(task, groupBy);
+        const group = groups.get(value) || [];
+        group.push(task);
+        groups.set(value, group);
+      }
+      return [...groups.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([title, groupTasks]) => ({ title, tasks: groupTasks }));
+    }
+
     const g: Record<TaskStatusColumn, TaskRecord[]> = {
       "Not Started": [], "In Progress": [], "Completed": [], "Waiting for input": [], "Deferred": [],
     };
     for (const task of filteredTasks) g[mapTaskStatusToColumn(task.status)].push(task);
-    return g;
-  }, [filteredTasks]);
+    return KANBAN_COLUMNS.map((title) => ({ title, tasks: g[title] }));
+  }, [filteredTasks, groupBy]);
 
   // ── Selection ───────────────────────────────────────────────────────────────
 
@@ -665,11 +690,11 @@ const TasksKanbanBoard = forwardRef<
       {/* Board */}
       <div className="overflow-auto p-4">
         <div className="flex gap-3" style={{ minWidth: "max-content", alignItems: "flex-start" }}>
-          {KANBAN_COLUMNS.map((column) => (
+          {groupedTasks.map(({ title, tasks: columnTasks }) => (
             <TaskKanbanColumn
-              key={column}
-              title={column}
-              tasks={groupedTasks[column]}
+              key={title}
+              title={title}
+              tasks={columnTasks}
               draggingId={draggingId}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
@@ -679,18 +704,20 @@ const TasksKanbanBoard = forwardRef<
               onOpenAccount={(id) => id && navigate(`/accounts/${id}`)}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onDrop={(col) => void handleDrop(col)}
+              onDrop={groupBy === "Tasks by Status" ? (col) => void handleDrop(col) : undefined}
             />
           ))}
 
           {/* Deferred — collapsed vertical column */}
-          <DeferredColumn
-            count={groupedTasks["Deferred"].length}
-            isOver={deferredOver}
-            onDragOver={(e) => { e.preventDefault(); setDeferredOver(true); }}
-            onDragLeave={() => setDeferredOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDeferredOver(false); void handleDrop("Deferred"); }}
-          />
+          {groupBy === "Tasks by Status" && (
+            <DeferredColumn
+              count={groupedTasks.find((group) => group.title === "Deferred")?.tasks.length || 0}
+              isOver={deferredOver}
+              onDragOver={(e) => { e.preventDefault(); setDeferredOver(true); }}
+              onDragLeave={() => setDeferredOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDeferredOver(false); void handleDrop("Deferred"); }}
+            />
+          )}
         </div>
       </div>
 
