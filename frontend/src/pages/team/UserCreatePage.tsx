@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, Mail, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../hooks/useAuth";
 import { removeDashboardCache } from "../../lib/dashboardCache";
@@ -101,6 +101,10 @@ export default function UserCreatePage() {
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
+    if (!form.name.trim()) {
+      setError("Full name is required.");
+      return;
+    }
     if (!form.email.trim()) {
       setError("Email is required.");
       return;
@@ -148,44 +152,31 @@ export default function UserCreatePage() {
               <span className="font-medium text-slate-700">{created.role_display || created.role}</span>.
             </p>
 
-            {created.email_sent ? (
-              <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-left">
-                <div className="flex items-start gap-2">
-                  <Mail size={16} className="mt-0.5 shrink-0 text-blue-600" />
-                  <div className="text-sm text-blue-800">
-                    <p className="mb-0.5 font-medium">Credentials sent by email</p>
-                    <p className="text-blue-600">
-                      A welcome email with the auto-generated password and login link has been sent to{" "}
-                      <span className="font-medium">{created.email}</span>. The user must change their password on first login.
-                    </p>
-                  </div>
+            {/* Account Credentials Box */}
+            <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-left">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">User Credentials</p>
+              <div className="space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-500">Name:</span>
+                  <span className="font-semibold text-slate-800">{created.name || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-500">Email:</span>
+                  <span className="font-semibold text-slate-800">{created.email}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-500">Password:</span>
+                  <span className="rounded bg-slate-100 px-2 py-0.5 font-mono font-bold text-slate-900">
+                    {created.temp_password || "••••••••"}
+                  </span>
                 </div>
               </div>
-            ) : (
-              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-left">
-                <div className="flex items-start gap-2">
-                  <Mail size={16} className="mt-0.5 shrink-0 text-amber-600" />
-                  <div className="w-full text-sm text-amber-800">
-                    <p className="mb-1 font-medium">Email delivery failed - share credentials manually</p>
-                    <p className="mb-2 text-xs text-amber-700">
-                      The email could not be sent. Please share these credentials with the user directly.
-                    </p>
-                    <div className="space-y-1 rounded-md border border-amber-200 bg-white px-3 py-2">
-                      <p className="text-xs">
-                        <span className="font-medium text-slate-600">Email:</span> {created.email}
-                      </p>
-                      {created.temp_password && (
-                        <p className="text-xs">
-                          <span className="font-medium text-slate-600">Password:</span>{" "}
-                          <span className="font-mono font-bold text-slate-900">{created.temp_password}</span>
-                        </p>
-                      )}
-                      <p className="mt-1 text-xs text-amber-600">The user must change this password on first login.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+              <p className="mt-2 text-xs text-slate-500">
+                {created.email_sent
+                  ? "Welcome email with login instructions has also been sent."
+                  : "Please share these login credentials with the user directly."}
+              </p>
+            </div>
 
             <div className="flex justify-center gap-3">
               <button
@@ -200,7 +191,12 @@ export default function UserCreatePage() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  removeDashboardCache(ADMIN_DASHBOARD_CACHE_KEY);
+                  removeDashboardCache(MANAGER_DASHBOARD_CACHE_KEY);
+                  window.dispatchEvent(new Event(TEAM_UPDATED_EVENT));
+                  navigate("/team");
+                }}
                 className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 Done
@@ -231,7 +227,9 @@ export default function UserCreatePage() {
 
         <form onSubmit={(e) => void handleSubmit(e)} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4">
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Full Name</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Full Name <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={form.name}
@@ -297,32 +295,26 @@ export default function UserCreatePage() {
           {showManagerDropdown && (
             <div className="mb-4">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Assign to Manager / Team Lead</label>
-              {managers.length === 0 ? (
-                <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
-                  No managers found. Create a manager or team lead first, or leave unassigned.
-                </p>
-              ) : (
-                <select
-                  value={form.manager_id}
-                  onChange={(e) => {
-                    const selectedId = e.target.value;
-                    const selectedManager = managers.find((item) => String(item.id) === selectedId);
-                    setForm((prev) => ({
-                      ...prev,
-                      manager_id: selectedId,
-                      department: (selectedManager?.department as UserDepartment) || prev.department,
-                    }));
-                  }}
-                  className={inputCls}
-                >
-                  <option value="">- Unassigned -</option>
-                  {managers.map((manager) => (
-                    <option key={manager.id} value={manager.id}>
-                      {manager.name || manager.email}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={form.manager_id}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const selectedManager = managers.find((item) => String(item.id) === selectedId);
+                  setForm((prev) => ({
+                    ...prev,
+                    manager_id: selectedId,
+                    department: (selectedManager?.department as UserDepartment) || prev.department,
+                  }));
+                }}
+                className={inputCls}
+              >
+                <option value="">- Unassigned -</option>
+                {managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.name || manager.email}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
