@@ -900,6 +900,14 @@ class ServiceDomainMappingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Domain is required.")
         return value
 
+    def update(self, instance, validated_data):
+        domain_changed = "domain" in validated_data and validated_data["domain"] != instance.domain
+        instance = super().update(instance, validated_data)
+        if domain_changed:
+            instance.verification_status = ServiceDomainMapping.VerificationStatus.PENDING
+            instance.save(update_fields=["verification_status", "updated_at"])
+        return instance
+
     def get_public_booking_base_url(self, obj):
         if obj.verification_status == ServiceDomainMapping.VerificationStatus.VERIFIED:
             return f"https://{obj.domain}"

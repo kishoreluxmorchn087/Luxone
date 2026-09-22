@@ -48,3 +48,4 @@ Thumbs.db
 
 # Logs
 *.log
+frontend/src/components/crm/CRMActionModals.tsx

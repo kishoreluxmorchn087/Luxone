@@ -121,7 +121,7 @@ export default function EmailProviderForm({
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
       } else if (!isValidEmail(values.email_address)) {
-        nextErrors.email_address = "Enter a valid email address";
+        nextErrors.email_address = "Enter a valid Gmail address";
       }
 
       if (!values.display_name.trim()) {
@@ -130,7 +130,7 @@ export default function EmailProviderForm({
 
       const replyTo = values.reply_to_address.trim();
       if (replyTo && !isValidEmail(replyTo)) {
-        nextErrors.reply_to_address = "Enter a valid email address";
+        nextErrors.reply_to_address = "Enter a valid Gmail address";
       }
 
       return nextErrors;
@@ -255,6 +255,9 @@ export default function EmailProviderForm({
           <label className="space-y-1 text-sm">
             <span className="text-slate-600">Email Address</span>
             <input
+              type="email"
+              required
+              pattern="[^\s@]+@gmail\.com"
               ref={(element) => {
                 fieldRefs.current.email_address = element;
               }}
@@ -283,6 +286,7 @@ export default function EmailProviderForm({
           <label className="space-y-1 text-sm">
             <span className="text-slate-600">Reply-To Address</span>
             <input
+              type="email"
               ref={(element) => {
                 fieldRefs.current.reply_to_address = element;
               }}
