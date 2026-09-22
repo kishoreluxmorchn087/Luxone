@@ -206,6 +206,13 @@ export default function CreateCampaignPage() {
       setError("Campaign Name is required.");
       return;
     }
+    if (
+      formData.expectedRevenue.trim() &&
+      Number(formData.expectedRevenue) < 0
+       ) {
+  setError("Expected Revenue cannot be negative.");
+  return;
+     }
 
     try {
       setSaving(true);
