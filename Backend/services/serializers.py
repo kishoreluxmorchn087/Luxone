@@ -37,6 +37,7 @@ from .services import (
     get_public_booking_base_url,
     get_service_business_hours,
     get_service_public_booking_url,
+    validate_public_domain,
 )
 
 User = get_user_model()
@@ -895,10 +896,12 @@ class ServiceDomainMappingSerializer(serializers.ModelSerializer):
         read_only_fields = ["cname_target", "created_at", "updated_at"]
 
     def validate_domain(self, value):
-        value = (value or "").strip().lower()
-        if not value:
-            raise serializers.ValidationError("Domain is required.")
-        return value
+        try:
+            return validate_public_domain(value)
+        except serializers.ValidationError:
+            raise
+        except Exception as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def update(self, instance, validated_data):
         domain_changed = "domain" in validated_data and validated_data["domain"] != instance.domain
