@@ -159,10 +159,11 @@ export default function ModuleToolbar({
         setTopEllipsisOpen(false);
       }
 
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+    if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setSortModalOpen(false);
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
-      }
+   }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
