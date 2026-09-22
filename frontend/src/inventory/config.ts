@@ -52,6 +52,7 @@ export const inventoryModules = {
       { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },
       { key: "website", label: "Website" },
+      { key: "category", label: "Category" },
       { key: "vendorOwner", label: "Vendor Owner" },
     ],
     filterSections: [

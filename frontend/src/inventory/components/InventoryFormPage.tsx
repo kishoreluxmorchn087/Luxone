@@ -968,7 +968,11 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
                   <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
                   <Field label="Website"><input className={inputClass} value={anyForm.website || ""} onChange={(e) => setForm({ ...anyForm, website: e.target.value })} /></Field>
-                  <Field label="Category"><input className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })} /></Field>
+                  <Field label="Category"><select className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })}>
+                    <option value="">Select category</option>
+                    {anyForm.category && anyForm.category !== "Technology" ? <option value={anyForm.category}>{anyForm.category}</option> : null}
+                    <option value="Technology">Technology</option>
+                  </select></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
                 </>
               )}
