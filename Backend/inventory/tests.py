@@ -10,6 +10,32 @@ from deals.services import ensure_default_stages
 from .models import InventoryLinkedRecord, PriceBook, Product, Quote, Vendor
 
 
+class VendorCategoryTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="vendor-category@example.com",
+            password="StrongPass123",
+            is_active=True,
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_vendor_category_is_saved_and_returned_when_reopened(self):
+        create_response = self.client.post(
+            "/api/inventory/vendors/",
+            {"vendor_name": "Technology Supplier", "category": "Technology"},
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        vendor_id = create_response.data["id"]
+        self.assertEqual(create_response.data["category"], "Technology")
+
+        detail_response = self.client.get(f"/api/inventory/vendors/{vendor_id}/")
+
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data["category"], "Technology")
+
+
 class InventoryLinkingTests(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
