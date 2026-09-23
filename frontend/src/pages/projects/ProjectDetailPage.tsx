@@ -419,6 +419,7 @@ export default function ProjectDetailPage() {
             <EditableTasksTable
               projectId={id!}
               projectName={project.name}
+              projectOwner={project.owner ?? ""}
               tasks={filteredTasks}
               onRefresh={fetchProject}
             />
@@ -929,9 +930,10 @@ function TaskModal({
                 <div>
                   <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Assigned By</label>
                   <input
-                    className={inputCls}
+                    className={`${inputCls} cursor-not-allowed bg-slate-50 text-slate-500`}
                     value={form.assigned_by ?? ""}
-                    onChange={(e) => setForm((previous) => ({ ...previous, assigned_by: e.target.value }))}
+                    readOnly
+                    tabIndex={-1}
                   />
                 </div>
               </div>
@@ -1070,11 +1072,13 @@ function TaskModal({
 function EditableTasksTable({
   projectId,
   projectName,
+  projectOwner,
   tasks,
   onRefresh,
 }: {
   projectId: string;
   projectName: string;
+  projectOwner: string;
   tasks: ProjectTask[];
   onRefresh: () => Promise<void>;
 }) {
@@ -1084,7 +1088,7 @@ function EditableTasksTable({
     title: "",
     description: "",
     owner: "",
-    assigned_by: getCurrentUserEmail(),
+    assigned_by: projectOwner,
     due_date: "",
     status: "Not Started",
     priority: "Medium",
@@ -1098,7 +1102,7 @@ function EditableTasksTable({
       title: "",
       description: "",
       owner: "",
-      assigned_by: getCurrentUserEmail(),
+      assigned_by: projectOwner,
       due_date: "",
       status: "Not Started",
       priority: "Medium",
@@ -1212,10 +1216,10 @@ function EditableTasksTable({
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Assigned By</label>
               <input
-                className={`${inputCls} bg-white`}
+                className={`${inputCls} cursor-not-allowed bg-slate-50 text-slate-500`}
                 value={form.assigned_by ?? ""}
-                onChange={(e) => setForm((previous) => ({ ...previous, assigned_by: e.target.value }))}
-                placeholder="Enter assigner"
+                readOnly
+                tabIndex={-1}
               />
             </div>
             <div>
