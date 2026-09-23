@@ -834,26 +834,38 @@ export function MassDeleteModal({
     }
   };
 
+  if (!open) return null;
+
   return (
     <CRMModalBase
       open={open}
       title="Mass Delete"
-      maxWidthClassName="max-w-sm"
+      maxWidthClassName="max-w-md"
       footer={
-        <>
-          <button onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">
+        <div className="flex w-full items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={deleting}
+            className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
             Cancel
           </button>
-          <button onClick={() => void handleConfirm()} disabled={deleting} className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50">
+          <button
+            type="button"
+            onClick={() => void handleConfirm()}
+            disabled={deleting}
+            className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+          >
             {deleting ? "Deleting..." : "Delete All"}
           </button>
-        </>
+        </div>
       }
     >
       <p className="text-sm text-slate-700">
-        Are you sure you want to delete all <span className="font-semibold">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
+        Are you sure you want to delete all <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
       </p>
-      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </CRMModalBase>
   );
 }
