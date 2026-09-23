@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+    import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import { getFiscalYearSettings, listAppointments, listJobSheets, updateFiscalYearSettings } from "../api";
@@ -9,6 +9,7 @@ const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text
 
 export default function FiscalYearPage() {
   const [form, setForm] = useState<FiscalYearSettings>({ id: "", fiscalYearType: "standard", startsInMonth: 1 });
+  const [customStartsInMonth, setCustomStartsInMonth] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +25,7 @@ export default function FiscalYearPage() {
           listJobSheets(),
         ]);
         setForm(settings);
+        setCustomStartsInMonth(settings.fiscalYearType === "custom" ? settings.startsInMonth : 1);
         const inRange = (value?: string) => {
           if (!value || !settings.currentPeriodStart || !settings.currentPeriodEnd) return false;
           return value >= settings.currentPeriodStart && value <= settings.currentPeriodEnd;
@@ -56,7 +58,11 @@ export default function FiscalYearPage() {
       setSaving(true);
       setError(null);
       setSavedMessage(null);
-      setForm(await updateFiscalYearSettings(valuesToSave));
+      const updatedSettings = await updateFiscalYearSettings(valuesToSave);
+      setForm(updatedSettings);
+      if (updatedSettings.fiscalYearType === "custom") {
+        setCustomStartsInMonth(updatedSettings.startsInMonth);
+      }
       setSavedMessage("Fiscal year settings updated.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update fiscal year settings.");
@@ -84,7 +90,7 @@ export default function FiscalYearPage() {
                 <input
                   type="radio"
                   checked={form.fiscalYearType === "standard"}
-                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "standard", startsInMonth: 1 }))}
+                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "standard" }))}
                 />
                 Standard Fiscal Year
               </div>
@@ -94,7 +100,7 @@ export default function FiscalYearPage() {
                 <input
                   type="radio"
                   checked={form.fiscalYearType === "custom"}
-                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "custom", startsInMonth: 1 }))}
+                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "custom", startsInMonth: customStartsInMonth }))}
                 />
                 Custom Fiscal Year
               </div>
@@ -105,7 +111,11 @@ export default function FiscalYearPage() {
                 className={inputClass}
                 value={form.fiscalYearType === "standard" ? 1 : form.startsInMonth}
                 disabled={form.fiscalYearType === "standard"}
-                onChange={(e) => setForm((current) => ({ ...current, startsInMonth: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const startsInMonth = Number(e.target.value);
+                  setCustomStartsInMonth(startsInMonth);
+                  setForm((current) => ({ ...current, startsInMonth }));
+                }}
               >
                 {fiscalYearMonthOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
