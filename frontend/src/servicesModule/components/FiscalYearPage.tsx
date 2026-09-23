@@ -44,7 +44,11 @@ export default function FiscalYearPage() {
   }, []);
 
   const handleSave = async () => {
-    if (form.startsInMonth < 1 || form.startsInMonth > 12) {
+    const valuesToSave = {
+      ...form,
+      startsInMonth: form.fiscalYearType === "standard" ? 1 : form.startsInMonth,
+    };
+    if (valuesToSave.startsInMonth < 1 || valuesToSave.startsInMonth > 12) {
       setError("Fiscal year month must be between 1 and 12.");
       return;
     }
@@ -52,7 +56,7 @@ export default function FiscalYearPage() {
       setSaving(true);
       setError(null);
       setSavedMessage(null);
-      setForm(await updateFiscalYearSettings(form));
+      setForm(await updateFiscalYearSettings(valuesToSave));
       setSavedMessage("Fiscal year settings updated.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update fiscal year settings.");
@@ -77,19 +81,32 @@ export default function FiscalYearPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <label className="rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
               <div className="flex items-center gap-2">
-                <input type="radio" checked={form.fiscalYearType === "standard"} onChange={() => setForm({ ...form, fiscalYearType: "standard" })} />
+                <input
+                  type="radio"
+                  checked={form.fiscalYearType === "standard"}
+                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "standard", startsInMonth: 1 }))}
+                />
                 Standard Fiscal Year
               </div>
             </label>
             <label className="rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
               <div className="flex items-center gap-2">
-                <input type="radio" checked={form.fiscalYearType === "custom"} onChange={() => setForm({ ...form, fiscalYearType: "custom" })} />
+                <input
+                  type="radio"
+                  checked={form.fiscalYearType === "custom"}
+                  onChange={() => setForm((current) => ({ ...current, fiscalYearType: "custom", startsInMonth: 1 }))}
+                />
                 Custom Fiscal Year
               </div>
             </label>
             <div className="md:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Fiscal year begins in month</label>
-              <select className={inputClass} value={form.startsInMonth} onChange={(e) => setForm({ ...form, startsInMonth: Number(e.target.value) })}>
+              <select
+                className={inputClass}
+                value={form.fiscalYearType === "standard" ? 1 : form.startsInMonth}
+                disabled={form.fiscalYearType === "standard"}
+                onChange={(e) => setForm((current) => ({ ...current, startsInMonth: Number(e.target.value) }))}
+              >
                 {fiscalYearMonthOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
