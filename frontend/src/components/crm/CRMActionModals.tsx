@@ -264,6 +264,14 @@ export function TaskModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (open) {
+      setSubject(recordName ? `Follow up with ${recordName}` : "");
+      setDescription("");
+      setError(null);
+    }
+  }, [open, recordName]);
+
   const handleSave = async () => {
     if (!subject.trim()) {
       setError("Please enter a subject.");
@@ -288,16 +296,39 @@ export function TaskModal({
       maxWidthClassName="max-w-xl"
       footer={
         <>
-          <button onClick={onClose} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
-          <button onClick={() => void handleSave()} disabled={saving} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-            {saving ? "Saving..." : "Save"}
+          <button onClick={onClose} disabled={saving} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Cancel</button>
+          <button onClick={() => void handleSave()} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+            {saving ? "Saving..." : "Save Task"}
           </button>
         </>
       }
     >
-      <div className="grid gap-3">
-        <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <div className="grid gap-3.5">
+        {recordName ? (
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Related Record</label>
+            <input value={recordName} readOnly className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
+          </div>
+        ) : null}
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Task Subject *</label>
+          <input
+            placeholder="e.g. Follow up on vendor delivery"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Description / Details</label>
+          <textarea
+            rows={3}
+            placeholder="Task details, action items, or notes..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
     </CRMModalBase>
@@ -317,6 +348,14 @@ export function MeetingModal({
   const [agenda, setAgenda] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setMeetingSubject(recordName ? `Meeting with ${recordName}` : "");
+      setAgenda("");
+      setError(null);
+    }
+  }, [open, recordName]);
 
   const handleSave = async () => {
     if (!meetingSubject.trim()) {
@@ -339,18 +378,42 @@ export function MeetingModal({
     <CRMModalBase
       open={open}
       title="Create Meeting"
+      maxWidthClassName="max-w-xl"
       footer={
         <>
-          <button onClick={onClose} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
-          <button onClick={() => void handleSave()} disabled={saving} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-            {saving ? "Saving..." : "Save"}
+          <button onClick={onClose} disabled={saving} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Cancel</button>
+          <button onClick={() => void handleSave()} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+            {saving ? "Scheduling..." : "Save Meeting"}
           </button>
         </>
       }
     >
-      <div className="grid gap-3">
-        <input placeholder="Meeting Subject" value={meetingSubject} onChange={(e) => setMeetingSubject(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <textarea rows={3} placeholder="Agenda" value={agenda} onChange={(e) => setAgenda(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <div className="grid gap-3.5">
+        {recordName ? (
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Related Record</label>
+            <input value={recordName} readOnly className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
+          </div>
+        ) : null}
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Meeting Title *</label>
+          <input
+            placeholder="e.g. Vendor Alignment & Review"
+            value={meetingSubject}
+            onChange={(e) => setMeetingSubject(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Agenda / Details</label>
+          <textarea
+            rows={3}
+            placeholder="Meeting agenda, discussion points, or location..."
+            value={agenda}
+            onChange={(e) => setAgenda(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
     </CRMModalBase>
@@ -896,8 +959,7 @@ export function MassUpdateModal({
     if (status) {
       if (module === "leads") updates.lead_status = status;
       else if (module === "deals") updates.stage = status;
-      else if (module === "accounts") updates.account_type = status;     
-       else if (module === "products") updates.product_category = status;
+      else if (module === "accounts") updates.account_type = status;      else if (module === "products") updates.product_category = status;
       else if (module === "quotes") updates.quote_stage = status;
       else updates.status = status;
     }

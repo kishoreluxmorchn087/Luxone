@@ -38,6 +38,22 @@ const defaultRowActions: CRMRowAction[] = [
   { key: "delete", label: "Delete", destructive: true },
 ];
 
+const vendorRowActions: CRMRowAction[] = [
+  { key: "open", label: "Open" },
+  { key: "edit", label: "Edit" },
+  { key: "create-task", label: "Create Task" },
+  { key: "create-meeting", label: "Create Meeting" },
+  {
+    key: "create-call",
+    label: "Create Call",
+    children: [
+      { key: "schedule-call", label: "Schedule a call" },
+      { key: "log-call", label: "Log a call" },
+    ],
+  },
+  { key: "delete", label: "Delete", destructive: true },
+];
+
 export const inventoryModules = {
   vendors: {
     key: "vendors",
@@ -52,7 +68,6 @@ export const inventoryModules = {
       { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },
       { key: "website", label: "Website" },
-      { key: "category", label: "Category" },
       { key: "vendorOwner", label: "Vendor Owner" },
     ],
     filterSections: [
@@ -74,7 +89,7 @@ export const inventoryModules = {
       "Add Related List",
       "Links",
     ],
-    rowActions: defaultRowActions,
+    rowActions: vendorRowActions,
   } satisfies InventoryModuleMeta<InventoryVendorRecord>,
   products: {
     key: "products",
