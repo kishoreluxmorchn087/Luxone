@@ -267,7 +267,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
-
         />
 
         {meta.extraHeaderAction && (
@@ -326,9 +325,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 }}
                 onClear={() => {
                   setSidebarFilters({});
-                  setColumnFilters({});
-                  setSortState(null);
-                  setSelectedIds([]);
                   setPage(1);
                 }}
               />
@@ -439,13 +435,32 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     if (actionKey === "log-call") setActivityModal("log-call");
                   }}
                   onRowAction={async (actionKey, row) => {
-                    if (actionKey === "open") {
-
-                      navigate(`${meta.baseRoute}/${row.id}`);
+                    if (actionKey === "create-meeting") {
+                      const r = row as Record<string, unknown>;
+                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
+                      setActivityModal("meeting");
                       return;
                     }
-                    if (actionKey === "edit") {
-                      navigate(`${meta.baseRoute}/${row.id}/edit`);
+                    if (actionKey === "create-task") {
+                      const r = row as Record<string, unknown>;
+                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
+                      setActivityModal("task");
+                      return;
+                    }
+                    if (actionKey === "create-call" || actionKey === "schedule-call") {
+                      const r = row as Record<string, unknown>;
+                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
+                      setActivityModal("schedule-call");
+                      return;
+                    }
+                    if (actionKey === "log-call") {
+                      const r = row as Record<string, unknown>;
+                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
+                      setActivityModal("log-call");
+                      return;
+                    }
+                    if (actionKey === "open" || actionKey === "edit") {
+                      navigate(`${meta.baseRoute}/${row.id}`);
                       return;
                     }
                     if (actionKey === "preview") {
