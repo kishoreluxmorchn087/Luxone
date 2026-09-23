@@ -173,6 +173,12 @@ export default function FilterSidebar({
                               type="text"
                               placeholder={`Filter by ${label}...`}
                               value={fieldValues[label] ?? ""}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApply();
+                                }
+                              }}
                               onChange={(e) =>
                                 setFieldValues((prev) => ({
                                   ...prev,
