@@ -28,7 +28,7 @@ const sections: CRMCreateSection[] = [
       { name: "accountOwner", label: "Account Owner", type: "owner", readOnly: true },
       { name: "accountName", label: "Account Name", type: "text", required: true },
       { name: "accountType", label: "Account Type", type: "select", options: ACCOUNT_TYPE_OPTIONS },
-      { name: "phone", label: "Phone", type: "text" },
+      { name: "phone", label: "Phone", type: "phone" },
       { name: "website", label: "Website", type: "text" },
       { name: "industry", label: "Industry", type: "select", options: INDUSTRY_OPTIONS },
       { name: "annualRevenue", label: "Annual Revenue", type: "currency" },
