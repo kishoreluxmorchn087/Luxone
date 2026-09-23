@@ -10,6 +10,7 @@ type ProjectOption = {
   id: number | string;
   name: string;
   project_code?: string;
+  owner?: string; // Assigned Manager
 };
 
 type AssignableUser = {
@@ -63,7 +64,7 @@ export default function CreateProjectDeskTaskPage() {
     description: "",
     assignee_role: "",
     owner: "",
-    assigned_by: getCurrentUserEmail(),
+    assigned_by: "",
     due_date: "",
     priority: "Medium" as ProjectPriority,
     status: "Not Started" as ProjectTaskStatus,
@@ -71,11 +72,18 @@ export default function CreateProjectDeskTaskPage() {
 
   useEffect(() => {
     let active = true;
-    apiRequest<ProjectOption[] | { results?: ProjectOption[] }>("/projects/")
+    apiRequest<ProjectOption[] | { results?: ProjectOption[] }>("/projects/", { forceFresh: true })
       .then((response) => {
         if (!active) return;
         const items = Array.isArray(response) ? response : response.results ?? [];
         setProjects(items);
+        // If a project was pre-selected via query param, set its manager as assigned_by
+        if (initialProject) {
+          const preSelected = items.find((p) => String(p.id) === initialProject);
+          if (preSelected?.owner) {
+            setForm((current) => ({ ...current, assigned_by: preSelected.owner ?? "" }));
+          }
+        }
       })
       .catch((err) => {
         if (!active) return;
@@ -208,7 +216,15 @@ export default function CreateProjectDeskTaskPage() {
                 <select
                   className={inputCls}
                   value={form.project}
-                  onChange={(event) => setForm((current) => ({ ...current, project: event.target.value }))}
+                  onChange={(event) => {
+                    const selectedId = event.target.value;
+                    const selectedProject = projects.find((p) => String(p.id) === selectedId);
+                    setForm((current) => ({
+                      ...current,
+                      project: selectedId,
+                      assigned_by: selectedProject?.owner ?? "",
+                    }));
+                  }}
                   disabled={loadingProjects}
                 >
                   <option value="">{loadingProjects ? "Loading projects..." : "Select project"}</option>
@@ -295,10 +311,11 @@ export default function CreateProjectDeskTaskPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Assigned By</label>
                 <input
-                  className={inputCls}
+                  className={`${inputCls} cursor-not-allowed bg-slate-50 text-slate-500`}
                   value={form.assigned_by}
-                  onChange={(event) => setForm((current) => ({ ...current, assigned_by: event.target.value }))}
-                  placeholder="Enter assigner"
+                  readOnly
+                  tabIndex={-1}
+                  placeholder="Auto-filled from selected project's Assigned Manager"
                 />
               </div>
 
