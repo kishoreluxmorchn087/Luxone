@@ -197,21 +197,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
-
-           sortFields={["None", ...meta.columns.map((c) => c.label)]}
-          sortFieldKeyMap={Object.fromEntries(
-            meta.columns.map((c) => [c.label, c.key])
-          )}
-          onApplySort={(columnKey, direction) => {
-            if (!columnKey) {
-              setSortState(null);
-            } else {
-              setSortState({ key: columnKey, direction });
-            }
-            setPage(1);
-          }}
         />
-        
+
         {meta.extraHeaderAction && (
           <div className="flex justify-end">
             <button
@@ -268,6 +255,9 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 }}
                 onClear={() => {
                   setSidebarFilters({});
+                  setColumnFilters({});
+                  setSortState(null);
+                  setSelectedIds([]);
                   setPage(1);
                 }}
               />
@@ -369,8 +359,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   }}
                   onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
                   onRowAction={async (actionKey, row) => {
-                    if (actionKey === "open" || actionKey === "edit") {
+                    if (actionKey === "open") {
                       navigate(`${meta.baseRoute}/${row.id}`);
+                      return;
+                    }
+                    if (actionKey === "edit") {
+                      navigate(`${meta.baseRoute}/${row.id}/edit`);
                       return;
                     }
                     if (actionKey === "preview") {
