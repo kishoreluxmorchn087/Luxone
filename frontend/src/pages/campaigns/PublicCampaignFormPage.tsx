@@ -48,30 +48,53 @@ export default function PublicCampaignFormPage() {
     setError(null);
   };
 
-  const validate = () => {
-    const errs: Partial<FormState> = {};
-    if (!form.firstName.trim()) errs.firstName = "First name is required.";
-    if (!form.lastName.trim()) errs.lastName = "Last name is required.";
-    if (!form.email.trim()) {
-      errs.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errs.email = "Enter a valid email address.";
-    }
-    if (form.phone.trim() && !/^\d{10}$/.test(form.phone.trim())) {
-      errs.phone = "Phone number must be exactly 10 digits.";
-    }
-    if (form.website.trim()) {
-      try {
-        const parsed = new URL(form.website.trim());
-        if (!["http:", "https:"].includes(parsed.protocol)) {
-          errs.website = "Enter a valid URL.";
-        }
-      } catch {
+const validate = () => {
+  const errs: Partial<FormState> = {};
+
+  if (!form.firstName.trim()) {
+    errs.firstName = "First name is required.";
+  }
+
+  if (!form.lastName.trim()) {
+    errs.lastName = "Last name is required.";
+  }
+
+  if (!form.email.trim()) {
+    errs.email = "Email is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errs.email = "Enter a valid email address.";
+  }
+
+  if (!form.phone.trim()) {
+    errs.phone = "Phone number is required.";
+  } else if (!/^\d{10}$/.test(form.phone.trim())) {
+    errs.phone = "Phone number must be exactly 10 digits.";
+  }
+
+  if (!form.company.trim()) {
+    errs.company = "Company name is required.";
+  }
+
+  if (!form.website.trim()) {
+    errs.website = "Website is required.";
+  } else {
+    try {
+      const parsed = new URL(form.website.trim());
+
+      if (!["http:", "https:"].includes(parsed.protocol)) {
         errs.website = "Enter a valid URL.";
       }
+    } catch {
+      errs.website = "Enter a valid URL.";
     }
-    return errs;
-  };
+  }
+
+  if (!form.notes.trim()) {
+    errs.notes = "Message / Notes is required.";
+  }
+
+  return errs;
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +207,7 @@ export default function PublicCampaignFormPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Phone Number</label>
+            <label className={labelClass}>Phone Number *</label>
             <input
               name="phone"
               type="tel"
@@ -202,7 +225,7 @@ export default function PublicCampaignFormPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Company</label>
+            <label className={labelClass}>Company *</label>
             <input
               name="company"
               value={form.company}
@@ -213,7 +236,7 @@ export default function PublicCampaignFormPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Website</label>
+            <label className={labelClass}>Website *</label>
             <input
               name="website"
               type="url"
@@ -229,7 +252,7 @@ export default function PublicCampaignFormPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Message / Notes</label>
+            <label className={labelClass}>Message / Notes *</label>
             <textarea
               name="notes"
               value={form.notes}
@@ -239,6 +262,11 @@ export default function PublicCampaignFormPage() {
               className="w-full rounded-[6px] border border-[#cfd7e6] bg-white px-3 py-2 text-[14px] text-slate-700 outline-none transition focus:border-[#6d8dff] focus:ring-1 focus:ring-[#6d8dff]/20"
             />
           </div>
+          {fieldErrors.notes && (
+          <p className="mt-1 text-xs text-red-500">
+          {fieldErrors.notes}
+          </p>
+       )}
 
           <button
             type="submit"
