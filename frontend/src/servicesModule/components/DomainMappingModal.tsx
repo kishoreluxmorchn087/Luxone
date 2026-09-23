@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import CRMModalBase from "../../components/crm/CRMModalBase";
 import { createDomainMapping, updateDomainMapping, verifyDomainMapping } from "../api";
 import { domainMappingSteps } from "../config";
 import type { DomainMapping } from "../types";
+import { copyToClipboard } from "../../lib/clipboard";
 
 type Props = Readonly<{
   open: boolean;
@@ -18,6 +20,15 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
   const [mappingId, setMappingId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modalCopied, setModalCopied] = useState(false);
+
+  const handleCopyTarget = async (text: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setModalCopied(true);
+      setTimeout(() => setModalCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (open && initialMapping) {
@@ -130,9 +141,26 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
               <label htmlFor="domain-mapping-domain" className="mb-1.5 block text-sm font-medium text-slate-700">Domain / URL</label>
               <input id="domain-mapping-domain" value={domain} onChange={(e) => setDomain(e.target.value)} className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm" placeholder="support.yourcompany.com" />
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-              <p>Prerequisite: create a CNAME record for your chosen domain.</p>
-              <p className="mt-2 font-medium text-slate-900">Point to: crm.cs.zohohost.in</p>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <div>
+                <p>Prerequisite: create a CNAME record for your chosen domain.</p>
+                <p className="mt-1 font-medium text-slate-900">
+                  Point to: <span className="font-mono text-blue-600">crm.cs.zohohost.in</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCopyTarget("crm.cs.zohohost.in")}
+                className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-all ${
+                  modalCopied
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+                title="Copy CNAME target"
+              >
+                {modalCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                {modalCopied ? "Copied!" : "Copy CNAME"}
+              </button>
             </div>
           </div>
         ) : null}
@@ -141,7 +169,25 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
           <div className="space-y-3 text-sm text-slate-600">
             <p>Account: <span className="font-medium text-slate-900">{accountType.toUpperCase()}</span></p>
             <p>Domain: <span className="font-medium text-slate-900">{domain}</span></p>
-            <p>CNAME Target: <span className="font-medium text-slate-900">crm.cs.zohohost.in</span></p>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">CNAME Target</p>
+                <p className="mt-1 font-mono font-medium text-slate-900">crm.cs.zohohost.in</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCopyTarget("crm.cs.zohohost.in")}
+                className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-all ${
+                  modalCopied
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+                title="Copy CNAME target"
+              >
+                {modalCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                {modalCopied ? "Copied!" : "Copy CNAME"}
+              </button>
+            </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
               Use the final step to persist the domain mapping and verify it.
             </div>

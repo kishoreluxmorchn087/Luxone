@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import { listDomainMappings, listServices, verifyDomainMapping } from "../api";
 import type { DomainMapping } from "../types";
 import DomainMappingModal from "./DomainMappingModal";
+import { copyToClipboard } from "../../lib/clipboard";
 
 export default function DomainMappingPage() {
   const [rows, setRows] = useState<DomainMapping[]>([]);
@@ -121,13 +123,24 @@ export default function DomainMappingPage() {
                     <button
                       type="button"
                       onClick={() => void handleCopy(row.cnameTarget, "CNAME target", row.id)}
-                      className={`rounded-md border px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-all duration-200 ${
                         copiedId === row.id
-                          ? "border-green-300 bg-green-50 text-green-700"
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-xs"
                           : "border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
+                      title={copiedId === row.id ? "Copied to clipboard!" : "Copy CNAME target"}
                     >
-                      {copiedId === row.id ? "✓ Copied!" : "Copy CNAME"}
+                      {copiedId === row.id ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Copy CNAME</span>
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
