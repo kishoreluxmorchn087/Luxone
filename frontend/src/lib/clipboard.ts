@@ -40,7 +40,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       if (selection) {
         selection.removeAllRanges();
       }
-
+// clipoboard is not working
       return successful;
     } catch {
       return false;
