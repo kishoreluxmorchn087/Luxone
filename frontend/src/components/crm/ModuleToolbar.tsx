@@ -295,25 +295,16 @@ export default function ModuleToolbar({
 
             {ellipsisMenuOpen && (
               <div className="absolute right-0 top-[42px] z-50 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                {(["Mass Delete", "Mass Update"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setEllipsisMenuOpen(false);
-                      const actionMap = {
-                        "Mass Delete": "mass-delete",
-                        "Mass Update": "mass-update",
-                      } as const;
-                      onMassAction?.(actionMap[item]);
-                    }}
-                    className={`block w-full px-4 py-2 text-left text-sm transition hover:bg-slate-100 ${
-                      item === "Mass Delete" ? "text-red-600 hover:bg-red-50" : "text-slate-700"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEllipsisMenuOpen(false);
+                    onMassAction?.("mass-delete");
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                >
+                  Mass Delete
+                </button>
               </div>
             )}
           </div>

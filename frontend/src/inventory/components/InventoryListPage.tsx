@@ -208,6 +208,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
+
         />
 
         {meta.extraHeaderAction && (
@@ -371,6 +372,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
                   onRowAction={async (actionKey, row) => {
                     if (actionKey === "open") {
+
                       navigate(`${meta.baseRoute}/${row.id}`);
                       return;
                     }
