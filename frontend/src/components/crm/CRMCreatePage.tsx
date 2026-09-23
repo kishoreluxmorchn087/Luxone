@@ -10,6 +10,7 @@ export type CRMCreateFieldType =
   | "text"
   | "email"
   | "number"
+  | "phone"
   | "textarea"
   | "checkbox"
   | "select"
@@ -558,6 +559,37 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.
           </span>
+          {getFieldMessage(field.name)}
+        </div>
+      );
+    }
+
+    if (field.type === "phone") {
+      return (
+        <div className="relative">
+          <input
+            type="tel"
+            name={field.name}
+            value={value}
+            onChange={(e) => {
+              // Strip anything that isn't a digit or a plus sign
+              const digitsAndPlus = e.target.value.replace(/[^\d+]/g, "");
+              setFormData((prev) => ({ ...prev, [field.name]: digitsAndPlus }));
+              setIsDirty(true);
+              setFieldErrors((prev) => {
+                if (!prev[field.name]) return prev;
+                const next = { ...prev };
+                delete next[field.name];
+                return next;
+              });
+              if (errorMsg) setErrorMsg(null);
+            }}
+            onBlur={() => handleFieldBlur(field.name)}
+            className={inputClass}
+            placeholder={field.placeholder ?? "Enter phone number"}
+            maxLength={field.maxLength ?? 15}
+            inputMode="tel"
+          />
           {getFieldMessage(field.name)}
         </div>
       );
