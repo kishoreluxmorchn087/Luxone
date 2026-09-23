@@ -206,6 +206,13 @@ export default function CreateCampaignPage() {
       setError("Campaign Name is required.");
       return;
     }
+    if (
+      formData.expectedRevenue.trim() &&
+      Number(formData.expectedRevenue) < 0
+       ) {
+  setError("Expected Revenue cannot be negative.");
+  return;
+     }
 
     try {
       setSaving(true);
@@ -444,11 +451,18 @@ export default function CreateCampaignPage() {
 
             <div className="flex items-center justify-end gap-5 border-t border-[#d9e1ef] px-8 py-3">
               <button
-                type="button"
-                className="text-[14px] text-[#1d4ed8] hover:underline"
-              >
-                Create Form Views
-              </button>
+               type="button"
+              onClick={() => {
+              if (id) {
+                navigate(`/public/campaigns/${id}/form`);
+              } else {
+              alert("Please save the campaign first.");
+              }
+             }}
+             className="text-[14px] text-[#1d4ed8] hover:underline"
+             >
+             Create Form Views
+            </button>
 
             </div>
           </div>

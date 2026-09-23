@@ -64,6 +64,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     """Read-only serializer — used for list / retrieve."""
     manager_email = serializers.SerializerMethodField()
+    manager_name = serializers.SerializerMethodField()
     role_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
     department_display = serializers.SerializerMethodField()
@@ -85,6 +86,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "must_change_password",
             "manager",
             "manager_email",
+            "manager_name",
             "created_at",
         ]
         read_only_fields = fields
@@ -97,6 +99,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_manager_email(self, obj):
         return obj.manager.email if obj.manager else None
+
+    
+    def get_manager_name(self, obj):
+        if not obj.manager:
+            return None
+        return obj.manager.name or obj.manager.email
 
     def get_role_display(self, obj):
         return obj.get_role_display()
