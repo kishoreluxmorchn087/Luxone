@@ -10,7 +10,14 @@ import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal } from "../../components/crm/CRMActionModals";
+import {
+  MassDeleteModal,
+  MassUpdateModal,
+  ScheduleCallModal,
+  LogCallModal,
+  TaskModal,
+  MeetingModal,
+} from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
@@ -98,6 +105,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
+  const [activityModal, setActivityModal] = useState<"task" | "meeting" | "schedule-call" | "log-call" | null>(null);
+  const [activeVendorName, setActiveVendorName] = useState("");
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
   useEffect(() => {
@@ -174,6 +183,67 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     void load();
   };
 
+  const handleCallAction = async (payload: {
+    call_summary?: string;
+    call_outcome?: string;
+    call_type?: "Outbound" | "Inbound";
+    call_start_time?: string;
+    duration_minutes?: number;
+    duration_seconds?: number;
+    voice_recording?: string;
+    reminder?: string;
+  }) => {
+    const isLog = activityModal === "log-call";
+    const callStartTime = payload.call_start_time || new Date().toISOString();
+
+    await apiRequest("/calls/", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: payload.call_summary || (activeVendorName ? `Call to ${activeVendorName}` : "Vendor Call"),
+        call_type: payload.call_type ?? "Outbound",
+        call_status: isLog ? "Completed" : "Scheduled",
+        call_start_time: callStartTime,
+        duration_minutes: payload.duration_minutes ?? 0,
+        duration_seconds: payload.duration_seconds ?? 0,
+        purpose: payload.call_outcome || "",
+        reminder: payload.reminder ?? "None",
+        voice_recording: payload.voice_recording ?? "",
+      }),
+    });
+    setActivityModal(null);
+  };
+
+  const handleCreateTask = async (payload: { subject: string; description?: string }) => {
+    await apiRequest("/tasks/", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: payload.subject,
+        description: payload.description || (activeVendorName ? `Vendor: ${activeVendorName}` : ""),
+        status: "Not Started",
+        priority: "Normal",
+      }),
+    });
+    setActivityModal(null);
+  };
+
+  const handleCreateMeeting = async (payload: { meeting_subject: string; agenda?: string }) => {
+    const startDate = new Date();
+    startDate.setMinutes(0, 0, 0);
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+    await apiRequest("/meetings/", {
+      method: "POST",
+      body: JSON.stringify({
+        title: payload.meeting_subject,
+        description: payload.agenda || (activeVendorName ? `Vendor: ${activeVendorName}` : ""),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        status: "Scheduled",
+      }),
+    });
+    setActivityModal(null);
+  };
+
   if (loading) {
     return <div className="p-6 text-sm text-slate-600">Loading {meta.title.toLowerCase()}...</div>;
   }
@@ -197,6 +267,18 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
+          sortFields={["None", ...meta.columns.map((c) => c.label)]}
+          sortFieldKeyMap={Object.fromEntries(
+            meta.columns.map((c) => [c.label, c.key])
+          )}
+          onApplySort={(columnKey, direction) => {
+            if (!columnKey) {
+              setSortState(null);
+            } else {
+              setSortState({ key: columnKey, direction });
+            }
+            setPage(1);
+          }}
         />
 
         {meta.extraHeaderAction && (
@@ -255,9 +337,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 }}
                 onClear={() => {
                   setSidebarFilters({});
-                  setColumnFilters({});
-                  setSortState(null);
-                  setSelectedIds([]);
                   setPage(1);
                 }}
               />
@@ -358,6 +437,15 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
                   }}
                   onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
+                  onOpenActivityAction={(row, actionKey) => {
+                    const r = row as Record<string, unknown>;
+                    const vendorName = String(r.vendorName || r.name || `Vendor #${row.id}`);
+                    setActiveVendorName(vendorName);
+                    if (actionKey === "create-task") setActivityModal("task");
+                    if (actionKey === "create-meeting") setActivityModal("meeting");
+                    if (actionKey === "schedule-call" || actionKey === "create-call") setActivityModal("schedule-call");
+                    if (actionKey === "log-call") setActivityModal("log-call");
+                  }}
                   onRowAction={async (actionKey, row) => {
                     if (actionKey === "open" || actionKey === "edit") {
                       navigate(`${meta.baseRoute}/${row.id}`);
@@ -585,6 +673,34 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         count={selectedIds.length > 0 ? selectedIds.length : processedRows.length}
         module={moduleKey}
         onConfirm={handleMassUpdate}
+      />
+
+      <TaskModal
+        open={activityModal === "task"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={handleCreateTask}
+      />
+
+      <MeetingModal
+        open={activityModal === "meeting"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={handleCreateMeeting}
+      />
+
+      <ScheduleCallModal
+        open={activityModal === "schedule-call"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={handleCallAction}
+      />
+
+      <LogCallModal
+        open={activityModal === "log-call"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={handleCallAction}
       />
     </DashboardLayout>
   );
