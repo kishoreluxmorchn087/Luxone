@@ -40,7 +40,17 @@ const sections: CRMCreateSection[] = [
   },
 },
       { name: "accountType", label: "Account Type", type: "select", options: ACCOUNT_TYPE_OPTIONS },
-      { name: "phone", label: "Phone", type: "text" },
+      {
+        name: "phone",
+        label: "Phone",
+        type: "text",
+        validateValue: (value) => {
+          if (value && !/^[0-9+\-\s()]*$/.test(value)) {
+            return "Phone number can only contain digits, spaces, and + - ( )";
+          }
+          return null;
+        },
+      },
       { name: "website", label: "Website", type: "text" },
       { name: "industry", label: "Industry", type: "select", options: INDUSTRY_OPTIONS },
       { name: "annualRevenue", label: "Annual Revenue", type: "currency" },

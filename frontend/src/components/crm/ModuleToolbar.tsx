@@ -291,6 +291,30 @@ export default function ModuleToolbar({
           >
             Mass Delete
           </button>
+          <div className="relative" ref={ellipsisMenuRef}>
+            <button
+              type="button"
+              onClick={() => setEllipsisMenuOpen((prev) => !prev)}
+              className="cursor-pointer rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm"
+            >
+              <Ellipsis size={16} />
+            </button>
+
+            {ellipsisMenuOpen && (
+              <div className="absolute right-0 top-[42px] z-50 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEllipsisMenuOpen(false);
+                    onMassAction?.("mass-delete");
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                >
+                  Mass Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
