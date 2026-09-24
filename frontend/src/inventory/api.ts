@@ -910,7 +910,7 @@ function serializePriceBook(values: PriceBookFormValues) {
       : [],
     product_links: values.productLinks.map((item) => ({
       product: Number(item.product),
-      list_price: item.listPrice,
+      list_price: Number(item.listPrice || 0),
       active: item.active,
     })),
   };
@@ -938,7 +938,7 @@ function serializeQuote(values: QuoteFormValues) {
     subtotal: values.subtotal,
     discount: values.discount,
     tax: values.tax,
-    adjustment: values.adjustment,
+    adjustment: Number(values.adjustment || 0),
     grand_total: values.grandTotal,
     terms_and_conditions: values.termsAndConditions || "",
     description: values.description || "",
@@ -972,7 +972,7 @@ function serializeSalesOrder(values: SalesOrderFormValues) {
     subtotal: values.subtotal,
     discount: values.discount,
     tax: values.tax,
-    adjustment: values.adjustment,
+    adjustment: Number(values.adjustment || 0),
     grand_total: values.grandTotal,
     terms_and_conditions: values.termsAndConditions || "",
     description: values.description || "",
@@ -999,7 +999,7 @@ function serializePurchaseOrder(values: PurchaseOrderFormValues) {
     subtotal: values.subtotal,
     discount: values.discount,
     tax: values.tax,
-    adjustment: values.adjustment,
+    adjustment: Number(values.adjustment || 0),
     grand_total: values.grandTotal,
     terms_and_conditions: values.termsAndConditions || "",
     description: values.description || "",
@@ -1032,7 +1032,7 @@ function serializeInvoice(values: InvoiceFormValues) {
     subtotal: values.subtotal,
     discount: values.discount,
     tax: values.tax,
-    adjustment: values.adjustment,
+    adjustment: Number(values.adjustment || 0),
     grand_total: values.grandTotal,
     terms_and_conditions: values.termsAndConditions || "",
     description: values.description || "",
@@ -1149,17 +1149,17 @@ export async function quickCreateVendor(values: Pick<VendorFormValues, "vendorNa
   };
 }
 
-export async function reviewInvoiceChanges(items: InventoryLineItem[], adjustment: number) {
+export async function reviewInvoiceChanges(items: InventoryLineItem[], adjustment: number | string) {
   const data = await apiRequest<any>("/inventory/invoices/review-changes", {
     method: "POST",
     body: JSON.stringify({
-      adjustment,
+      adjustment: Number(adjustment || 0),
       items: items.map((item) => ({
         product: Number(item.product),
-        quantity: item.quantity,
-        list_price: item.listPrice,
-        discount: item.discount,
-        tax: item.tax,
+        quantity: Number(item.quantity || 0),
+        list_price: Number(item.listPrice || 0),
+        discount: Number(item.discount || 0),
+        tax: Number(item.tax || 0),
       })),
     }),
   });
