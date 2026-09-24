@@ -60,9 +60,13 @@ export default function DomainMappingPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = async (value: string, label: string, rowId?: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
+    const success = await copyToClipboard(value);
+    if (success) {
+      if (rowId) {
+        setCopiedId(rowId);
+        setTimeout(() => setCopiedId(null), 2000);
+      }
+    } else {
       setError(`${label} could not be copied.`);
     }
   };
