@@ -206,13 +206,31 @@ export default function CreateCampaignPage() {
       setError("Campaign Name is required.");
       return;
     }
-    if (
-      formData.expectedRevenue.trim() &&
-      Number(formData.expectedRevenue) < 0
-       ) {
-  setError("Expected Revenue cannot be negative.");
-  return;
-     }
+
+    if (formData.actualCost.trim() !== "" && (Number(formData.actualCost) < 0 || Number.isNaN(Number(formData.actualCost)))) {
+      setError("Actual Cost cannot be negative.");
+      return;
+    }
+
+    if (formData.budgetedCost.trim() !== "" && (Number(formData.budgetedCost) < 0 || Number.isNaN(Number(formData.budgetedCost)))) {
+      setError("Budgeted Cost cannot be negative.");
+      return;
+    }
+
+    if (formData.expectedRevenue.trim() !== "" && (Number(formData.expectedRevenue) < 0 || Number.isNaN(Number(formData.expectedRevenue)))) {
+      setError("Expected Revenue cannot be negative.");
+      return;
+    }
+
+    if (formData.numbersSent.trim() !== "" && (Number(formData.numbersSent) < 0 || Number.isNaN(Number(formData.numbersSent)))) {
+      setError("Numbers sent cannot be negative.");
+      return;
+    }
+
+    if (formData.expectedResponse.trim() !== "" && (Number(formData.expectedResponse) < 0 || Number.isNaN(Number(formData.expectedResponse)))) {
+      setError("Expected Response cannot be negative.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -451,18 +469,11 @@ export default function CreateCampaignPage() {
 
             <div className="flex items-center justify-end gap-5 border-t border-[#d9e1ef] px-8 py-3">
               <button
-               type="button"
-              onClick={() => {
-              if (id) {
-                navigate(`/public/campaigns/${id}/form`);
-              } else {
-              alert("Please save the campaign first.");
-              }
-             }}
-             className="text-[14px] text-[#1d4ed8] hover:underline"
-             >
-             Create Form Views
-            </button>
+                type="button"
+                className="text-[14px] text-[#1d4ed8] hover:underline"
+              >
+                Create Form Views
+              </button>
 
             </div>
           </div>
