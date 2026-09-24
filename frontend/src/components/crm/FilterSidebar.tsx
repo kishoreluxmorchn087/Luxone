@@ -106,7 +106,7 @@ export default function FilterSidebar({
   const hasAnyChecked = Object.values(checked).some(Boolean);
 
   return (
-    <aside className="flex w-[280px] shrink-0 flex-col rounded-lg border border-slate-200 bg-white">
+    <aside className="flex w-[280px] shrink-0 flex-col rounded-lg border border-slate-200 bg-white h-fit max-h-full">
       <div className="border-b border-slate-100 px-4 pb-3 pt-4">
         <h3 className="mb-3 text-[15px] font-semibold text-slate-800">{title}</h3>
 
@@ -127,7 +127,7 @@ export default function FilterSidebar({
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+      <div className="shrink overflow-y-auto px-4 py-3 space-y-4">
         {filteredSections.map((section) => {
           const isOpen = openSections[section.title] ?? true;
 
