@@ -13,12 +13,18 @@ import {
 
 const sanitizeAlphaSpace = (value: string) => value.replace(/[^A-Za-z ]+/g, "");
 const sanitizeDigits = (value: string) => value.replace(/\D+/g, "");
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in)$/i;
 const validateRequired = (label: string) => (value: string) =>
   value.trim() ? null : `${label} is required.`;
 const validateRequiredEmail = (value: string) => {
   if (!value.trim()) return "Email is required.";
   if (!emailPattern.test(value.trim())) return "Please enter a valid email address.";
+  
+  const domain = value.split('@')[1]?.toLowerCase();
+  if (['gma.com', 'gamil.com', 'gmial.com'].includes(domain)) {
+    return "Invalid email domain. Did you mean @gmail.com?";
+  }
+  
   return null;
 };
 const validateRequiredPhone = (value: string) => {
@@ -155,7 +161,7 @@ const sections: CRMCreateSection[] = [
         label: "Company",
         type: "text",
         required: true,
-       
+
         validateValue: validateRequired("Company"),
       },
       { name: "email", label: "Email", type: "email", required: true, validateValue: validateRequiredEmail },
