@@ -12,6 +12,7 @@ from deals.models import Deal
 from inventory.models import Invoice, Product, SalesOrder
 from leads.models import Lead
 from support.models import SupportCase
+import re
 
 from .models import (
     BusinessHours,
@@ -103,6 +104,13 @@ class ServicesModuleSettingsSerializer(serializers.ModelSerializer):
                 "address": details.address,
             }
         return None
+    
+    def validate_phone(self, value):
+      if value and not re.fullmatch(r"[0-9+()\-\s]+", value):
+        raise serializers.ValidationError(
+            "Phone number can contain only numbers and valid phone characters."
+        )
+      return value
 
     def get_public_booking_base_url(self, obj):
         return get_public_booking_base_url()
