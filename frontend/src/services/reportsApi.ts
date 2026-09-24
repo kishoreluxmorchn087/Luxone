@@ -70,7 +70,7 @@ function toQuery(query: ReportQuery) {
 }
 
 export async function fetchReportsCatalog() {
-  return apiRequest<ReportCatalogItem[]>("/reports/catalog/");
+  return apiRequest<ReportCatalogItem[]>("/reports/catalog/", { forceFresh: true });
 }
 
 export async function runReport(query: ReportQuery) {
