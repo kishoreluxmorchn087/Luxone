@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
@@ -25,6 +25,16 @@ type SelectedParticipant = {
 type MeetingStatus = "Scheduled" | "Completed" | "Cancelled" | "Rescheduled";
 type MeetingType = "Online" | "Offline";
 
+const getMinDateTime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function CreateProjectDeskMeetingPage() {
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -34,6 +44,18 @@ export default function CreateProjectDeskMeetingPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const datetimeRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (datetimeRef.current) {
+      const d = new Date();
+      // Enforce strict W3C format with seconds to ensure all browsers parse the min attribute correctly
+      const minStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+      datetimeRef.current.min = minStr;
+    }
+  });
+  const [minDateTime, setMinDateTime] = useState(getMinDateTime());
 
   const initialProject = searchParams.get("project") ?? "";
 
@@ -137,6 +159,18 @@ export default function CreateProjectDeskMeetingPage() {
     event.preventDefault();
     if (!form.project || !form.title.trim() || !form.start_datetime) {
       setError("Project, meeting title, and date & time are required.");
+      return;
+    }
+
+    const meetingTime = new Date(form.start_datetime).getTime();
+    if (isNaN(meetingTime)) {
+      setError("Please select a valid date and time.");
+      return;
+    }
+    
+    // Check if the selected time is strictly in the past (allowing a 1-minute grace period for typing)
+    if (meetingTime < Date.now() - 60000) {
+      setError("Meeting date and time cannot be in the past.");
       return;
     }
 
@@ -245,10 +279,26 @@ export default function CreateProjectDeskMeetingPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Date & Time</label>
                 <input
+                  ref={datetimeRef}
                   type="datetime-local"
                   className={inputCls}
+                  onClick={(e) => {
+                    const d = new Date();
+                    e.currentTarget.min = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+                  }}
                   value={form.start_datetime}
-                  onChange={(event) => setForm((current) => ({ ...current, start_datetime: event.target.value }))}
+                  onChange={(event) => {
+                    const selected = event.target.value;
+                    const selectedTime = new Date(selected).getTime();
+                    // Block anything strictly before the current minute
+                    if (selectedTime && selectedTime < Date.now() - 60000) {
+                      setError("Meeting date and time cannot be in the past.");
+                      setForm((current) => ({ ...current, start_datetime: "" }));
+                    } else {
+                      setError(null);
+                      setForm((current) => ({ ...current, start_datetime: selected }));
+                    }
+                  }}
                 />
               </div>
 
