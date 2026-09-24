@@ -154,6 +154,31 @@ class CampaignWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("campaign_name is required.")
         return value.strip()
 
+    def validate_actual_cost(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Actual Cost cannot be negative.")
+        return value
+
+    def validate_budgeted_cost(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Budgeted Cost cannot be negative.")
+        return value
+
+    def validate_expected_revenue(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Expected Revenue cannot be negative.")
+        return value
+
+    def validate_numbers_sent(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Numbers sent cannot be negative.")
+        return value
+
+    def validate_expected_response(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Expected response cannot be negative.")
+        return value
+
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         request = self.context.get("request")
         instance = getattr(self, "instance", None)
