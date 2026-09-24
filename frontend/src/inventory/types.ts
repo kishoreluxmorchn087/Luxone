@@ -40,11 +40,11 @@ export type InventoryLineItem = {
   product: string;
   productName?: string;
   productCode?: string;
-  quantity: number;
-  listPrice: number;
-  amount: number;
-  discount: number;
-  tax: number;
+  quantity: number | string;
+  listPrice: number | string;
+  amount: number | string;
+  discount: number | string;
+  tax: number | string;
   total: number;
   rowDescription?: string;
 };
@@ -121,7 +121,7 @@ export type InventoryDetailResponse = InventoryBaseDetail &
     subtotal?: number;
     discount?: number;
     tax?: number;
-    adjustment?: number;
+    adjustment?: number | string;
     grandTotal?: number;
   };
 
@@ -174,7 +174,7 @@ export type PriceBookProductLinkForm = {
   id?: string;
   product: string;
   productLabel?: string;
-  listPrice: number;
+  listPrice: number | string;
   active: boolean;
 };
 
@@ -213,7 +213,7 @@ export type QuoteFormValues = InventoryAddressFields & {
   subtotal: number;
   discount: number;
   tax: number;
-  adjustment: number;
+  adjustment: number | string;
   grandTotal: number;
   termsAndConditions?: string;
   description?: string;
@@ -248,7 +248,7 @@ export type SalesOrderFormValues = InventoryAddressFields & {
   subtotal: number;
   discount: number;
   tax: number;
-  adjustment: number;
+  adjustment: number | string;
   grandTotal: number;
   termsAndConditions?: string;
   description?: string;
@@ -274,7 +274,7 @@ export type PurchaseOrderFormValues = InventoryAddressFields & {
   subtotal: number;
   discount: number;
   tax: number;
-  adjustment: number;
+  adjustment: number | string;
   grandTotal: number;
   termsAndConditions?: string;
   description?: string;
@@ -309,7 +309,7 @@ export type InvoiceFormValues = InventoryAddressFields & {
   subtotal: number;
   discount: number;
   tax: number;
-  adjustment: number;
+  adjustment: number | string;
   grandTotal: number;
   termsAndConditions?: string;
   description?: string;
