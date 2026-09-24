@@ -16,11 +16,13 @@ export default function InventoryDocumentItemsTable({
   onChange,
   showDescription = true,
 }: InventoryDocumentItemsTableProps) {
-  const nonNegativeNumber = (value: string) => Math.max(0, Number(value) || 0);
-
-  const updateItem = (index: number, next: Partial<InventoryLineItem>) => {
+  const updateItem = (
+    index: number,
+    next: Partial<InventoryLineItem>,
+    changedField?: keyof InventoryLineItem
+  ) => {
     const updated = [...items];
-    updated[index] = recalculateLineItem({ ...updated[index], ...next });
+    updated[index] = recalculateLineItem({ ...updated[index], ...next }, changedField);
     onChange(updated);
   };
 
@@ -64,13 +66,17 @@ export default function InventoryDocumentItemsTable({
                       })
                     }
                     onChange={(option) =>
-                      updateItem(index, {
-                        product: option?.id || "",
-                        productName: option?.name || "",
-                        productCode: option?.productCode || "",
-                        quantity: option ? Math.max(Number(item.quantity || 0), 1) : item.quantity,
-                        listPrice: option?.unitPrice ?? item.listPrice,
-                      })
+                      updateItem(
+                        index,
+                        {
+                          product: option?.id || "",
+                          productName: option?.name || "",
+                          productCode: option?.productCode || "",
+                          quantity: option ? Math.max(Number(item.quantity || 0), 1) : item.quantity,
+                          listPrice: option?.unitPrice ?? item.listPrice,
+                        },
+                        "listPrice"
+                      )
                     }
                   />
                   {item.productName && !item.product && (
@@ -91,41 +97,96 @@ export default function InventoryDocumentItemsTable({
                 <td className="px-3 py-3">
                   <input
                     type="number"
-                    min={0}
-                    value={item.quantity}
-                    onChange={(event) => updateItem(index, { quantity: nonNegativeNumber(event.target.value) })}
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={item.quantity ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        { quantity: event.target.value === "" ? "" : event.target.value },
+                        "quantity"
+                      )
+                    }
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
                 <td className="px-3 py-3">
                   <input
                     type="number"
-                    min={0}
-                    value={item.listPrice}
-                    onChange={(event) => updateItem(index, { listPrice: nonNegativeNumber(event.target.value) })}
+                    min="0"
+                    step="any"
+                    placeholder="0.00"
+                    value={item.listPrice ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        { listPrice: event.target.value === "" ? "" : event.target.value },
+                        "listPrice"
+                      )
+                    }
                     className="h-[36px] w-28 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
-                <td className="px-3 py-3 text-slate-700">{item.amount.toFixed(2)}</td>
                 <td className="px-3 py-3">
                   <input
                     type="number"
-                    min={0}
-                    value={item.discount}
-                    onChange={(event) => updateItem(index, { discount: nonNegativeNumber(event.target.value) })}
+                    min="0"
+                    step="any"
+                    placeholder="0.00"
+                    value={item.amount ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        { amount: event.target.value === "" ? "" : event.target.value },
+                        "amount"
+                      )
+                    }
+                    className="h-[36px] w-28 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0.00"
+                    value={item.discount ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        { discount: event.target.value === "" ? "" : event.target.value },
+                        "discount"
+                      )
+                    }
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
                 <td className="px-3 py-3">
                   <input
                     type="number"
-                    min={0}
-                    value={item.tax}
-                    onChange={(event) => updateItem(index, { tax: nonNegativeNumber(event.target.value) })}
+                    min="0"
+                    step="any"
+                    placeholder="0.00"
+                    value={item.tax ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        { tax: event.target.value === "" ? "" : event.target.value },
+                        "tax"
+                      )
+                    }
                     className="h-[36px] w-24 rounded-md border border-slate-300 px-3 outline-none focus:border-blue-500"
                   />
                 </td>
-                <td className="px-3 py-3 font-medium text-slate-800">{item.total.toFixed(2)}</td>
+                <td className="px-3 py-3 font-medium text-slate-800">
+                  {Number(item.total || 0).toFixed(2)}
+                </td>
                 <td className="px-3 py-3">
                   <button
                     type="button"

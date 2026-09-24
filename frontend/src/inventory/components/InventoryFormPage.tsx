@@ -776,9 +776,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       const hasInvalidQuantityRow = itemRows.some(
         (item) => String(item.product || "").trim().length > 0 && Number(item.quantity || 0) <= 0
       );
-      const hasNegativeValueRow = itemRows.some(
-        (item) => [item.quantity, item.listPrice, item.discount, item.tax].some((value) => Number(value || 0) < 0)
-      );
 
       if (!hasSelectedProduct) {
         setError("Add at least one item and select a product from the dropdown.");
@@ -792,11 +789,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
 
       if (hasInvalidQuantityRow) {
         setError("Each selected item needs a quantity greater than 0.");
-        return;
-      }
-
-      if (hasNegativeValueRow) {
-        setError("Quantity, list price, discount, and tax must be zero or greater.");
         return;
       }
     }
@@ -968,11 +960,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
                   <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
                   <Field label="Website"><input className={inputClass} value={anyForm.website || ""} onChange={(e) => setForm({ ...anyForm, website: e.target.value })} /></Field>
-                  <Field label="Category"><select className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })}>
-                    <option value="">Select category</option>
-                    {anyForm.category && anyForm.category !== "Technology" ? <option value={anyForm.category}>{anyForm.category}</option> : null}
-                    <option value="Technology">Technology</option>
-                  </select></Field>
+                  <Field label="Category"><input className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
                 </>
               )}
@@ -1139,12 +1127,18 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₹</span>
                               <input
                                 type="number"
+                                min="0"
+                                step="any"
                                 className={`${inputClass} pl-7`}
-                                placeholder="List Price"
-                                value={link.listPrice || 0}
+                                placeholder="0.00"
+                                value={link.listPrice ?? ""}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => {
                                   const productLinks = [...anyForm.productLinks];
-                                  productLinks[index] = { ...productLinks[index], listPrice: Number(e.target.value) };
+                                  productLinks[index] = {
+                                    ...productLinks[index],
+                                    listPrice: e.target.value === "" ? "" : e.target.value,
+                                  };
                                   updateInventoryForm({ ...anyForm, productLinks });
                                 }}
                               />
@@ -1324,7 +1318,24 @@ export default function InventoryFormPage({ moduleKey }: Props) {
             <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
               <InventoryDocumentItemsTable title={moduleKey === "quotes" ? "Quoted Items" : moduleKey === "sales-orders" ? "Ordered Items" : moduleKey === "purchase-orders" ? "Purchase Items" : "Invoiced Items"} items={anyForm.items as InventoryLineItem[]} onChange={syncItems} showDescription={moduleKey === "invoices"} />
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4"><Field label="Adjustment"><input type="number" className={inputClass} value={anyForm.adjustment || 0} onChange={(e) => { const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value)); setForm({ ...anyForm, ...next }); }} /></Field></div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <Field label="Adjustment">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0.00"
+                      className={inputClass}
+                      value={anyForm.adjustment ?? ""}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? "" : e.target.value;
+                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value || 0));
+                        setForm({ ...anyForm, ...next, adjustment: val });
+                      }}
+                    />
+                  </Field>
+                </div>
                 <InventoryTotalsPanel subtotal={totals?.subtotal || 0} discount={totals?.discount || 0} tax={totals?.tax || 0} adjustment={totals?.adjustment || 0} grandTotal={totals?.grandTotal || 0} />
               </div>
             </div>
