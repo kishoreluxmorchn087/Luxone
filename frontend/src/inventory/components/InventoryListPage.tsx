@@ -6,12 +6,9 @@ import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
+import type { CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
-import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal } from "../../components/crm/CRMActionModals";
-import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
@@ -131,12 +128,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows, visibleColumns as unknown as CRMColumn<CRMRecord>[], combined, globalSearch);
+    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
     if (sortState) {
-      output = sortRecords(output, sortState.key as keyof CRMRecord & string, sortState.direction);
+      output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
     }
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
+  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
@@ -326,21 +323,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           onClose={() => setSamplePreviewOpen(false)}
         />
       )}
-
-      <MassDeleteModal
-        open={massAction === "mass-delete"}
-        onClose={() => setMassAction(null)}
-        count={selectedIds.length > 0 ? selectedIds.length : processedRows.length}
-        onConfirm={handleMassDelete}
-      />
-
-      <MassUpdateModal
-        open={massAction === "mass-update"}
-        onClose={() => setMassAction(null)}
-        count={selectedIds.length > 0 ? selectedIds.length : processedRows.length}
-        module={moduleKey}
-        onConfirm={handleMassUpdate}
-      />
     </DashboardLayout>
   );
 }
