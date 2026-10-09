@@ -1318,24 +1318,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
             <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
               <InventoryDocumentItemsTable title={moduleKey === "quotes" ? "Quoted Items" : moduleKey === "sales-orders" ? "Ordered Items" : moduleKey === "purchase-orders" ? "Purchase Items" : "Invoiced Items"} items={anyForm.items as InventoryLineItem[]} onChange={syncItems} showDescription={moduleKey === "invoices"} />
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <Field label="Adjustment">
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0.00"
-                      className={inputClass}
-                      value={anyForm.adjustment ?? ""}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const val = e.target.value === "" ? "" : e.target.value;
-                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value || 0));
-                        setForm({ ...anyForm, ...next, adjustment: val });
-                      }}
-                    />
-                  </Field>
-                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4"><Field label="Adjustment"><input type="number" className={inputClass} value={anyForm.adjustment || 0} onChange={(e) => { const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value)); setForm({ ...anyForm, ...next }); }} /></Field></div>
                 <InventoryTotalsPanel subtotal={totals?.subtotal || 0} discount={totals?.discount || 0} tax={totals?.tax || 0} adjustment={totals?.adjustment || 0} grandTotal={totals?.grandTotal || 0} />
               </div>
             </div>
