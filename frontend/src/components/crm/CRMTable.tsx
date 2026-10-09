@@ -54,7 +54,6 @@ type CRMTableProps<T extends CRMRecord> = {
   onToggleHideColumn: (columnKey: string) => void;
   onTogglePinColumn: (columnKey: string) => void;
   onFilterColumn: (columnKey: string, value: string) => void;
-  variant?: "default" | "bordered";
 };
 
 export default function CRMTable<T extends CRMRecord>({
@@ -78,7 +77,6 @@ export default function CRMTable<T extends CRMRecord>({
   onToggleHideColumn,
   onTogglePinColumn,
   onFilterColumn,
-  variant = "default",
 }: CRMTableProps<T>) {
   const isLongTextColumn = (columnKey: string) => {
     const normalized = columnKey.toLowerCase();
@@ -143,7 +141,7 @@ export default function CRMTable<T extends CRMRecord>({
                 key={column.key}
                 className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
                   pinnedColumn === column.key ? "sticky z-30 bg-slate-50" : ""
-                } ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}
+                }`}
                 style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
               >
                 <div ref={openHeaderMenu === column.key ? menuRef : null}>
@@ -175,9 +173,6 @@ export default function CRMTable<T extends CRMRecord>({
                 </div>
               </th>
             ))}
-            <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-center ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}>
-              ACTIONS
-            </th>
           </tr>
         </thead>
 
@@ -225,7 +220,7 @@ export default function CRMTable<T extends CRMRecord>({
               {visibleColumns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-4 py-3 text-sm text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""} ${variant === "bordered" ? "border border-slate-300" : ""}`}
+                  className={`px-4 py-3 text-sm text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""}`}
                   style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
                 >
                   <button
@@ -239,35 +234,6 @@ export default function CRMTable<T extends CRMRecord>({
                   </button>
                 </td>
               ))}
-
-              <td className={`px-4 py-3 text-sm text-slate-700 whitespace-nowrap ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    title="Update"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRowAction("edit", row);
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100 hover:shadow-sm"
-                  >
-                    <Pencil size={13} className="text-blue-600" />
-                    <span>Update</span>
-                  </button>
-                  <button
-                    type="button"
-                    title="Delete"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRowAction("delete", row);
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 hover:shadow-sm"
-                  >
-                    <Trash2 size={13} className="text-rose-600" />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </td>
             </tr>
           ))}
         </tbody>
