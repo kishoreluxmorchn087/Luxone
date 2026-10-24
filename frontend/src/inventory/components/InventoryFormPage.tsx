@@ -41,6 +41,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function nonNegativeNumber(value: unknown, minimum = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(minimum, parsed) : minimum;
+}
+
 function getInitialValues(moduleKey: InventoryModuleKey): InventoryFormValues {
   const currentUserId = String(getLoggedInUser()?.id || "");
   if (moduleKey === "products") return { owner: currentUserId, productName: "", productCode: "", vendor: "", vendorLabel: "", manufacturer: "", productCategory: "", productType: "software", deploymentModel: "cloud", billingCycle: "yearly", licenseType: "named", unitPrice: 0, commissionRate: 0, tax: 0, quantityInStock: 0, quantityInDemand: 0, reorderLevel: 0, usageUnit: "users", defaultUserSeats: 1, subscriptionTermMonths: 12, renewalRequired: true, implementationRequired: false, supportStartDate: "", supportExpiryDate: "", description: "" } as ProductFormValues;
@@ -84,15 +89,15 @@ function mapSnapshotToForm(moduleKey: InventoryModuleKey, snapshot: any): Invent
       deploymentModel: String(snapshot.deployment_model || "cloud"),
       billingCycle: String(snapshot.billing_cycle || "yearly"),
       licenseType: String(snapshot.license_type || "named"),
-      unitPrice: Number(snapshot.unit_price || 0),
-      commissionRate: Number(snapshot.commission_rate || 0),
-      tax: Number(snapshot.tax || 0),
-      quantityInStock: Number(snapshot.quantity_in_stock || 0),
-      quantityInDemand: Number(snapshot.quantity_in_demand || 0),
-      reorderLevel: Number(snapshot.reorder_level || 0),
+      unitPrice: nonNegativeNumber(snapshot.unit_price),
+      commissionRate: nonNegativeNumber(snapshot.commission_rate),
+      tax: nonNegativeNumber(snapshot.tax),
+      quantityInStock: nonNegativeNumber(snapshot.quantity_in_stock),
+      quantityInDemand: nonNegativeNumber(snapshot.quantity_in_demand),
+      reorderLevel: nonNegativeNumber(snapshot.reorder_level),
       usageUnit: String(snapshot.usage_unit || "users"),
-      defaultUserSeats: Number(snapshot.default_user_seats || 1),
-      subscriptionTermMonths: Number(snapshot.subscription_term_months || 12),
+      defaultUserSeats: nonNegativeNumber(snapshot.default_user_seats, 1),
+      subscriptionTermMonths: nonNegativeNumber(snapshot.subscription_term_months, 1),
       renewalRequired: Boolean(snapshot.renewal_required),
       implementationRequired: Boolean(snapshot.implementation_required),
       supportStartDate: String(snapshot.support_start_date || ""),
@@ -938,15 +943,15 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Deployment Model"><select className={inputClass} value={anyForm.deploymentModel || "cloud"} onChange={(e) => setForm({ ...anyForm, deploymentModel: e.target.value })}><option value="cloud">Cloud</option><option value="on_prem">On-premise</option><option value="hybrid">Hybrid</option></select></Field>
                   <Field label="Billing Cycle"><select className={inputClass} value={anyForm.billingCycle || "yearly"} onChange={(e) => setForm({ ...anyForm, billingCycle: e.target.value })}><option value="one_time">One-time</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option><option value="custom">Custom</option></select></Field>
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
-                  <Field label="Unit Price"><input type="number" className={inputClass} value={anyForm.unitPrice} onChange={(e) => setForm({ ...anyForm, unitPrice: Number(e.target.value) })} /></Field>
-                  <Field label="Commission Rate"><input type="number" className={inputClass} value={anyForm.commissionRate} onChange={(e) => setForm({ ...anyForm, commissionRate: Number(e.target.value) })} /></Field>
-                  <Field label="Tax"><input type="number" className={inputClass} value={anyForm.tax} onChange={(e) => setForm({ ...anyForm, tax: Number(e.target.value) })} /></Field>
-                  <Field label="Quantity In Stock"><input type="number" className={inputClass} value={anyForm.quantityInStock} onChange={(e) => setForm({ ...anyForm, quantityInStock: Number(e.target.value) })} /></Field>
-                  <Field label="Quantity In Demand"><input type="number" className={inputClass} value={anyForm.quantityInDemand} onChange={(e) => setForm({ ...anyForm, quantityInDemand: Number(e.target.value) })} /></Field>
-                  <Field label="Reorder Level"><input type="number" className={inputClass} value={anyForm.reorderLevel} onChange={(e) => setForm({ ...anyForm, reorderLevel: Number(e.target.value) })} /></Field>
+                  <Field label="Unit Price"><input type="number" min={0} step="any" className={inputClass} value={anyForm.unitPrice} onChange={(e) => setForm({ ...anyForm, unitPrice: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Commission Rate"><input type="number" min={0} step="any" className={inputClass} value={anyForm.commissionRate} onChange={(e) => setForm({ ...anyForm, commissionRate: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Tax"><input type="number" min={0} step="any" className={inputClass} value={anyForm.tax} onChange={(e) => setForm({ ...anyForm, tax: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Quantity In Stock"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInStock} onChange={(e) => setForm({ ...anyForm, quantityInStock: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Quantity In Demand"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInDemand} onChange={(e) => setForm({ ...anyForm, quantityInDemand: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Reorder Level"><input type="number" min={0} step={1} className={inputClass} value={anyForm.reorderLevel} onChange={(e) => setForm({ ...anyForm, reorderLevel: nonNegativeNumber(e.target.value) })} /></Field>
                   <Field label="Usage Unit"><input className={inputClass} value={anyForm.usageUnit || ""} onChange={(e) => setForm({ ...anyForm, usageUnit: e.target.value })} /></Field>
-                  <Field label="Default User Seats"><input type="number" min={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: Number(e.target.value) })} /></Field>
-                  <Field label="Subscription Term (Months)"><input type="number" min={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: Number(e.target.value) })} /></Field>
+                  <Field label="Default User Seats"><input type="number" min={1} step={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: nonNegativeNumber(e.target.value, 1) })} /></Field>
+                  <Field label="Subscription Term (Months)"><input type="number" min={1} step={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Renewal Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired ?? true)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} />Renewal Required</label></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
                   <Field label="Support Start Date"><input type="date" className={inputClass} value={anyForm.supportStartDate || ""} onChange={(e) => setForm({ ...anyForm, supportStartDate: e.target.value })} /></Field>
