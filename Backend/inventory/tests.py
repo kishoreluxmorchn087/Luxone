@@ -1,4 +1,8 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -34,6 +38,44 @@ class VendorCategoryTests(APITestCase):
 
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
         self.assertEqual(detail_response.data["category"], "Technology")
+
+    @patch("inventory.views.create_outgoing_crm_email")
+    @patch("inventory.views.get_user_default_email_provider")
+    def test_vendor_send_email_sends_and_logs_email(self, get_provider, send_email):
+        vendor = Vendor.objects.create(
+            vendor_name="Email Supplier",
+            email="supplier@example.com",
+            vendor_owner=self.user,
+        )
+        get_provider.return_value = SimpleNamespace(display_name="LuxOne CRM")
+
+        response = self.client.post(
+            f"/api/inventory/vendors/{vendor.pk}/send-email/",
+            {
+                "to_email": vendor.email,
+                "subject": "Order update",
+                "body": "Your order has shipped.",
+                "attachments[0]": SimpleUploadedFile(
+                    "shipping-note.txt",
+                    b"Shipping details",
+                    content_type="text/plain",
+                ),
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        send_email.assert_called_once()
+        self.assertEqual(
+            send_email.call_args.kwargs["attachments"],
+            [{
+                "file_name": "shipping-note.txt",
+                "file_type": "text/plain",
+                "content": b"Shipping details",
+            }],
+        )
+        self.assertEqual(vendor.email_logs.count(), 1)
+        self.assertEqual(vendor.email_logs.first().to_email, vendor.email)
 
 
 class InventoryLinkingTests(APITestCase):

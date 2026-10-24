@@ -1133,6 +1133,24 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
+export async function sendVendorEmail(
+  id: string,
+  payload: { to: string; subject: string; body: string; attachments?: File[] }
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("to_email", payload.to);
+  formData.append("subject", payload.subject);
+  formData.append("body", payload.body);
+  payload.attachments?.forEach((file, index) => {
+    formData.append(`attachments[${index}]`, file);
+  });
+
+  await apiRequest(`${INVENTORY_ENDPOINTS.vendors}/${id}/send-email`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export async function quickCreateVendor(values: Pick<VendorFormValues, "vendorName" | "phone" | "email">) {
   const data = await apiRequest<any>("/inventory/vendors/quick-create", {
     method: "POST",

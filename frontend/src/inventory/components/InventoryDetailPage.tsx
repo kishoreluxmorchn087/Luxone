@@ -7,7 +7,8 @@ import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, getInventoryDetail } from "../api";
+import { SendEmailModal } from "../../components/crm/CRMActionModals";
+import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, getInventoryDetail, sendVendorEmail } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
@@ -90,6 +91,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
   const [activeRelatedItem, setActiveRelatedItem] = useState(meta.relatedListItems[0] || "Notes");
   const [payload, setPayload] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(searchParams.get("preview") === "1");
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const headerActions = useMemo(() => {
     if (moduleKey === "quotes") return ["Convert to Sales Order", "Edit"];
@@ -142,6 +144,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           onAction={async (action) => {
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
+              return;
+            }
+
+            if (action === "Send Email" && moduleKey === "vendors") {
+              setEmailOpen(true);
               return;
             }
 
@@ -365,6 +372,19 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               next.delete("preview");
               setSearchParams(next, { replace: true });
             }
+          }}
+        />
+      )}
+      {moduleKey === "vendors" && (
+        <SendEmailModal
+          open={emailOpen}
+          onClose={() => setEmailOpen(false)}
+          toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
+          recordName={detail.name}
+          allowAttachments
+          onSend={async (email) => {
+            if (!id) throw new Error("Vendor record is unavailable.");
+            await sendVendorEmail(id, email);
           }}
         />
       )}
