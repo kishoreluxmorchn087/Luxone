@@ -190,7 +190,13 @@ export default function CRMTable<T extends CRMRecord>({
                 )}
                 <CRMRowMoreOptionsMenu
                   actions={rowActions}
-                  onClickAction={(actionKey) => onRowAction(actionKey, row)}
+                  onClickAction={(actionKey) => {
+                    console.log("1. MENU ACTION:", actionKey, row.id);
+
+                    onRowAction(actionKey, row);
+
+                    console.log("2. onRowAction CALLED");
+                  }}
                 />
               </td>
 

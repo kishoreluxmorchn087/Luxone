@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
 import { getAccounts } from "../../../lib/api/accountsApi";
@@ -65,6 +65,20 @@ export default function CreateTaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const vendorName = searchParams.get("vendorName") ?? "";
+
+  
+  useEffect(() => {
+    if (!vendorName || isEdit) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      subject: prev.subject || `Task for ${vendorName}`,
+      description: prev.description || `Vendor: ${vendorName}`,
+    }));
+  }, [vendorName, isEdit]);
 
   useEffect(() => {
     let active = true;
