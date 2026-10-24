@@ -1,5 +1,6 @@
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
 
 type CRMRowMoreOptionsMenuProps = {
@@ -59,16 +60,22 @@ function ActionSubMenu({ actions, onClickAction, onClose }: SubMenuProps) {
 export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRowMoreOptionsMenuProps) {
   const [open, setOpen] = useState(false);
   const [openNested, setOpenNested] = useState<string | null>(null);
-  const [openUp, setOpenUp] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuWidth, setMenuWidth] = useState(176);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const onOutside = (event: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(event.target as Node)) {
-        setOpen(false);
-        setOpenNested(null);
-      }
+      const target = event.target as Node;
+
+      if (ref.current?.contains(target)) return;
+
+      const menu = document.getElementById("crm-row-more-options-portal");
+
+      if (menu?.contains(target)) return;
+
+      setOpen(false);
+      setOpenNested(null);
     };
     document.addEventListener("mousedown", onOutside);
     return () => document.removeEventListener("mousedown", onOutside);
@@ -77,7 +84,6 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
   const handleClose = () => {
     setOpen(false);
     setOpenNested(null);
-    setOpenUp(false);
   };
 
   const handleActionClick = (actionKey: string) => {
@@ -86,14 +92,37 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
   };
 
   const handleToggle = () => {
-    if (!open && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const estimatedMenuHeight = 260;
-      setOpenUp(viewportHeight - rect.bottom < estimatedMenuHeight);
-    }
-    setOpen((prev) => !prev);
-  };
+    alert("More options button clicked!");
+  if (!open && ref.current) {
+    const rect = ref.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const estimatedMenuHeight = Math.min(260, viewportHeight - 16);
+    const estimatedMenuWidth = 176;
+
+    const shouldOpenUp =
+      viewportHeight - rect.bottom < estimatedMenuHeight + 8;
+
+    const calculatedTop = shouldOpenUp
+      ? rect.top - estimatedMenuHeight - 4
+      : rect.bottom + 4;
+
+    setMenuPosition({
+      top: Math.max(
+        8,
+        Math.min(calculatedTop, viewportHeight - estimatedMenuHeight - 8)
+      ),
+      left: Math.max(
+        8,
+        Math.min(rect.left, viewportWidth - estimatedMenuWidth - 8)
+      ),
+    });
+
+    setMenuWidth(estimatedMenuWidth);
+  }
+
+  setOpen((prev) => !prev);
+};
 
   return (
     <div ref={ref} className="relative" onClick={(event) => event.stopPropagation()}>
@@ -105,10 +134,19 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
         <MoreHorizontal size={16} />
       </button>
 
-      {open ? (
-        <div className={`absolute left-0 z-[60] w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg ${
-          openUp ? "bottom-full mb-1" : "top-full mt-1"
-        }`}>
+            {open
+        ? createPortal(
+            <div
+              id="crm-row-more-options-portal"
+              style={{
+                position: "fixed",
+                top: menuPosition.top,
+                left: menuPosition.left,
+                width: menuWidth,
+                zIndex: 9999,
+              }}
+              className="rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+            >
           {actions.map((action) =>
             action.children?.length ? (
               <div key={action.key} className="relative">
@@ -137,9 +175,11 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
                 {action.label}
               </button>
             )
-          )}
-        </div>
-      ) : null}
+            )}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

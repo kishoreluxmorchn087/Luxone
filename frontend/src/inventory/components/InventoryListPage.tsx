@@ -10,7 +10,7 @@ import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal,ScheduleCallModal, } from "../../components/crm/CRMActionModals";
+import { MassDeleteModal, MassUpdateModal,ScheduleCallModal,  LogCallModal, } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
@@ -685,8 +685,31 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
               purpose: payload.call_outcome ?? "",
               voice_recording: payload.voice_recording ?? "",}),
            });
-    }}
-/>
+         }}
+      />
+      <LogCallModal
+        open={activityModal === "log-call"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={async (payload) => {
+          await apiRequest("/calls/", {
+            method: "POST",
+            body: JSON.stringify({
+              subject: payload.call_summary,
+              call_type: payload.call_type ?? "Outbound",
+              call_status: "Completed",
+              call_start_time:
+                payload.call_start_time ?? new Date().toISOString(),
+              duration_minutes: payload.duration_minutes ?? 0,
+              duration_seconds: payload.duration_seconds ?? 0,
+              related_to_type: "None",
+              reminder: "None",
+              purpose: payload.call_outcome ?? "",
+              voice_recording: payload.voice_recording ?? "",
+            }),
+          });
+        }}
+      />
     </DashboardLayout>
   );
 }
