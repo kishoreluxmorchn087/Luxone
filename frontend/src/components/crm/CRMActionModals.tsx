@@ -463,25 +463,53 @@ export function ScheduleCallModal({
 
   if (!open) return null;
 
-  const handleSave = async () => {
-    if (!subject.trim()) { setError("Subject is required."); return; }
-    try {
-      setSaving(true);
-      setError(null);
-      await onSave?.({
-        call_summary: subject.trim(),
-        call_outcome: purpose.trim(),
-        call_type: callType,
-        call_start_time: `${startDate}T${startTime}:00`,
-        reminder,
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to schedule call.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  
+const handleSave = async () => {
+  if (!subject.trim()) {
+    setError("Subject is required.");
+    return;
+  }
+
+  if (!onSave) {
+    setError("Save handler is not connected.");
+    console.error("ScheduleCallModal: onSave prop is missing.");
+    return;
+  }
+
+  try {
+    setSaving(true);
+    setError(null);
+
+    console.log("Scheduling call with payload:", {
+      call_summary: subject.trim(),
+      call_outcome: purpose.trim(),
+      call_type: callType,
+      call_start_time: `${startDate}T${startTime}:00`,
+      reminder,
+    });
+
+    await onSave({
+      call_summary: subject.trim(),
+      call_outcome: purpose.trim(),
+      call_type: callType,
+      call_start_time: `${startDate}T${startTime}:00`,
+      reminder,
+    });
+
+    console.log("Call scheduled successfully.");
+    onClose();
+  } catch (err) {
+    console.error("Failed to schedule call:", err);
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Failed to schedule call. Please try again."
+    );
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <FullCallModalShell title="Schedule a Call" onClose={onClose}>
