@@ -1151,6 +1151,20 @@ export async function addInventoryAttachment(
   );
 }
 
+export async function addInventoryNote(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  note: string
+) {
+  return apiRequest(
+    `${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`,
+    {
+      method: "POST",
+      body: JSON.stringify({ note }),
+    }
+  );
+}
+
 
 export async function quickCreateVendor(values: Pick<VendorFormValues, "vendorName" | "phone" | "email">) {
   const data = await apiRequest<any>("/inventory/vendors/quick-create", {
