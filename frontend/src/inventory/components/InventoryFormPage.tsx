@@ -1036,37 +1036,61 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                       <div className="space-y-3">
                         {anyForm.ranges.map((range: any, index: number) => (
                           <div key={index} className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-                            <input
+                            <input                            
                               type="number"
+                              min="0"
+                              step="1"
                               className={inputClass}
-                              placeholder="From Range"
-                              value={range.fromRange}
+                              placeholder="From Qty"
+                              value={range.fromRange ?? ""}
                               onChange={(e) => {
+                                 const value = e.target.value;
+                                 if (value !== "" && Number(value) < 0) return;
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], fromRange: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index],fromRange: value === "" ? "" : Number(value),
+                                  };
                                 updateInventoryForm({ ...anyForm, ranges });
                               }}
                             />
                             <input
                               type="number"
+                              min="0"
+                              step="1"
                               className={inputClass}
-                              placeholder="To Range"
-                              value={range.toRange}
-                              onChange={(e) => {
+                              placeholder="To Qty"
+                              value={range.toRange ?? ""}
+                              onChange={(e) => { 
+                                 const value = e.target.value;
+                                  if (value !== "" && Number(value) < 0) return;
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], toRange: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index],  toRange: value === "" ? "" : Number(value), };
                                 updateInventoryForm({ ...anyForm, ranges });
                               }}
                             />
                             <input
                               type="number"
+                               min="0"
+                              max="100"
+                              step="0"
                               className={inputClass}
                               placeholder="Discount %"
-                              value={range.discountPercentage}
+                              value={range.discountPercentage  ?? ""}
                               onChange={(e) => {
+                                 const value = e.target.value;
+                                  if (value === "") {
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], discountPercentage: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index], discountPercentage:0 };
+
                                 updateInventoryForm({ ...anyForm, ranges });
+                                 return;
+                                  }
+                                   const discount = Number(value);
+                                   if (!Number.isFinite(discount)) return;
+                                   if (discount < 0 || discount > 100) return;
+                                   const ranges = [...anyForm.ranges];
+                                     ranges[index] = { ...ranges[index],discountPercentage: discount,    };
+
+                                     updateInventoryForm({ ...anyForm, ranges, });
                               }}
                             />
                             <button
@@ -1329,14 +1353,20 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                       value={anyForm.adjustment ?? ""}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => {
-                        const val = e.target.value === "" ? "" : e.target.value;
-                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value || 0));
-                        setForm({ ...anyForm, ...next, adjustment: val });
+                        const numericValue = e.target.value === "" ? 0 : Number(e.target.value);
+                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], numericValue);
+                        setForm({ ...anyForm, ...next, adjustment: numericValue });
                       }}
                     />
                   </Field>
                 </div>
-                <InventoryTotalsPanel subtotal={totals?.subtotal || 0} discount={totals?.discount || 0} tax={totals?.tax || 0} adjustment={totals?.adjustment || 0} grandTotal={totals?.grandTotal || 0} />
+                <InventoryTotalsPanel
+                  subtotal={Number(totals?.subtotal ?? 0)}
+                  discount={Number(totals?.discount ?? 0)}
+                  tax={Number(totals?.tax ?? 0)}
+                  adjustment={Number(totals?.adjustment ?? 0)}
+                  grandTotal={Number(totals?.grandTotal ?? 0)}
+                />
               </div>
             </div>
 
