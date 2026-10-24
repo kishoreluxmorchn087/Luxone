@@ -1133,6 +1133,25 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
+
+export async function addInventoryAttachment(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  file: File
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest(
+    `${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+}
+
+
 export async function quickCreateVendor(values: Pick<VendorFormValues, "vendorName" | "phone" | "email">) {
   const data = await apiRequest<any>("/inventory/vendors/quick-create", {
     method: "POST",
