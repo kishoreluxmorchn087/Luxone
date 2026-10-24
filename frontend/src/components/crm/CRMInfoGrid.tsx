@@ -1,4 +1,5 @@
 import type { CRMDetailField, CRMRecord } from "../../lib/shared/crmTypes";
+import { formatCurrencyDisplay } from "../../lib/shared/crmHelpers";
 
 type CRMInfoGridProps<T extends CRMRecord> = {
   record: T;
@@ -21,6 +22,10 @@ export default function CRMInfoGrid<T extends CRMRecord>({
   const formatValue = (fieldKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") {
       return fieldKey.toLowerCase().includes("owner") ? "Assigned to you" : "Not provided";
+    }
+    if (fieldKey === "annualRevenue") {
+      if (value === 0 || value === "0") return "-";
+      return `Rs. ${formatCurrencyDisplay(value as string | number)}`;
     }
     return String(value);
   };

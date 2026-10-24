@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
+import { formatCurrencyInput } from "../../lib/shared/crmHelpers";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
@@ -95,6 +96,108 @@ function SelectField({
         size={14}
         className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
       />
+    </div>
+  );
+}
+
+function CurrencyInputField({
+  name,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  maxLength,
+  inputMode = "decimal",
+  className,
+  errorElement,
+}: {
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (name: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+  inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
+  className: string;
+  errorElement: React.ReactNode;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    const input = inputRef.current;
+    const oldCursor = input?.selectionStart ?? rawVal.length;
+
+    // Count how many non-comma characters were before the cursor in rawVal
+    const rawBeforeCursor = rawVal.slice(0, oldCursor);
+    const nonCommasBeforeCursor = rawBeforeCursor.replace(/,/g, "").length;
+
+    const formatted = formatCurrencyInput(rawVal);
+
+    onChange({
+      ...e,
+      target: {
+        ...e.target,
+        name,
+        value: formatted,
+      },
+    });
+
+    requestAnimationFrame(() => {
+      if (!inputRef.current) return;
+      let count = 0;
+      let newCursor = formatted.length;
+      for (let i = 0; i < formatted.length; i++) {
+        if (formatted[i] !== ",") {
+          count++;
+        }
+        if (count === nonCommasBeforeCursor) {
+          newCursor = i + 1;
+          break;
+        }
+      }
+      inputRef.current.setSelectionRange(newCursor, newCursor);
+    });
+  };
+
+  const handleInputBlur = () => {
+    let val = value.trim();
+    if (val) {
+      if (val.endsWith(".")) {
+        val = val.slice(0, -1);
+      } else if (val.includes(".")) {
+        const parts = val.split(".");
+        if (parts[1].length === 1) {
+          val = `${parts[0]}.${parts[1]}0`;
+        }
+      }
+      if (val !== value) {
+        const syntheticEvent = {
+          target: { name, value: val, type: "text" },
+        } as unknown as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      }
+    }
+    onBlur?.(name);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        name={name}
+        value={value}
+        onChange={handleInputChange}
+        onBlur={handleInputBlur}
+        className={className}
+        placeholder={placeholder ?? ""}
+        maxLength={maxLength}
+        inputMode={inputMode}
+      />
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
+        Rs.
+      </span>
+      {errorElement}
     </div>
   );
 }
@@ -545,22 +648,17 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
 
     if (field.type === "currency") {
       return (
-        <div className="relative">
-          <input
-            name={field.name}
-            value={value}
-            onChange={handleChange}
-            onBlur={() => handleFieldBlur(field.name)}
-            className={`${inputClass} pr-4 pl-11`}
-            placeholder={field.placeholder ?? ""}
-            maxLength={field.maxLength}
-            inputMode={field.inputMode}
-          />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
-            Rs.
-          </span>
-          {getFieldMessage(field.name)}
-        </div>
+        <CurrencyInputField
+          name={field.name}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleFieldBlur}
+          className={`${inputClass} pr-4 pl-11`}
+          placeholder={field.placeholder ?? ""}
+          maxLength={field.maxLength}
+          inputMode={field.inputMode ?? "decimal"}
+          errorElement={getFieldMessage(field.name)}
+        />
       );
     }
 

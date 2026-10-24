@@ -17,6 +17,7 @@ export type LeadListItemDto = {
   lead_source: string | null;
   owner: number | null;
   owner_email?: string | null;
+  annual_revenue?: string | number | null;
   created_at: string;
 };
 

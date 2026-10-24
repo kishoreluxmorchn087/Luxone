@@ -37,6 +37,7 @@ class LeadListSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "lead_source",
+            "annual_revenue",
             "owner",
             "owner_email",
             "owner_name",

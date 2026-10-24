@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Phone, CalendarCheck, CalendarDays, Activity, Pencil, Trash2 } from "lucide-react";
 import type { CRMColumn, CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
+import { formatCurrencyDisplay } from "../../lib/shared/crmHelpers";
 import CRMRowMoreOptionsMenu from "./CRMRowMoreOptionsMenu";
 import CRMRowUtilityIcons from "./CRMRowUtilityIcons";
 import CRMTableHeaderMenu from "./CRMTableHeaderMenu";
@@ -87,6 +88,15 @@ export default function CRMTable<T extends CRMRecord>({
       normalized.includes("website") ||
       normalized.includes("address")
     );
+  };
+
+  const formatCellValue = (columnKey: string, val: unknown) => {
+    if (val === null || val === undefined || val === "") return "-";
+    if (columnKey === "annualRevenue") {
+      if (val === 0) return "-";
+      return formatCurrencyDisplay(val as string | number);
+    }
+    return String(val);
   };
 
   const [openHeaderMenu, setOpenHeaderMenu] = useState<string | null>(null);
@@ -244,7 +254,7 @@ export default function CRMTable<T extends CRMRecord>({
                       isLongTextColumn(column.key) ? "break-all whitespace-normal" : "break-words"
                     }`}
                   >
-                    {String(row[column.key] || "-")}
+                    {formatCellValue(column.key, row[column.key])}
                   </button>
                 </td>
               ))}

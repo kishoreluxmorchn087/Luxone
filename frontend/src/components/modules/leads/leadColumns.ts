@@ -7,5 +7,6 @@ export const leadColumns: CRMColumn<LeadRecord>[] = [
   { key: "email", label: "Email", minWidth: "min-w-[240px]" },
   { key: "phone", label: "Phone", minWidth: "min-w-[170px]" },
   { key: "leadSource", label: "Lead Source", minWidth: "min-w-[160px]" },
+  { key: "annualRevenue", label: "Annual Revenue", minWidth: "min-w-[170px]" },
   { key: "leadOwner", label: "Lead Owner", minWidth: "min-w-[170px]" },
 ];

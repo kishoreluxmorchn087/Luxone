@@ -42,7 +42,7 @@ export function mapLeadListItem(dto: LeadListItemDto): LeadRecord {
     leadOwner: dto.owner_email || (dto.owner ? `User #${dto.owner}` : "-"),
     leadStatus: "-",
     industry: "",
-    annualRevenue: 0,
+    annualRevenue: formatCurrency(dto.annual_revenue),
     website: "",
     noOfEmployees: 0,
     rating: "",

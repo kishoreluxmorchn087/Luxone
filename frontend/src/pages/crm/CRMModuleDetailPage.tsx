@@ -9,6 +9,7 @@ import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DocumentsSection from "../documents/DocumentsSection";
+import { formatCurrencyDisplay } from "../../lib/shared/crmHelpers";
 import type {
   Activity,
   Attachment,
@@ -497,6 +498,10 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
   const formatFieldValue = (fieldKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") {
       return fieldKey.toLowerCase().includes("owner") ? "Assigned to you" : "Not provided";
+    }
+    if (fieldKey === "annualRevenue") {
+      if (value === 0 || value === "0") return "-";
+      return `Rs. ${formatCurrencyDisplay(value as string | number)}`;
     }
     return String(value);
   };

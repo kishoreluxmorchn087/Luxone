@@ -1,6 +1,7 @@
 import { buildApiUrl } from "../../api/config";
 import { apiRequest } from "../../api/client";
 import type { ConnectedRecord, EmailRecord, LeadRecord, Note, TimelineItem } from "../shared/crmTypes";
+import { cleanCurrencyToNumber } from "../shared/crmHelpers";
 
 const API_BASE = buildApiUrl("").replace(/\/$/, "");
 
@@ -17,6 +18,7 @@ type BackendLeadList = {
   email: string;
   phone?: string | null;
   lead_source?: string | null;
+  annual_revenue?: string | number | null;
   owner?: number | null;
   owner_email?: string | null;
   owner_name?: string | null;
@@ -144,7 +146,7 @@ function normalizeLeadList(item: BackendLeadList): LeadRecord {
     leadOwner: ownerLabel,
     leadStatus: "",
     industry: "",
-    annualRevenue: 0,
+    annualRevenue: Number(item.annual_revenue ?? 0),
     website: "",
     noOfEmployees: 0,
     rating: "",
@@ -247,7 +249,10 @@ function buildLeadPayload(payload: any) {
   }
 
   if (payload.annualRevenue !== undefined && payload.annualRevenue !== null && payload.annualRevenue !== "") {
-    body.annual_revenue = Number(payload.annualRevenue);
+    const num = cleanCurrencyToNumber(payload.annualRevenue);
+    if (num !== null) {
+      body.annual_revenue = num;
+    }
   }
 
   return body;

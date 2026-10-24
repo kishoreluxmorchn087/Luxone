@@ -10,6 +10,7 @@ import {
   RATING_OPTIONS,
   SALUTATION_OPTIONS,
 } from "../../config/crm/createOptions";
+import { formatCurrencyDisplay, formatCurrencyInput } from "../../lib/shared/crmHelpers";
 
 const sanitizeAlphaSpace = (value: string) => value.replace(/[^A-Za-z ]+/g, "");
 const sanitizeDigits = (value: string) => value.replace(/\D+/g, "");
@@ -151,8 +152,8 @@ const sections: CRMCreateSection[] = [
         name: "annualRevenue",
         label: "Annual Revenue",
         type: "currency",
-        sanitizeValue: sanitizeDigits,
-        inputMode: "numeric",
+        sanitizeValue: formatCurrencyInput,
+        inputMode: "decimal",
       },
       { name: "emailOptOut", label: "Email Opt Out", type: "checkbox" },
 
@@ -243,7 +244,7 @@ export default function CreateLeadPage() {
           leadStatus: lead.leadStatus ?? "",
           industry: lead.industry ?? "",
           noOfEmployees: String(lead.noOfEmployees || ""),
-          annualRevenue: String(lead.annualRevenue || ""),
+          annualRevenue: lead.annualRevenue ? formatCurrencyDisplay(lead.annualRevenue) : "",
           rating: lead.rating ?? "",
           emailOptOut: false,
           skypeId: lead.skypeId ?? "",
