@@ -331,6 +331,12 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     if (!activeRow) {
       throw new Error("No record selected.");
     }
+    console.log("Call action debug:", {
+      module: config.module,
+      activeRow,
+      activeModal,
+      payload,
+    });
 
     const isLog = activeModal === "log-call";
     const callStartTime = payload.call_start_time ?? new Date().toISOString();

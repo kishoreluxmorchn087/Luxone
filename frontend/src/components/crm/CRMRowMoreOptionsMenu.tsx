@@ -16,6 +16,11 @@ type SubMenuProps = {
 function ActionSubMenu({ actions, onClickAction, onClose }: SubMenuProps) {
   const [openNested, setOpenNested] = useState<string | null>(null);
 
+  const handleActionClick = (actionKey: string) => {
+    onClickAction(actionKey);
+    onClose();
+  };
+
   return (
     <div className="absolute left-full top-0 z-[70] ml-1 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
       {actions.map((action) =>
@@ -38,10 +43,7 @@ function ActionSubMenu({ actions, onClickAction, onClose }: SubMenuProps) {
           <button
             key={action.key}
             type="button"
-            onClick={() => {
-              onClickAction(action.key);
-              onClose();
-            }}
+            onClick={() => handleActionClick(action.key)}
             className={`block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-50 ${
               action.destructive ? "text-rose-600" : "text-slate-700"
             }`}
@@ -76,6 +78,11 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
     setOpen(false);
     setOpenNested(null);
     setOpenUp(false);
+  };
+
+  const handleActionClick = (actionKey: string) => {
+    onClickAction(actionKey);
+    handleClose();
   };
 
   const handleToggle = () => {
@@ -115,17 +122,14 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
                   <ChevronRight size={14} className={openNested === action.key ? "rotate-90" : ""} />
                 </button>
                 {openNested === action.key ? (
-                  <ActionSubMenu actions={action.children} onClickAction={onClickAction} onClose={handleClose} />
+                  <ActionSubMenu actions={action.children} onClickAction={handleActionClick} onClose={handleClose} />
                 ) : null}
               </div>
             ) : (
               <button
                 key={action.key}
                 type="button"
-                onClick={() => {
-                  onClickAction(action.key);
-                  handleClose();
-                }}
+                onClick={() => handleActionClick(action.key)}
                 className={`block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-50 ${
                   action.destructive ? "text-rose-600" : "text-slate-700"
                 }`}

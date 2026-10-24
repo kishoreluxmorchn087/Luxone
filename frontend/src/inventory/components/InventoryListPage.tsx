@@ -10,7 +10,7 @@ import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal } from "../../components/crm/CRMActionModals";
+import { MassDeleteModal, MassUpdateModal,ScheduleCallModal, } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
@@ -98,6 +98,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
+  const [activeVendorName, setActiveVendorName] = useState("");
+  const [activityModal, setActivityModal] = useState<"schedule-call" | "meeting" | "task" | "log-call" | null>(null);
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
   useEffect(() => {
@@ -366,19 +368,63 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
                   }}
                   onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
+                  onOpenActivityAction={(row, actionKey) => {
+                    const r = row as Record<string, unknown>;
+
+                    const vendorName = String(
+                      r.vendorName || r.name || `Vendor #${row.id}`
+                    );
+
+                    setActiveVendorName(vendorName);
+
+                    if (actionKey === "schedule-call") {
+                      setActivityModal("schedule-call");
+                    } else if (actionKey === "log-call") {
+                     setActivityModal("log-call");
+                    } else if (actionKey === "create-task") {
+                      const params = new URLSearchParams({ vendorName });
+                      navigate(`/tasks/create?${params.toString()}`);
+                    } else if (actionKey === "create-meeting") {
+                      const params = new URLSearchParams({ vendorName });
+                      navigate(`/meetings/create?${params.toString()}`);
+                    }
+                  }}
                   onRowAction={async (actionKey, row) => {
+                    console.log("ROW ACTION FIRED:", actionKey, row.id);
                     if (actionKey === "create-meeting") {
                       const r = row as Record<string, unknown>;
-                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
-                      setActivityModal("meeting");
-                      return;
+
+                      const vendorName = String(
+                        r.vendorName || r.name || `Vendor #${row.id}`
+                     );
+
+                     const params = new URLSearchParams({ vendorName });
+
+                     navigate(`/meetings/create?${params.toString()}`);
+
+                     return;
                     }
-                    if (actionKey === "create-task") {
-                      const r = row as Record<string, unknown>;
-                      setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
-                      setActivityModal("task");
-                      return;
-                    }
+                   if (actionKey === "create-task") {
+                     console.log(" CREATE TASK CLICKED");
+
+                     const vendor = row as Record<string, unknown>;
+
+                     const vendorName = String(
+                       vendor.vendorName ?? vendor.name ?? `Vendor #${row.id}`
+                     );
+
+                     const params = new URLSearchParams();
+                     params.set("vendorName", vendorName);
+
+                     const targetUrl = `/tasks/create?${params.toString()}`;
+
+                     console.log("Target URL:", targetUrl);
+
+                     navigate(targetUrl);
+
+                     return;
+                  }
+                    console.log("Clicked actionKey:", actionKey);
                     if (actionKey === "create-call" || actionKey === "schedule-call") {
                       const r = row as Record<string, unknown>;
                       setActiveVendorName(String(r.vendorName || r.name || `Vendor #${row.id}`));
@@ -618,6 +664,29 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         module={moduleKey}
         onConfirm={handleMassUpdate}
       />
+
+      <ScheduleCallModal
+        open={activityModal === "schedule-call"}
+        onClose={() => setActivityModal(null)}
+        recordName={activeVendorName}
+        onSave={async (payload) => {
+          await apiRequest("/calls/", {
+            method: "POST",
+            body: JSON.stringify({
+              subject: payload.call_summary,
+              call_type: payload.call_type ?? "Outbound",
+              call_status: "Scheduled",
+              call_start_time:
+                payload.call_start_time ?? new Date().toISOString(),
+              duration_minutes: payload.duration_minutes ?? 0,
+              duration_seconds: payload.duration_seconds ?? 0,
+              related_to_type: "None",
+              reminder: payload.reminder ?? "None",
+              purpose: payload.call_outcome ?? "",
+              voice_recording: payload.voice_recording ?? "",}),
+           });
+    }}
+/>
     </DashboardLayout>
   );
 }
