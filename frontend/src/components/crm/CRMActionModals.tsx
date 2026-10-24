@@ -1,5 +1,5 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CRMModalBase from "./CRMModalBase";
 
 // ── Shared call helpers ────────────────────────────────────────────────────
@@ -69,24 +69,29 @@ export function SendEmailModal({
   onClose,
   toEmail = "",
   recordName = "",
+  allowAttachments = false,
   onSend,
 }: BaseModalProps & {
   toEmail?: string;
   recordName?: string;
-  onSend?: (payload: { to: string; subject: string; body: string; from_email?: string }) => Promise<void>;
+  allowAttachments?: boolean;
+  onSend?: (payload: { to: string; subject: string; body: string; from_email?: string; attachments?: File[] }) => Promise<void>;
 }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState(toEmail);
   const [subject, setSubject] = useState(recordName ? `Re: ${recordName}` : "");
   const [body, setBody] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setTo(toEmail);
     setSubject(recordName ? `Re: ${recordName}` : "");
     setBody("");
+    setAttachments([]);
     setError(null);
   }, [open, toEmail, recordName]);
 
@@ -105,7 +110,13 @@ export function SendEmailModal({
       setError(null);
 
       if (onSend) {
-        await onSend({ to: to.trim(), subject: subject.trim(), body: body.trim(), from_email: from.trim() || undefined });
+        await onSend({
+          to: to.trim(),
+          subject: subject.trim(),
+          body: body.trim(),
+          from_email: from.trim() || undefined,
+          attachments: attachments.length ? attachments : undefined,
+        });
       } else {
         throw new Error("Email sending is not configured for this screen.");
       }
@@ -145,7 +156,50 @@ export function SendEmailModal({
         </div>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="w-full resize-none rounded-b-lg px-3 py-2 text-sm outline-none" />
       </div>
-      <button className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"><Paperclip size={14} />Attach Files</button>
+      {allowAttachments && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(event) => {
+              const selectedFiles = Array.from(event.currentTarget.files || []);
+              setAttachments((current) => [
+                ...current,
+                ...selectedFiles.filter((file) => !current.some(
+                  (existing) => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified
+                )),
+              ]);
+              event.currentTarget.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+          >
+            <Paperclip size={14} />Attach Files
+          </button>
+          {attachments.length > 0 && (
+            <ul className="mt-2 space-y-2" aria-label="Attached files">
+              {attachments.map((file, index) => (
+                <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate text-slate-700">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                    className="ml-3 shrink-0 text-slate-500 hover:text-rose-600"
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
       {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
     </CRMModalBase>
   );

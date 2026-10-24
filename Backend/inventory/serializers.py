@@ -277,6 +277,17 @@ class VendorWriteSerializer(serializers.ModelSerializer):
         return value
 
 
+class VendorSendEmailSerializer(serializers.Serializer):
+    to_email = serializers.EmailField()
+    subject = serializers.CharField(max_length=255)
+    body = serializers.CharField(allow_blank=True, required=False)
+    attachments = serializers.ListField(
+        child=serializers.FileField(),
+        required=False,
+        write_only=True,
+    )
+
+
 class VendorDetailSerializer(VendorListSerializer):
     related_summary = serializers.SerializerMethodField()
 
