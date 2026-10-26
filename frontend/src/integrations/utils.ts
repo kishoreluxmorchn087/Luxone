@@ -127,9 +127,36 @@ export function isValidEmail(value: string) {
   const email = value.trim();
   const [localPart, domain] = email.split("@");
 
-  if (!localPart || domain.toLowerCase() !== "gmail.com" || email.includes("..") || localPart.startsWith(".") || localPart.endsWith(".")) {
+  if (
+    !localPart ||
+    !domain ||
+    email.includes("..") ||
+    localPart.startsWith(".") ||
+    localPart.endsWith(".")
+  ) {
     return false;
   }
 
-  return /^[^\s@]+@gmail\.com$/i.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function isValidEmailForProvider(value: string, provider: IntegrationProviderType) {
+  if (!isValidEmail(value)) {
+    return false;
+  }
+
+  const domain = value.trim().split("@")[1].toLowerCase();
+  if (provider === "gmail") {
+    return domain === "gmail.com";
+  }
+
+  if (provider === "yahoo") {
+    return (
+      /^yahoo\.[a-z]{2,}(?:\.[a-z]{2})?$/.test(domain) ||
+      domain === "ymail.com" ||
+      domain === "rocketmail.com"
+    );
+  }
+
+  return true;
 }
