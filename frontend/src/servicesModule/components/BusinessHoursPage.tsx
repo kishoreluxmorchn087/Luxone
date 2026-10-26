@@ -80,7 +80,12 @@ export default function BusinessHoursPage() {
               action={
                 <div className="flex gap-2">
                   {!row.isDefault ? (
-                    <button type="button" onClick={() => void setDefaultBusinessHours(row.id).then(load)} className="text-xs font-medium text-blue-600">
+                    <button
+                      type="button"
+                      onClick={() => void setDefaultBusinessHours(row.id).then(load)}
+                      className="text-xs font-medium text-blue-600 hover:underline"
+                      title="Set as default business hours"
+                    >
                       Set Default
                     </button>
                   ) : (
@@ -108,8 +113,8 @@ export default function BusinessHoursPage() {
                     <div key={day} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
                       <span className="capitalize text-slate-700">{day}</span>
                       <span className="text-slate-500">
-                        {row.days[day].enabled
-                          ? `${formatTimeValue(row.days[day].start)} - ${formatTimeValue(row.days[day].end)}`
+                        {row.days?.[day]?.enabled
+                          ? `${formatTimeValue(row.days?.[day]?.start)} - ${formatTimeValue(row.days?.[day]?.end)}`
                           : "Closed"}
                       </span>
                     </div>
