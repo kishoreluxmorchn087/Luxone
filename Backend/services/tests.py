@@ -110,6 +110,18 @@ class ServiceDetailSerializerTests(ServicesTestMixin, TestCase):
         self.assertEqual(len(data["members"]), 1)
         self.assertEqual(data["members"][0]["member"], active_member.id)
 
+    def test_custom_time_fields_are_serialized(self):
+        service = self.create_service(
+            available_time_mode=CRMService.AvailabilityMode.CUSTOM,
+            custom_time_start=time(9, 0),
+            custom_time_end=time(17, 30),
+        )
+
+        data = ServiceDetailSerializer(service).data
+
+        self.assertEqual(data["custom_time_start"], "09:00:00")
+        self.assertEqual(data["custom_time_end"], "17:30:00")
+
 
 class AppointmentSerializerTests(ServicesTestMixin, TestCase):
     def test_rejects_invalid_linked_record(self):
