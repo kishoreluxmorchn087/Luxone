@@ -201,7 +201,7 @@ export default function EmailProviderForm({
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         {formError ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {formError}
@@ -256,6 +256,9 @@ export default function EmailProviderForm({
             <span className="text-slate-600">Email Address</span>
             <input
               type="email"
+              id={`${formId}-provider-email-address`}
+              name="provider_email_address"
+              autoComplete="off"
               required
               pattern="[^\s@]+@gmail\.com"
               ref={(element) => {
@@ -325,6 +328,9 @@ export default function EmailProviderForm({
             <span className="text-slate-600">App Password / Access Token</span>
             <input
               type="password"
+              id={`${formId}-provider-access-token`}
+              name="provider_access_token"
+              autoComplete="new-password"
               value={values.access_token || ""}
               onChange={(event) => setField("access_token", event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"
@@ -336,6 +342,9 @@ export default function EmailProviderForm({
             <span className="text-slate-600">Refresh Token (Optional)</span>
             <input
               type="password"
+              id={`${formId}-provider-refresh-token`}
+              name="provider_refresh_token"
+              autoComplete="new-password"
               value={values.refresh_token || ""}
               onChange={(event) => setField("refresh_token", event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"

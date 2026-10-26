@@ -8,7 +8,13 @@ import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { SendEmailModal } from "../../components/crm/CRMActionModals";
-import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, getInventoryDetail, sendVendorEmail } from "../api";
+import {
+  addInventoryAttachment,
+  convertQuoteToSalesOrder,
+  convertSalesOrderToInvoice,
+  getInventoryDetail,
+  sendVendorEmail,
+} from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
@@ -92,6 +98,9 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
   const [payload, setPayload] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(searchParams.get("preview") === "1");
   const [emailOpen, setEmailOpen] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const headerActions = useMemo(() => {
     if (moduleKey === "quotes") return ["Convert to Sales Order", "Edit"];
