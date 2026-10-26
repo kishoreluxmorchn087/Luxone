@@ -1113,17 +1113,6 @@ export async function deleteInventoryRecord(moduleKey: InventoryModuleKey, id: s
   await apiRequest(`${path}/${id}`, { method: "DELETE" });
 }
 
-export async function addInventoryNote(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
-  id: string,
-  note: string
-) {
-  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
-}
-
 export async function fetchLookupOptions(
   lookup: keyof typeof LOOKUP_PATHS,
   query: string,
