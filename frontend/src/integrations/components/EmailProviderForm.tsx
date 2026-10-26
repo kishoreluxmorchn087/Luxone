@@ -6,7 +6,7 @@ import type {
   EmailProviderIntegration,
   IntegrationProviderType,
 } from "../types";
-import { isValidEmail } from "../utils";
+import { getProviderLabel, isValidEmail, isValidEmailForProvider } from "../utils";
 
 type ProviderField =
   | "provider_type"
@@ -96,8 +96,12 @@ export default function EmailProviderForm({
     value: EmailProviderFormValues[K]
   ) => {
     setValues((current) => ({ ...current, [key]: value }));
-    if (key in errors) {
-      setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key in errors || key === "provider_type") {
+      setErrors((current) => ({
+        ...current,
+        [key]: undefined,
+        ...(key === "provider_type" ? { email_address: undefined } : {}),
+      }));
     }
     setFormError("");
   };
@@ -121,7 +125,9 @@ export default function EmailProviderForm({
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
       } else if (!isValidEmail(values.email_address)) {
-        nextErrors.email_address = "Enter a valid Gmail address";
+        nextErrors.email_address = "Enter a valid email address";
+      } else if (!isValidEmailForProvider(values.email_address, values.provider_type)) {
+        nextErrors.email_address = `Enter an email address that matches ${getProviderLabel(values.provider_type)}`;
       }
 
       if (!values.display_name.trim()) {
@@ -130,7 +136,7 @@ export default function EmailProviderForm({
 
       const replyTo = values.reply_to_address.trim();
       if (replyTo && !isValidEmail(replyTo)) {
-        nextErrors.reply_to_address = "Enter a valid Gmail address";
+        nextErrors.reply_to_address = "Enter a valid email address";
       }
 
       return nextErrors;
@@ -257,7 +263,6 @@ export default function EmailProviderForm({
             <input
               type="email"
               required
-              pattern="[^\s@]+@gmail\.com"
               ref={(element) => {
                 fieldRefs.current.email_address = element;
               }}
