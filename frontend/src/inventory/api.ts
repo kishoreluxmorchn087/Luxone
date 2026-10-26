@@ -1113,17 +1113,6 @@ export async function deleteInventoryRecord(moduleKey: InventoryModuleKey, id: s
   await apiRequest(`${path}/${id}`, { method: "DELETE" });
 }
 
-export async function addInventoryNote(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
-  id: string,
-  note: string
-) {
-  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
-}
-
 export async function fetchLookupOptions(
   lookup: keyof typeof LOOKUP_PATHS,
   query: string,
@@ -1155,17 +1144,6 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
-export async function addInventoryNote(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
-  id: string,
-  note: string
-): Promise<void> {
-  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
-}
-
 export async function addInventoryAttachment(
   moduleKey: Exclude<InventoryModuleKey, "configurator">,
   id: string,
@@ -1193,20 +1171,6 @@ export async function sendVendorEmail(
   });
 
   await apiRequest(`${INVENTORY_ENDPOINTS.vendors}/${id}/send-email`, {
-    method: "POST",
-    body: formData,
-  });
-}
-
-export async function addInventoryAttachment(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
-  id: string,
-  file: File
-): Promise<void> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
     method: "POST",
     body: formData,
   });
