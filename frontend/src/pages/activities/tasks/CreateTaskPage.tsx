@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
@@ -51,6 +51,26 @@ function buildRecordLabel(recordName: string, fallback: string) {
   return recordName?.trim() ? recordName : fallback;
 }
 
+function isValidDueDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || year > 9999 || month < 1 || month > 12) return false;
+
+  const daysInMonth =
+    month === 2
+      ? year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+        ? 29
+        : 28
+      : [4, 6, 9, 11].includes(month)
+        ? 30
+        : 31;
+  return day >= 1 && day <= daysInMonth;
+}
+
 export default function CreateTaskPage() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
@@ -64,6 +84,7 @@ export default function CreateTaskPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const dueDateInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -182,6 +203,17 @@ export default function CreateTaskPage() {
   const handleSave = async (stayOnPage: boolean) => {
     if (!formData.subject.trim()) {
       setError("Subject is required.");
+      return;
+    }
+
+    const dueDateValidity = dueDateInputRef.current?.validity;
+    if (
+      dueDateValidity?.badInput ||
+      dueDateValidity?.rangeOverflow ||
+      dueDateValidity?.rangeUnderflow ||
+      (formData.dueDate && !isValidDueDate(formData.dueDate))
+    ) {
+      setError("Enter a valid due date with a four-digit year and a month between 01 and 12.");
       return;
     }
 
@@ -331,11 +363,14 @@ export default function CreateTaskPage() {
                   Due date
                 </label>
                 <input
+                  ref={dueDateInputRef}
                   id="dueDate"
                   name="dueDate"
                   type="date"
                   value={formData.dueDate}
                   onChange={handleChange}
+                  min="0001-01-01"
+                  max="9999-12-31"
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500"
                 />
               </div>
