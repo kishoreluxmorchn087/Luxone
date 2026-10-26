@@ -42,6 +42,41 @@ export default function BusinessHoursFormModal({ open, initialValue, onClose, on
     setError(null);
   }, [initialValue, open]);
 
+  const applyDefaultTimings = () => {
+    setForm((prev) => ({
+      ...prev,
+      days: {
+        monday: { enabled: true, start: "09:00", end: "18:00" },
+        tuesday: { enabled: true, start: "09:00", end: "18:00" },
+        wednesday: { enabled: true, start: "09:00", end: "18:00" },
+        thursday: { enabled: true, start: "09:00", end: "18:00" },
+        friday: { enabled: true, start: "09:00", end: "18:00" },
+        saturday: { enabled: false, start: "", end: "" },
+        sunday: { enabled: false, start: "", end: "" },
+      },
+    }));
+  };
+
+  const handleToggleDefault = (checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      isDefault: checked,
+      ...(checked
+        ? {
+            days: {
+              monday: { enabled: true, start: "09:00", end: "18:00" },
+              tuesday: { enabled: true, start: "09:00", end: "18:00" },
+              wednesday: { enabled: true, start: "09:00", end: "18:00" },
+              thursday: { enabled: true, start: "09:00", end: "18:00" },
+              friday: { enabled: true, start: "09:00", end: "18:00" },
+              saturday: { enabled: false, start: "", end: "" },
+              sunday: { enabled: false, start: "", end: "" },
+            },
+          }
+        : {}),
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!form.name.trim()) {
       setError("Business hours name is required.");
@@ -98,15 +133,38 @@ export default function BusinessHoursFormModal({ open, initialValue, onClose, on
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} />
-          Set as default business hours
-        </label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.isDefault}
+              onChange={(e) => handleToggleDefault(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            Set as default business hours
+          </label>
+          <button
+            type="button"
+            onClick={applyDefaultTimings}
+            className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+          >
+            Apply default timings (Mon–Fri, 09:00 – 18:00)
+          </button>
+        </div>
 
         <div className="rounded-xl border border-slate-200">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <h4 className="text-sm font-semibold text-slate-900">Weekly Schedule</h4>
-            <p className="mt-1 text-xs text-slate-500">Keep each day compact and aligned to avoid long-form overflow.</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900">Weekly Schedule</h4>
+              <p className="mt-1 text-xs text-slate-500">Keep each day compact and aligned to avoid long-form overflow.</p>
+            </div>
+            <button
+              type="button"
+              onClick={applyDefaultTimings}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Reset to default timings
+            </button>
           </div>
           <div className="space-y-2 p-3 sm:p-4">
             {businessHoursDayOrder.map((day) => (
@@ -117,17 +175,17 @@ export default function BusinessHoursFormModal({ open, initialValue, onClose, on
               <label className="flex min-w-0 items-center gap-2 text-sm font-medium capitalize text-slate-700">
                 <input
                   type="checkbox"
-                  checked={form.days[day].enabled}
+                  checked={form.days?.[day]?.enabled ?? false}
                   onChange={(e) =>
                     setForm({
                       ...form,
                       days: {
                         ...form.days,
                         [day]: {
-                          ...form.days[day],
+                          ...form.days?.[day],
                           enabled: e.target.checked,
-                          start: e.target.checked ? form.days[day].start || "09:00" : "",
-                          end: e.target.checked ? form.days[day].end || "18:00" : "",
+                          start: e.target.checked ? form.days?.[day]?.start || "09:00" : "",
+                          end: e.target.checked ? form.days?.[day]?.end || "18:00" : "",
                         },
                       },
                     })
@@ -137,25 +195,25 @@ export default function BusinessHoursFormModal({ open, initialValue, onClose, on
               </label>
               <input
                 type="time"
-                disabled={!form.days[day].enabled}
-                className={`${inputClass} ${!form.days[day].enabled ? "bg-slate-50 text-slate-400" : ""}`}
-                value={form.days[day].start}
+                disabled={!form.days?.[day]?.enabled}
+                className={`${inputClass} ${!form.days?.[day]?.enabled ? "bg-slate-50 text-slate-400" : ""}`}
+                value={form.days?.[day]?.start || ""}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    days: { ...form.days, [day]: { ...form.days[day], start: e.target.value } },
+                    days: { ...form.days, [day]: { ...form.days?.[day], enabled: form.days?.[day]?.enabled ?? true, end: form.days?.[day]?.end || "18:00", start: e.target.value } },
                   })
                 }
               />
               <input
                 type="time"
-                disabled={!form.days[day].enabled}
-                className={`${inputClass} ${!form.days[day].enabled ? "bg-slate-50 text-slate-400" : ""}`}
-                value={form.days[day].end}
+                disabled={!form.days?.[day]?.enabled}
+                className={`${inputClass} ${!form.days?.[day]?.enabled ? "bg-slate-50 text-slate-400" : ""}`}
+                value={form.days?.[day]?.end || ""}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    days: { ...form.days, [day]: { ...form.days[day], end: e.target.value } },
+                    days: { ...form.days, [day]: { ...form.days?.[day], enabled: form.days?.[day]?.enabled ?? true, start: form.days?.[day]?.start || "09:00", end: e.target.value } },
                   })
                 }
               />

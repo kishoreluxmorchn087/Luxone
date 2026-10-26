@@ -71,8 +71,8 @@ export function normalizeBusinessHoursDays(record: any): BusinessHours["days"] {
   return dayKeys.reduce<BusinessHours["days"]>((acc, day) => {
     acc[day] = {
       enabled: Boolean(record?.[`${day}_enabled`]),
-      start: record?.[`${day}_start`] || "",
-      end: record?.[`${day}_end`] || "",
+      start: (record?.[`${day}_start`] || "").slice(0, 5),
+      end: (record?.[`${day}_end`] || "").slice(0, 5),
     };
     return acc;
   }, {} as BusinessHours["days"]);
