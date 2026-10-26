@@ -1155,6 +1155,31 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
+export async function addInventoryNote(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  note: string
+): Promise<void> {
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function addInventoryAttachment(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  file: File
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export async function sendVendorEmail(
   id: string,
   payload: { to: string; subject: string; body: string; attachments?: File[] }
