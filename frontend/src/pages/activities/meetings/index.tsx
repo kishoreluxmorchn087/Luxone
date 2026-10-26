@@ -7,7 +7,7 @@ import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
 
-type FilterMap = Record<string, string>;
+type FilterMap = Record<string, string | string[]>;
 
 interface Meeting {
   id: string | number;

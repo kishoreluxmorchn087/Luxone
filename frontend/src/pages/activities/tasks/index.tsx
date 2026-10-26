@@ -7,7 +7,7 @@ import FilterSidebar from "../../../components/crm/FilterSidebar";
 import TasksKanbanBoard, { type TasksGroupBy, type TasksKanbanBoardHandle } from "./TasksKanbanBoard";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 
-type FilterMap = Record<string, string>;
+type FilterMap = Record<string, string | string[]>;
 
 const TASK_FILTER_SECTIONS: FilterSection[] = [
   {

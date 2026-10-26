@@ -74,7 +74,22 @@ export default function CreateDealPage() {
           { name: "accountName", label: "Account Name", type: "lookup", required: true, options: accountOptions, placeholder: "Search or select an account" },
           { name: "contactName", label: "Contact Name", type: "lookup",required:true, options: contactOptions, placeholder: "Search or select a contact" },
           { name: "amount", label: "Amount", type: "currency" },
-          { name: "closingDate", label: "Closing Date", type: "text", placeholder: "YYYY-MM-DD" },
+          {
+            name: "closingDate",
+            label: "Closing Date",
+            type: "date",
+            validateValue: (value) => {
+              if (!value) return null;
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return "Enter a valid date in YYYY-MM-DD format.";
+              }
+
+              const date = new Date(`${value}T00:00:00.000Z`);
+              return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value
+                ? "Enter a valid date in YYYY-MM-DD format."
+                : null;
+            },
+          },
           { name: "stage", label: "Stage", type: "select", required: true, options: DEAL_STAGE_OPTIONS },
           { name: "probability", label: "Probability (%)", type: "number" },
           { name: "type", label: "Type", type: "select", options: DEAL_TYPE_OPTIONS },

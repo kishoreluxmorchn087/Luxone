@@ -91,7 +91,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [filterOpen, setFilterOpen] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");

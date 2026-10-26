@@ -10,6 +10,7 @@ export type CRMCreateFieldType =
   | "text"
   | "email"
   | "number"
+  | "date"
   | "phone"
   | "textarea"
   | "checkbox"
@@ -598,7 +599,15 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     return (
       <div>
         <input
-          type={field.type === "email" ? "email" : field.type === "number" ? "number" : "text"}
+          type={
+            field.type === "email"
+              ? "email"
+              : field.type === "number"
+                ? "number"
+                : field.type === "date"
+                  ? "date"
+                  : "text"
+          }
           name={field.name}
           value={value}
           onChange={handleChange}
