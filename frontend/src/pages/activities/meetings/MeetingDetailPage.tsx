@@ -6,7 +6,7 @@ import FilterSidebar from "../../../components/crm/FilterSidebar";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 
-type FilterMap = Record<string, string>;
+type FilterMap = Record<string, string | string[]>;
 
 const MEETING_FILTER_SECTIONS: FilterSection[] = [
   {

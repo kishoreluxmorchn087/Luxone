@@ -18,7 +18,7 @@ function getFixedValue(item: FilterSectionItem): string | null {
 type FilterSidebarProps = {
   title: string;
   sections: FilterSection[];
-  onApply?: (filters: Record<string, string>) => void;
+  onApply?: (filters: Record<string, string | string[]>) => void;
   onClear?: () => void;
 };
 
@@ -76,7 +76,7 @@ export default function FilterSidebar({
   };
 
   const handleApply = () => {
-    const filters: Record<string, string> = {};
+    const filters: Record<string, string | string[]> = {};
 
     sections.forEach((section) => {
       section.items.forEach((item) => {
@@ -87,7 +87,10 @@ export default function FilterSidebar({
         if (key && checked[label]) {
           const value = fixedValue ?? (fieldValues[label] ?? "").trim();
           if (value) {
-            filters[key] = value;
+            const existing = filters[key];
+            filters[key] = existing
+              ? [...(Array.isArray(existing) ? existing : [existing]), value]
+              : value;
           }
         }
       });
@@ -103,7 +106,13 @@ export default function FilterSidebar({
     onClear?.();
   };
 
-  const hasAnyChecked = Object.values(checked).some(Boolean);
+  const hasAnyChecked = sections.some((section) =>
+    section.items.some((item) => {
+      const label = getLabel(item);
+      if (!getKey(item) || !checked[label]) return false;
+      return Boolean(getFixedValue(item) ?? fieldValues[label]?.trim());
+    })
+  );
 
   return (
     <aside className="flex w-[280px] shrink-0 flex-col rounded-lg border border-slate-200 bg-white h-fit max-h-full">
