@@ -114,7 +114,8 @@ function toBackendPayload(payload: Partial<CreateAccountPayload>): Record<string
   if (payload.industry !== undefined) body.industry = payload.industry || null;
   if (payload.annualRevenue !== undefined) body.annual_revenue = payload.annualRevenue || null;
   if (payload.employees !== undefined) {
-    body.employees = payload.employees ? Number(payload.employees) : null;
+    const employees = Number(payload.employees);
+    body.employees = payload.employees && Number.isFinite(employees) ? Math.max(0, employees) : null;
   }
   if (payload.description !== undefined) body.description = payload.description || null;
 
