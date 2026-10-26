@@ -9,6 +9,33 @@ import CRMModuleDetailPage from "../crm/CRMModuleDetailPage";
 import { apiRequest } from "../../api/client";
 
 const DEAL_STAGES = ["Qualification", "Needs Analysis", "Value Proposition", "Identify Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"];
+const INVALID_CLOSING_DATE_MESSAGE = "Enter a valid date in dd-mm-yyyy format (for example, 25-12-2026).";
+
+function isValidClosingDate(value: string) {
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
+  if (!match) return false;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12) return false;
+
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= daysInMonth[month - 1];
+}
+
+function formatClosingDateInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length > 4) return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+  if (digits.length > 2) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return digits;
+}
+
+function toApiClosingDate(value: string) {
+  const [day, month, year] = value.split("-");
+  return `${year}-${month}-${day}`;
+}
 
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +51,7 @@ export default function ContactDetailPage() {
   const [convertModal, setConvertModal] = useState(false);
   const [convertForm, setConvertForm] = useState({ dealName: "", stage: "Qualification", amount: "", closingDate: "" });
   const [convertError, setConvertError] = useState<string | null>(null);
+  const [closingDateError, setClosingDateError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
 
   useEffect(() => {
@@ -74,13 +102,19 @@ export default function ContactDetailPage() {
     const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim() || "New Deal";
     setConvertForm({ dealName: `Deal with ${fullName}`, stage: "Qualification", amount: "", closingDate: "" });
     setConvertError(null);
+    setClosingDateError(null);
     setConvertModal(true);
   };
 
   const handleConvertToDeal = async () => {
     if (!convertForm.dealName.trim()) { setConvertError("Deal name is required."); return; }
+    if (convertForm.closingDate && !isValidClosingDate(convertForm.closingDate)) {
+      setClosingDateError(INVALID_CLOSING_DATE_MESSAGE);
+      return;
+    }
     setConverting(true);
     setConvertError(null);
+    setClosingDateError(null);
     try {
       const body: Record<string, unknown> = {
         deal_name: convertForm.dealName.trim(),
@@ -88,7 +122,7 @@ export default function ContactDetailPage() {
         contact: Number(id),
       };
       if (convertForm.amount) body.amount = convertForm.amount;
-      if (convertForm.closingDate) body.closing_date = convertForm.closingDate;
+      if (convertForm.closingDate) body.closing_date = toApiClosingDate(convertForm.closingDate);
       if (contact?.accountId) body.account = Number(contact.accountId);
       const deal = await apiRequest<{ id: number | string }>("/deals", { method: "POST", body: JSON.stringify(body) });
       setConvertModal(false);
@@ -207,11 +241,33 @@ export default function ContactDetailPage() {
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Closing Date</label>
                 <input
-                  type="date"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="dd-mm-yyyy"
                   value={convertForm.closingDate}
-                  onChange={(e) => setConvertForm((f) => ({ ...f, closingDate: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  aria-invalid={Boolean(closingDateError)}
+                  aria-describedby={closingDateError ? "closing-date-error" : undefined}
+                  onChange={(e) => {
+                    setConvertForm((f) => ({ ...f, closingDate: formatClosingDateInput(e.target.value) }));
+                    setClosingDateError(null);
+                  }}
+                  onBlur={() => {
+                    if (convertForm.closingDate && !isValidClosingDate(convertForm.closingDate)) {
+                      setClosingDateError(INVALID_CLOSING_DATE_MESSAGE);
+                    }
+                  }}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${
+                    closingDateError
+                      ? "border-red-500 focus:border-red-500"
+                      : "border-slate-300 focus:border-blue-500"
+                  }`}
                 />
+                {closingDateError && (
+                  <p id="closing-date-error" role="alert" className="mt-1 text-sm text-red-600">
+                    {closingDateError}
+                  </p>
+                )}
               </div>
 
               {convertError && <p className="text-sm text-red-600">{convertError}</p>}

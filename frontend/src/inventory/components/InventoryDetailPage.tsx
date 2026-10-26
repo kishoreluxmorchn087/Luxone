@@ -8,7 +8,13 @@ import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { SendEmailModal } from "../../components/crm/CRMActionModals";
-import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, getInventoryDetail, sendVendorEmail } from "../api";
+import {
+  addInventoryAttachment,
+  convertQuoteToSalesOrder,
+  convertSalesOrderToInvoice,
+  getInventoryDetail,
+  sendVendorEmail,
+} from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
