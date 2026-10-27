@@ -374,6 +374,7 @@ export default function CreateTaskPage() {
                 </label>
                 <CRMDateInput
                   dateRule="future"
+                <input
                   ref={dueDateInputRef}
                   id="dueDate"
                   name="dueDate"
