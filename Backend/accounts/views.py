@@ -2,6 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 import json
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.db.models.functions import Lower
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
@@ -11,6 +12,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
+from integrations.models import EmailRecordLink, SyncedEmailMessage
+from contacts.models import Contact
+from deals.models import Deal
+from inventory.models import Invoice, Quote, SalesOrder
+from support.models import SupportCase
 
 from .filters import AccountFilter
 from .models import Account, AccountAttachment
@@ -97,6 +103,19 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = account_service.list_accounts(user=self.request.user)
+        if self.action == "list":
+            queryset = queryset.annotate(
+                has_contacts=Exists(Contact.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+                has_deals=Exists(Deal.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+                has_cases=Exists(SupportCase.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+                has_emails=(
+                    Exists(SyncedEmailMessage.objects.filter(account_id=OuterRef("pk"), is_active=True))
+                    | Exists(EmailRecordLink.objects.filter(account_id=OuterRef("pk"), is_active=True))
+                ),
+                has_invoices=Exists(Invoice.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+                has_quotes=Exists(Quote.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+                has_sales_orders=Exists(SalesOrder.objects.filter(account_id=OuterRef("pk"), is_active=True)),
+            )
         sort = self.request.query_params.get("sort")
         if sort:
             allowed = set(self.ordering_fields)
