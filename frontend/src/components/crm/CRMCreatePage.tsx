@@ -26,6 +26,7 @@ export type CRMCreateField = {
   label: string;
   type: CRMCreateFieldType;
   required?: boolean;
+  requiredIndicator?: boolean;
   options?: string[];
   secondaryName?: string;
   secondaryRequired?: boolean;
@@ -618,6 +619,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}
+        {field.helperText && (
+          <p className="mt-1 text-[11px] leading-4 text-slate-500">{field.helperText}</p>
+        )}
       </div>
     );
   };
@@ -690,7 +694,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                           <div key={field.name} className="contents">
                             <label className={labelClass}>
                               {field.label}
-                              {(field.required || field.secondaryRequired) && (
+                              {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                 <span className="ml-1 text-red-600">*</span>
                               )}
                             </label>
@@ -708,7 +712,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>
@@ -724,7 +728,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>
