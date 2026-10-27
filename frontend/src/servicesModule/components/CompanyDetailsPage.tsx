@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
+import { copyToClipboard } from "../../lib/clipboard";
 import { getCompanyDetails, getServicesSetupStatus, listAppointments, listDomainMappings, listJobSheets, listServices, listTeamMembers, updateCompanyDetails } from "../api";
 import type { CompanyDetails, DomainMapping, ServiceSettings, TeamMember } from "../types";
 
@@ -20,6 +22,7 @@ export default function CompanyDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<CompanyDetailsErrors>({});
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [usageSummary, setUsageSummary] = useState({ services: 0, appointments: 0, jobSheets: 0 });
 
   useEffect(() => {
@@ -123,7 +126,37 @@ export default function CompanyDetailsPage() {
           </CRMSectionCard>
           <CRMSectionCard title="Access and Locale">
             <div className="space-y-4 text-sm text-slate-600">
-              <div><p className="text-xs uppercase tracking-wide text-slate-500">Access URL</p><p className="mt-1 break-all text-slate-800">{accessUrl}</p></div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Access URL</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="break-all text-slate-800">{accessUrl}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void copyToClipboard(accessUrl).then((success) => {
+                        if (success) {
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 2000);
+                        }
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    title="Copy Access URL"
+                  >
+                    {copiedUrl ? (
+                      <>
+                        <Check size={12} className="text-emerald-600" />
+                        <span className="text-emerald-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Mapped Domain Status</p><p className="mt-1 break-all text-slate-800">{verifiedDomain ? `Verified: ${verifiedDomain.domain}` : pendingDomain ? `Pending: ${pendingDomain.domain}` : "No mapped domain yet"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Timezone</p><p className="mt-1 text-slate-800">{settings?.defaultTimezone || "Not configured"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Service Contact</p><p className="mt-1 break-all text-slate-800">{form.serviceContactName || form.contactPerson || "-"} {form.serviceContactEmail ? `(${form.serviceContactEmail})` : ""}</p></div>

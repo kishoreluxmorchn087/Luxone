@@ -16,14 +16,39 @@ type SubMenuProps = {
 
 function ActionSubMenu({ actions, onClickAction, onClose }: SubMenuProps) {
   const [openNested, setOpenNested] = useState<string | null>(null);
+  const subMenuRef = useRef<HTMLDivElement | null>(null);
+  const [placement, setPlacement] = useState<{ h: "left" | "right"; v: "top" | "bottom" }>({
+    h: "right",
+    v: "top",
+  });
+
+  useLayoutEffect(() => {
+    if (!subMenuRef.current) return;
+    const rect = subMenuRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    setPlacement({
+      h: rect.right > viewportWidth - 8 ? "left" : "right",
+      v: rect.bottom > viewportHeight - 8 ? "bottom" : "top",
+    });
+  }, []);
 
   const handleActionClick = (actionKey: string) => {
     onClickAction(actionKey);
     onClose();
   };
 
+  const positionClasses = [
+    placement.h === "right" ? "left-full ml-1" : "right-full mr-1",
+    placement.v === "top" ? "top-0" : "bottom-0",
+  ].join(" ");
+
   return (
-    <div className="absolute left-full top-0 z-[70] ml-1 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+    <div
+      ref={subMenuRef}
+      className={`absolute z-[70] w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg ${positionClasses}`}
+    >
       {actions.map((action) =>
         action.children?.length ? (
           <div key={action.key} className="relative">
@@ -157,11 +182,10 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
         ? createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[60] w-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+              className="fixed z-[60] w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
               style={{
                 left: menuPosition.left,
                 top: menuPosition.top,
-                maxHeight: "calc(100vh - 16px)",
               }}
             >
               {actions.map((action) =>
