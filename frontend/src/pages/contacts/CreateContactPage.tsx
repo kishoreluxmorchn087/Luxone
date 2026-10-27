@@ -6,6 +6,7 @@ import { createContact } from "../../lib/api/contactsApi";
 import { getLeadById } from "../../lib/api/leadsApi";
 import { getLoggedInUserName } from "../../lib/auth/currentUser";
 import { SALUTATION_OPTIONS } from "../../config/crm/createOptions";
+import { validateContactEmail } from "./contactValidation";
 
 type ContactCreateValues = {
   contactOwner: string;
@@ -142,7 +143,7 @@ export default function CreateContactPage() {
           { name: "accountName", label: "Account Name", type: "lookup", required: true, options: accountOptions, placeholder: "Search or select an account" },
           { name: "title", label: "Title", type: "text" },
           { name: "department", label: "Department", type: "text" },
-          { name: "email", label: "Email", type: "email" },
+          { name: "email", label: "Email", type: "email", validateValue: validateContactEmail },
           { name: "phone", label: "Phone", type: "text" },
 
           { name: "lastName", label: "Last Name", type: "text", required: true },
