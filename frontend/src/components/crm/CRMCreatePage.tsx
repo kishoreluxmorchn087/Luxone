@@ -179,12 +179,10 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     field,
     isSecondary,
     value,
-    sourceName,
   }: {
     field: CRMCreateField;
     isSecondary: boolean;
     value: string;
-    sourceName: string;
   }): string | null => {
     if (isSecondary) {
       if (field.secondaryValidateValue) {
@@ -202,12 +200,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (field.required && !value.trim()) {
       return `${field.label} is required.`;
     }
-    if (field.type === "name-composite" && sourceName === field.name && field.secondaryRequired) {
-      const secondaryValue = String(formData[field.secondaryName ?? ""] ?? "");
-      if (!secondaryValue.trim()) {
-        return `${field.label} is required.`;
-      }
-    }
     return null;
   };
 
@@ -219,7 +211,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       field,
       isSecondary,
       value,
-      sourceName: name,
     });
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -313,7 +304,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             field,
             isSecondary: false,
             value: String(formData[field.name] ?? ""),
-            sourceName: field.name,
           });
           if (primaryMessage) {
             validationErrors[field.name] = primaryMessage;
@@ -323,7 +313,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               field,
               isSecondary: true,
               value: String(formData[field.secondaryName] ?? ""),
-              sourceName: field.secondaryName,
             });
             if (secondaryMessage) {
               validationErrors[field.secondaryName] = secondaryMessage;
@@ -545,6 +534,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               inputMode={field.secondaryInputMode}
             />
           </div>
+          {getFieldMessage(field.name)}
           {getFieldMessage(field.secondaryName ?? "")}
         </div>
       );
