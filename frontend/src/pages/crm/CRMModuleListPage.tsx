@@ -151,6 +151,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
+  const isFilterOpen = filterOpen ?? !hideFilterSidebar;
 
   const handleSetHiddenColumns = (hidden: string[]) => {
     setHiddenColumns(hidden);
@@ -567,10 +568,10 @@ export default function CRMModuleListPage<T extends CRMRecord>({
           createButtonLabel={`Create ${config.title.slice(0, -1)}`}
           sortFields={config.sortFields}
           sortFieldKeyMap={config.sortFieldKeyMap}
-          isFilterOpen={filterOpen}
+          isFilterOpen={isFilterOpen}
           onToggleFilter={() => {
             if (!config.filterSections) return;
-            setFilterOpen((prev) => !prev);
+            setFilterOpen((prev) => !(prev ?? !hideFilterSidebar));
           }}
           onCreateClick={() => navigate(`${config.baseRoute}/create`)}
           onApplySort={
@@ -603,7 +604,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         />
 
         <div className="flex gap-3">
-          {config.filterSections && filterOpen && !hideFilterSidebar && (
+          {config.filterSections && isFilterOpen && (
             <FilterSidebar
               title={`Filter ${config.title} by`}
               sections={config.filterSections}
