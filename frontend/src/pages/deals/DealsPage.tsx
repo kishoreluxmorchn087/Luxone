@@ -59,6 +59,7 @@ export default function DealsPage() {
       showNotes={false}
       showActivity={false}
       onDeleteRow={handleDeleteRow}
+      hideFilterSidebar={viewMode === "pipeline"}
       hideTable={viewMode === "pipeline"}
       renderTopContent={({ processedRows, loading: listLoading }) => (
         <div className="mb-4 space-y-4">

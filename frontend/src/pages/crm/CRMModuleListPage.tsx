@@ -145,7 +145,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   });
 
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);

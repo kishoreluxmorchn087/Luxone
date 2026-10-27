@@ -33,7 +33,7 @@ type ApiResponse =
   | TaskRecord[]
   | { results?: TaskRecord[]; data?: TaskRecord[]; tasks?: TaskRecord[] };
 
-type NormalizedFilter = { key: string; value: string[] };
+type NormalizedFilter = { key: string; value: string };
 type DragState = { taskId: string | number; fromColumn: TaskStatusColumn };
 export type TasksGroupBy = "Tasks by Status" | "Tasks by Priority" | "Tasks by Owner" | "Tasks by Due Date";
 
@@ -460,15 +460,13 @@ function matchesText(v: string | null | undefined, kw: string) {
 }
 
 function matchesTaskFilter(task: TaskRecord, f: NormalizedFilter) {
-  if (f.value.length === 0) return true;
-  const matchesAny = (value: string | null | undefined) =>
-    f.value.some((item) => matchesText(value, item));
+  if (!f.value) return true;
   switch (f.key) {
-    case "status":   return matchesAny(task.status);
-    case "priority": return matchesAny(task.priority);
-    case "owner":    return matchesAny(getOwnerName(task.owner));
-    case "related":  return matchesAny(task.contact_name) || matchesAny(task.account_name);
-    case "company":  return matchesAny(task.account_name) || matchesAny(task.company);
+    case "status":   return matchesText(task.status, f.value);
+    case "priority": return matchesText(task.priority, f.value);
+    case "owner":    return matchesText(getOwnerName(task.owner), f.value);
+    case "related":  return matchesText(task.contact_name, f.value) || matchesText(task.account_name, f.value);
+    case "company":  return matchesText(task.account_name, f.value) || matchesText(task.company, f.value);
     default:         return true;
   }
 }
@@ -482,7 +480,7 @@ export type TasksKanbanBoardHandle = {
 
 const TasksKanbanBoard = forwardRef<
   TasksKanbanBoardHandle,
-  { filters?: Record<string, string | string[]>; groupBy?: TasksGroupBy; onSelectionChange?: (ids: (string | number)[]) => void }
+  { filters?: Record<string, string>; groupBy?: TasksGroupBy; onSelectionChange?: (ids: (string | number)[]) => void }
 >(function TasksKanbanBoard({ filters = {}, groupBy = "Tasks by Status", onSelectionChange }, ref) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -498,12 +496,7 @@ const TasksKanbanBoard = forwardRef<
 
   const normalizedFilters = useMemo<NormalizedFilter[]>(() =>
     Object.entries(filters)
-      .map(([key, value]) => ({
-        key,
-        value: (Array.isArray(value) ? value : [value])
-          .map((item) => item.trim().toLowerCase())
-          .filter(Boolean),
-      }))
+      .map(([key, value]) => ({ key, value: value.trim().toLowerCase() }))
       .filter((f) => f.value.length > 0),
     [filters]
   );
