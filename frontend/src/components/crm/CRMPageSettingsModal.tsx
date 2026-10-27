@@ -6,14 +6,9 @@ import {
   EyeOff,
   Pin,
   Search,
-  ArrowUpDown,
-  AlignJustify,
   Check,
   RotateCcw,
-  Rows3,
   Layers,
-  CheckSquare,
-  Square,
 } from "lucide-react";
 import CRMModalBase from "./CRMModalBase";
 
@@ -175,7 +170,6 @@ export default function CRMPageSettingsModal({
       open={open}
       title={`Page Settings — ${viewName}`}
       maxWidthClassName="max-w-2xl"
-      onClose={onClose}
       footer={
         <div className="flex w-full items-center justify-between">
           <button
@@ -285,7 +279,7 @@ export default function CRMPageSettingsModal({
             </div>
 
             <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
-              {filteredColumns.map((col, idx) => {
+              {filteredColumns.map((col) => {
                 const isVisible = !hiddenCols.includes(col.key);
                 const isPinned = curPinnedCol === col.key;
                 return (
