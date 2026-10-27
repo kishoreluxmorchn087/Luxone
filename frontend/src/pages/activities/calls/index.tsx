@@ -455,7 +455,7 @@ function CallFormModal({
         </select>
       </FormRow>
 
-      <FormRow label="Call Start Date & Time">
+      <FormRow label="Call Start Time">
         <div className="flex gap-2">
           <input
             type="date"
@@ -871,7 +871,7 @@ export default function CallsPage() {
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Subject</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Type</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Start Date & Time</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Start Time</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Duration</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call For</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Related To</th>
