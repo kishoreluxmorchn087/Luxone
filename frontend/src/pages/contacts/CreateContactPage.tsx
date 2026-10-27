@@ -153,8 +153,12 @@ export default function CreateContactPage() {
             name: "mobile",
             label: "Mobile",
             type: "text",
+            requiredIndicator: true,
+            helperText: "At least one contact method is required: Email, Phone, Mobile, or Other Phone.",
             validateValue: (value) =>
-              /^\d{10}$/.test(value) ? null : "Mobile number must be exactly 10 digits.",
+              !value.trim() || /^\d{10}$/.test(value)
+                ? null
+                : "Mobile number must be exactly 10 digits.",
           },
           { name: "otherPhone", label: "Other Phone", type: "text" },
           { name: "fax", label: "Fax", type: "text" },
