@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import CRMDateInput from "../../components/crm/CRMDateInput";
+import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 import { apiRequest } from "../../api/client";
 import type { ProjectPriority, ProjectTaskStatus } from "../projects/types";
 
@@ -164,6 +166,13 @@ export default function CreateProjectDeskTaskPage() {
       setError("Project and task title are required.");
       return;
     }
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "Due Date", value: form.due_date, rule: "future" },
+    ]);
+    if (invalidDate) {
+      setError(invalidDate);
+      return;
+    }
 
     try {
       setSaving(true);
@@ -321,8 +330,8 @@ export default function CreateProjectDeskTaskPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Due Date</label>
-                <input
-                  type="date"
+                <CRMDateInput
+                  dateRule="future"
                   className={inputCls}
                   value={form.due_date}
                   onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))}

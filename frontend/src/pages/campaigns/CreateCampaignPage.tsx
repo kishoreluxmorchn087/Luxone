@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { ChevronDown, UserPlus } from "lucide-react";
 import { createCampaign, getCampaignById, updateCampaign, type CampaignFormData } from "../../lib/api/campaignsApi";
+import CRMDateInput from "../../components/crm/CRMDateInput";
+import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 
 type CampaignFormState = {
   campaignOwner: string;
@@ -104,6 +106,7 @@ function TextField({
   onChange,
   placeholder = "",
   type = "text",
+  dateRule = "start",
 }: {
   name: string;
   value: string;
@@ -112,7 +115,21 @@ function TextField({
   ) => void;
   placeholder?: string;
   type?: string;
+  dateRule?: "start" | "future";
 }) {
+  if (type === "date") {
+    return (
+      <CRMDateInput
+        dateRule={dateRule}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={inputClass}
+      />
+    );
+  }
+
   return (
     <input
       type={type}
@@ -202,6 +219,15 @@ export default function CreateCampaignPage() {
   };
 
   const handleSave = async (goToNew = false) => {
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "Start Date", value: formData.startDate, rule: "start" },
+      { label: "End Date", value: formData.endDate, rule: "future" },
+    ]);
+    if (invalidDate) {
+      setError(invalidDate);
+      return;
+    }
+
     if (!formData.campaignName.trim()) {
       setError("Campaign Name is required.");
       return;
@@ -364,6 +390,7 @@ export default function CreateCampaignPage() {
                       value={formData.startDate}
                       onChange={handleChange}
                       type="date"
+                      dateRule="start"
                     />
 
                     <label className={labelClass}>Expected Revenue</label>
@@ -431,6 +458,7 @@ export default function CreateCampaignPage() {
                       value={formData.endDate}
                       onChange={handleChange}
                       type="date"
+                      dateRule="future"
                     />
 
                     <label className={labelClass}>Budgeted Cost</label>

@@ -1,6 +1,8 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import CRMDateInput from "./CRMDateInput";
 import CRMModalBase from "./CRMModalBase";
+import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 
 // ── Shared call helpers ────────────────────────────────────────────────────
 
@@ -519,6 +521,14 @@ export function ScheduleCallModal({
 
   
 const handleSave = async () => {
+  const invalidDate = getCalendarDateFieldsError([
+    { label: "Call Start Date", value: startDate, rule: "start" },
+  ]);
+  if (invalidDate) {
+    setError(invalidDate);
+    return;
+  }
+
   if (!subject.trim()) {
     setError("Subject is required.");
     return;
@@ -595,7 +605,7 @@ const handleSave = async () => {
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <CRMDateInput dateRule="start" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>
@@ -672,6 +682,10 @@ export function LogCallModal({
   if (!open) return null;
 
   const handleSave = async () => {
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "Call Start Date", value: startDate, rule: "start" },
+    ]);
+    if (invalidDate) { setError(invalidDate); return; }
     if (!subject.trim()) { setError("Subject is required."); return; }
     try {
       setSaving(true);
@@ -718,7 +732,7 @@ export function LogCallModal({
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <CRMDateInput dateRule="start" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>

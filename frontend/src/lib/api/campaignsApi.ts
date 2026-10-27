@@ -1,5 +1,10 @@
 import { apiRequest } from "../../api/client";
 import { buildApiUrl } from "../../api/config";
+import {
+  getCalendarDateError,
+  isValidCalendarDateValue,
+  type DateRangeRule,
+} from "../shared/dateValidation";
 
 type BackendCampaign = {
   id: number;
@@ -69,16 +74,24 @@ function asString(value: unknown) {
   return value == null ? "" : String(value);
 }
 
-function normalizeDate(value?: string): string | null {
+function normalizeDate(value: string | undefined, rule: DateRangeRule): string | null {
   const raw = (value ?? "").trim();
   if (!raw) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (match) {
-    const [, dd, mm, yyyy] = match;
-    return `${yyyy}-${mm}-${dd}`;
+  let normalized = raw;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    normalized = raw;
+  } else {
+    const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const [, dd, mm, yyyy] = match;
+      normalized = `${yyyy}-${mm}-${dd}`;
+    }
   }
-  return raw;
+
+  if (!isValidCalendarDateValue(normalized, rule)) {
+    throw new Error(getCalendarDateError(rule));
+  }
+  return normalized;
 }
 
 function mapCampaign(item: BackendCampaign): CampaignRecord {
@@ -109,8 +122,8 @@ function toBackendPayload(payload: CampaignFormData): Record<string, unknown> {
 
   if (payload.type !== undefined) body.type = payload.type || null;
   if (payload.status !== undefined) body.status = payload.status || null;
-  if (payload.startDate !== undefined) body.start_date = normalizeDate(payload.startDate);
-  if (payload.endDate !== undefined) body.end_date = normalizeDate(payload.endDate);
+  if (payload.startDate !== undefined) body.start_date = normalizeDate(payload.startDate, "start");
+  if (payload.endDate !== undefined) body.end_date = normalizeDate(payload.endDate, "future");
   if (payload.expectedRevenue !== undefined) body.expected_revenue = payload.expectedRevenue || null;
   if (payload.budgetedCost !== undefined) body.budgeted_cost = payload.budgetedCost || null;
   if (payload.actualCost !== undefined) body.actual_cost = payload.actualCost || null;

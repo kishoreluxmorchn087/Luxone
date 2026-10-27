@@ -5,31 +5,26 @@ import { contactModuleConfig } from "../../components/modules/contacts/contactsM
 import { getContactById, getContactDeals, getContactNotes } from "../../lib/api/contactsApi";
 import { loadContactLinkedData } from "../../lib/api/linkedRecordsApi";
 import type { ContactRecord, Deal, Note } from "../../lib/shared/crmTypes";
+import {
+  formatCalendarDateInput,
+  getCalendarDateError,
+  isValidCalendarDateValue,
+} from "../../lib/shared/dateValidation";
 import CRMModuleDetailPage from "../crm/CRMModuleDetailPage";
 import { apiRequest } from "../../api/client";
 
 const DEAL_STAGES = ["Qualification", "Needs Analysis", "Value Proposition", "Identify Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"];
-const INVALID_CLOSING_DATE_MESSAGE = "Enter a valid date in dd-mm-yyyy format (for example, 25-12-2026).";
 
 function isValidClosingDate(value: string) {
-  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
-  if (!match) return false;
+  return isValidCalendarDateValue(value, "future", "dd-mm-yyyy");
+}
 
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  if (year < 1 || month < 1 || month > 12) return false;
-
-  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return day >= 1 && day <= daysInMonth[month - 1];
+function getInvalidClosingDateMessage() {
+  return getCalendarDateError("future", "dd-mm-yyyy");
 }
 
 function formatClosingDateInput(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (digits.length > 4) return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
-  if (digits.length > 2) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return digits;
+  return formatCalendarDateInput(value, "dd-mm-yyyy", "future");
 }
 
 function toApiClosingDate(value: string) {
@@ -109,7 +104,7 @@ export default function ContactDetailPage() {
   const handleConvertToDeal = async () => {
     if (!convertForm.dealName.trim()) { setConvertError("Deal name is required."); return; }
     if (convertForm.closingDate && !isValidClosingDate(convertForm.closingDate)) {
-      setClosingDateError(INVALID_CLOSING_DATE_MESSAGE);
+      setClosingDateError(getInvalidClosingDateMessage());
       return;
     }
     setConverting(true);
@@ -254,7 +249,7 @@ export default function ContactDetailPage() {
                   }}
                   onBlur={() => {
                     if (convertForm.closingDate && !isValidClosingDate(convertForm.closingDate)) {
-                      setClosingDateError(INVALID_CLOSING_DATE_MESSAGE);
+                      setClosingDateError(getInvalidClosingDateMessage());
                     }
                   }}
                   className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${
