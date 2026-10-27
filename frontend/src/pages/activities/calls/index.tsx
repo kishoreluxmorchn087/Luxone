@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
@@ -646,7 +646,7 @@ export default function CallsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [, setFilters] = useState<FilterMap>({});
+  const [filters, setFilters] = useState<FilterMap>({});
   const [showSchedule, setShowSchedule] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -671,6 +671,26 @@ export default function CallsPage() {
   useEffect(() => {
     void loadCalls();
   }, [loadCalls]);
+
+  const filteredCalls = useMemo(() => {
+    const filterFields: Record<keyof FilterMap, (call: CallRecord) => string> = {
+      callType: (call) => call.callType,
+      status: (call) => call.status,
+      owner: (call) => call.owner,
+      callFor: (call) => call.callFor,
+      relatedTo: (call) => call.relatedTo,
+    };
+
+    return calls.filter((call) =>
+      Object.entries(filters).every(([key, value]) => {
+        const getFieldValue = filterFields[key as keyof FilterMap];
+        return (
+          !getFieldValue ||
+          getFieldValue(call).toLowerCase().includes(value.toLowerCase())
+        );
+      })
+    );
+  }, [calls, filters]);
 
   const createCall = async (payload: Record<string, unknown>) => {
     try {
@@ -716,7 +736,7 @@ export default function CallsPage() {
   };
 
   const toggleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? new Set(calls.map((c) => c.id)) : new Set());
+    setSelectedIds(checked ? new Set(filteredCalls.map((c) => c.id)) : new Set());
   };
 
   const handleDeleteSingle = async (id: number) => {
@@ -820,9 +840,11 @@ export default function CallsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
                 <p className="text-sm text-rose-600">{error}</p>
               </div>
-            ) : calls.length === 0 ? (
+            ) : filteredCalls.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-                <p className="text-sm font-medium text-slate-500">No calls found.</p>
+                <p className="text-sm font-medium text-slate-500">
+                  {calls.length ? "No calls match the selected filters." : "No calls found."}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -832,8 +854,17 @@ export default function CallsPage() {
                       <th className="w-10 px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={selectedIds.size === calls.length && calls.length > 0}
-                          ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < calls.length; }}
+                          checked={filteredCalls.every((call) => selectedIds.has(call.id))}
+                          ref={(el) => {
+                            if (el) {
+                              const selectedVisibleCount = filteredCalls.filter((call) =>
+                                selectedIds.has(call.id)
+                              ).length;
+                              el.indeterminate =
+                                selectedVisibleCount > 0 &&
+                                selectedVisibleCount < filteredCalls.length;
+                            }
+                          }}
                           onChange={(e) => toggleSelectAll(e.target.checked)}
                           className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-600"
                         />
@@ -849,7 +880,7 @@ export default function CallsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {calls.map((call) => (
+                    {filteredCalls.map((call) => (
                       <tr
                         key={call.id}
                         className={`cursor-pointer border-b transition hover:bg-slate-50 ${selectedIds.has(call.id) ? "bg-blue-50" : ""}`}
