@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "../components/layout/DashboardLayout";
+import CRMDateInput from "../components/crm/CRMDateInput";
 import {
   DEV_REPORT_CATALOG,
   exportReport,
@@ -233,8 +234,8 @@ export default function ReportsPage() {
             <label className="text-sm font-medium text-[#5b21b6]">
               <span className="mb-2 block">Date From</span>
               <div className="relative">
-                <input
-                  type="date"
+                <CRMDateInput
+                  dateRule="start"
                   value={filters.date_from}
                   onChange={(event) => setFilters((current) => ({ ...current, date_from: event.target.value }))}
                   className="w-full rounded-2xl border border-[#cdbaf8] bg-[#fcfbff] px-4 py-3 text-sm text-[#24143f] outline-none transition focus:border-[#7c3aed]"
@@ -246,8 +247,8 @@ export default function ReportsPage() {
             <label className="text-sm font-medium text-[#5b21b6]">
               <span className="mb-2 block">Date To</span>
               <div className="relative">
-                <input
-                  type="date"
+                <CRMDateInput
+                  dateRule="future"
                   value={filters.date_to}
                   onChange={(event) => setFilters((current) => ({ ...current, date_to: event.target.value }))}
                   className="w-full rounded-2xl border border-[#cdbaf8] bg-[#fcfbff] px-4 py-3 text-sm text-[#24143f] outline-none transition focus:border-[#7c3aed]"

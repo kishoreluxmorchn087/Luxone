@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import CRMDateInput from "../../../components/crm/CRMDateInput";
 import { apiRequest } from "../../../api/client";
+import { getCalendarDateFieldsError } from "../../../lib/shared/dateValidation";
 import {
   ChevronDown,
   Pencil,
@@ -359,6 +361,15 @@ export default function CreateMeetingPage() {
       return;
     }
 
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "From date", value: formData.from_date, rule: "start" },
+      { label: "To date", value: formData.to_date, rule: "future" },
+    ]);
+    if (invalidDate) {
+      setError(invalidDate);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -459,8 +470,8 @@ export default function CreateMeetingPage() {
 
                 <Field label="From">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <CRMDateInput
+                      dateRule="start"
                       name="from_date"
                       value={formData.from_date}
                       onChange={handleFieldChange}
@@ -480,8 +491,8 @@ export default function CreateMeetingPage() {
 
                 <Field label="To">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <CRMDateInput
+                      dateRule="future"
                       name="to_date"
                       value={formData.to_date}
                       onChange={handleFieldChange}

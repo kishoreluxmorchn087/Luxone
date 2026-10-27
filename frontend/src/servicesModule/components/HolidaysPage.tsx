@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import CRMDateInput from "../../components/crm/CRMDateInput";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
+import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 import { createHoliday, deleteHoliday, listAppointments, listHolidays, updateHoliday } from "../api";
 import type { Holiday } from "../types";
 
@@ -43,6 +45,13 @@ export default function HolidaysPage() {
       setError("Holiday name and date are required.");
       return;
     }
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "Date", value: form.date, rule: "start" },
+    ]);
+    if (invalidDate) {
+      setError(invalidDate);
+      return;
+    }
     try {
       setSaving(true);
       setError(null);
@@ -69,7 +78,7 @@ export default function HolidaysPage() {
           <CRMSectionCard title={form.id ? "Edit Holiday" : "New Holiday"}>
             <div className="space-y-4">
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Holiday Name</label><input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label><input type="date" className={inputClass} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label><CRMDateInput dateRule="start" className={inputClass} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Description</label><textarea className={textareaClass} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <div className="flex gap-2">
                 <button type="button" disabled={saving} onClick={() => void handleSave()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{saving ? "Saving..." : "Save"}</button>
