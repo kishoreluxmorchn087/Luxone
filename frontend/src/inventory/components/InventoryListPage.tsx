@@ -7,10 +7,10 @@ import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
-import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
+import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
-import { MassDeleteModal, MassUpdateModal,ScheduleCallModal,  LogCallModal, } from "../../components/crm/CRMActionModals";
+import { LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
@@ -99,6 +99,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
   const [activeVendorName, setActiveVendorName] = useState("");
+  const [activeNoteVendor, setActiveNoteVendor] = useState<CRMRecord | null>(null);
   const [activityModal, setActivityModal] = useState<"schedule-call" | "meeting" | "task" | "log-call" | null>(null);
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
@@ -368,6 +369,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
                   }}
                   onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
+                  onOpenNotes={moduleKey === "vendors" ? (row) => setActiveNoteVendor(row) : undefined}
                   onOpenActivityAction={(row, actionKey) => {
                     const r = row as Record<string, unknown>;
 
@@ -664,6 +666,27 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         module={moduleKey}
         onConfirm={handleMassUpdate}
       />
+
+      {moduleKey === "vendors" && (
+        <NoteModal
+          open={activeNoteVendor !== null}
+          onClose={() => setActiveNoteVendor(null)}
+          recordName={
+            activeNoteVendor
+              ? String(
+                  (activeNoteVendor as Record<string, unknown>).vendorName ??
+                    (activeNoteVendor as Record<string, unknown>).name ??
+                    ""
+                )
+              : ""
+          }
+          onSave={async (note) => {
+            if (!activeNoteVendor) throw new Error("No vendor selected.");
+            await addInventoryNote("vendors", activeNoteVendor.id, note);
+            void load();
+          }}
+        />
+      )}
 
       <ScheduleCallModal
         open={activityModal === "schedule-call"}

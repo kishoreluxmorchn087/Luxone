@@ -222,9 +222,10 @@ export async function getSupportList(moduleKey: SupportModuleKey): Promise<CRMRe
 
 export async function getCaseDetail(id: string): Promise<CaseDetailData> {
   const detail = await apiRequest<any>(`${modulePathMap.cases}/${id}`);
-  const [integrationEmails, socialMessages] = await Promise.all([
+  const [integrationEmails, socialMessages, links] = await Promise.all([
     integrationsApi.listCaseRecordEmails(id).catch(() => []),
     integrationsApi.listSocialMessages({ support_case: id }).catch(() => []),
+    getSupportLinks("cases", id),
   ]);
   const relatedEmails = mergeEmails(
     (detail.emails || []).map((item: any) => mapEmail(id, item)),
@@ -305,7 +306,7 @@ export async function getCaseDetail(id: string): Promise<CaseDetailData> {
       connectedRecords: relatedConnectedRecords,
       openActivities,
       closedActivities,
-      links: [],
+      links,
     },
   };
 }
@@ -316,6 +317,7 @@ export async function getCaseSnapshot(id: string) {
 
 export async function getSolutionDetail(id: string): Promise<SolutionDetailData> {
   const detail = await apiRequest<any>(`${modulePathMap.solutions}/${id}`);
+  const [links] = await Promise.all([getSupportLinks("solutions", id)]);
   const notes = (detail.notes || []).map((item: any) => mapNote(id, item));
   const attachments = (detail.attachments || []).map((item: any) => mapAttachment(id, item));
   return {
@@ -360,7 +362,7 @@ export async function getSolutionDetail(id: string): Promise<SolutionDetailData>
       connectedRecords: (detail.linked_records || []).map((item: any) => mapConnectedRecord(id, item)),
       openActivities: [],
       closedActivities: [],
-      links: [],
+      links,
     },
   };
 }
@@ -495,6 +497,36 @@ export async function addSupportNote(moduleKey: SupportModuleKey, id: string, no
   return apiRequest(`${modulePathMap[moduleKey]}/${id}/notes`, {
     method: "POST",
     body: JSON.stringify({ note }),
+  });
+}
+
+export type SupportURLLink = {
+  id: string;
+  label: string;
+  url: string;
+  createdAt?: string;
+};
+
+async function getSupportLinks(moduleKey: SupportModuleKey, id: string): Promise<SupportURLLink[]> {
+  const links = await apiRequest<Array<{ id: number | string; label?: string; url: string; created_at?: string }>>(
+    `${modulePathMap[moduleKey]}/${id}/links`
+  );
+  return links.map((link) => ({
+    id: asString(link.id),
+    label: asString(link.label) || link.url,
+    url: link.url,
+    createdAt: link.created_at ? asString(link.created_at) : undefined,
+  }));
+}
+
+export async function addSupportLink(
+  moduleKey: SupportModuleKey,
+  id: string,
+  link: { label: string; url: string }
+): Promise<void> {
+  await apiRequest(`${modulePathMap[moduleKey]}/${id}/links`, {
+    method: "POST",
+    body: JSON.stringify(link),
   });
 }
 

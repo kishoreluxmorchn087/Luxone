@@ -6,7 +6,7 @@ import type {
   EmailProviderIntegration,
   IntegrationProviderType,
 } from "../types";
-import { isValidEmail } from "../utils";
+import { getProviderLabel, isValidEmail, isValidEmailForProvider } from "../utils";
 
 type ProviderField =
   | "provider_type"
@@ -96,8 +96,12 @@ export default function EmailProviderForm({
     value: EmailProviderFormValues[K]
   ) => {
     setValues((current) => ({ ...current, [key]: value }));
-    if (key in errors) {
-      setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key in errors || key === "provider_type") {
+      setErrors((current) => ({
+        ...current,
+        [key]: undefined,
+        ...(key === "provider_type" ? { email_address: undefined } : {}),
+      }));
     }
     setFormError("");
   };
@@ -121,7 +125,9 @@ export default function EmailProviderForm({
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
       } else if (!isValidEmail(values.email_address)) {
-        nextErrors.email_address = "Enter a valid Gmail address";
+        nextErrors.email_address = "Enter a valid email address";
+      } else if (!isValidEmailForProvider(values.email_address, values.provider_type)) {
+        nextErrors.email_address = `Enter an email address that matches ${getProviderLabel(values.provider_type)}`;
       }
 
       if (!values.display_name.trim()) {
@@ -130,7 +136,7 @@ export default function EmailProviderForm({
 
       const replyTo = values.reply_to_address.trim();
       if (replyTo && !isValidEmail(replyTo)) {
-        nextErrors.reply_to_address = "Enter a valid Gmail address";
+        nextErrors.reply_to_address = "Enter a valid email address";
       }
 
       return nextErrors;
@@ -201,7 +207,7 @@ export default function EmailProviderForm({
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         {formError ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {formError}
@@ -256,8 +262,10 @@ export default function EmailProviderForm({
             <span className="text-slate-600">Email Address</span>
             <input
               type="email"
+              id={`${formId}-provider-email-address`}
+              name="provider_email_address"
+              autoComplete="off"
               required
-              pattern="[^\s@]+@gmail\.com"
               ref={(element) => {
                 fieldRefs.current.email_address = element;
               }}
@@ -325,6 +333,9 @@ export default function EmailProviderForm({
             <span className="text-slate-600">App Password / Access Token</span>
             <input
               type="password"
+              id={`${formId}-provider-access-token`}
+              name="provider_access_token"
+              autoComplete="new-password"
               value={values.access_token || ""}
               onChange={(event) => setField("access_token", event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"
@@ -336,6 +347,9 @@ export default function EmailProviderForm({
             <span className="text-slate-600">Refresh Token (Optional)</span>
             <input
               type="password"
+              id={`${formId}-provider-refresh-token`}
+              name="provider_refresh_token"
+              autoComplete="new-password"
               value={values.refresh_token || ""}
               onChange={(event) => setField("refresh_token", event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"

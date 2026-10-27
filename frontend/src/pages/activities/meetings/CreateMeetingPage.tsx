@@ -316,13 +316,15 @@ export default function CreateMeetingPage() {
   };
 
   const buildPayload = () => {
+    const toIsoDateTime = (date: string, time: string) =>
+      new Date(`${date}T${time}`).toISOString();
     const startDateTime = formData.all_day
-      ? `${formData.from_date}T00:00:00`
-      : `${formData.from_date}T${formData.from_time}:00`;
+      ? toIsoDateTime(formData.from_date, "00:00:00")
+      : toIsoDateTime(formData.from_date, `${formData.from_time}:00`);
 
     const endDateTime = formData.all_day
-      ? `${formData.to_date}T23:59:59`
-      : `${formData.to_date}T${formData.to_time}:00`;
+      ? toIsoDateTime(formData.to_date, "23:59:59")
+      : toIsoDateTime(formData.to_date, `${formData.to_time}:00`);
 
     return {
       title: formData.title,

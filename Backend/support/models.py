@@ -231,6 +231,35 @@ class SupportNote(BaseModel):
         ]
 
 
+class SupportURLLink(BaseModel):
+    case = models.ForeignKey(
+        "support.SupportCase",
+        on_delete=models.CASCADE,
+        related_name="url_links",
+        null=True,
+        blank=True,
+    )
+    solution = models.ForeignKey(
+        "support.SupportSolution",
+        on_delete=models.CASCADE,
+        related_name="url_links",
+        null=True,
+        blank=True,
+    )
+    label = models.CharField(max_length=255, blank=True)
+    url = models.URLField(max_length=2048)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="support_url_links",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class SupportComment(BaseModel):
     case = models.ForeignKey(
         "support.SupportCase",

@@ -14,8 +14,11 @@ export default function CRMRelatedList({ items, activeItem, onSelect }: CRMRelat
             key={item}
             type="button"
             onClick={() => onSelect(item)}
-            className={`w-full rounded-lg px-2 py-2 text-left text-sm ${
-              activeItem === item ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"
+            aria-current={activeItem === item ? "location" : undefined}
+            className={`relative w-full rounded-lg px-2 py-2 text-left text-sm ${
+              activeItem === item
+                ? "bg-slate-100 text-slate-900 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-slate-900"
+                : "text-slate-700 hover:bg-slate-50"
             }`}
           >
             {item}

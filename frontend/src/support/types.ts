@@ -122,7 +122,7 @@ export type SupportDetailRelatedData = {
   connectedRecords: ConnectedRecord[];
   openActivities: Activity[];
   closedActivities: Activity[];
-  links: Array<{ id: string; label: string; meta?: string }>;
+  links: Array<{ id: string; label: string; url: string; createdAt?: string }>;
 };
 
 export type CaseDetailData = {

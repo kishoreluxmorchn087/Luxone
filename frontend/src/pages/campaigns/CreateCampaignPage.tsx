@@ -350,13 +350,14 @@ export default function CreateCampaignPage() {
                       </button>
                     </div>
 
-                    <label className={labelClass}>Campaign Name</label>
+                    <label className={labelClass}>
+                      Campaign Name <span className="text-red-500">*</span>
+                    </label>
                     <TextField
                       name="campaignName"
                       value={formData.campaignName}
                       onChange={handleChange}
                     />
-                    {!formData.campaignName.trim() ? <p className="col-start-2 -mt-3 text-xs text-red-500">Campaign Name is required.</p> : null}
 
                     <label className={labelClass}>Start Date</label>
                     <TextField
