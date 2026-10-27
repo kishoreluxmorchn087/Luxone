@@ -513,10 +513,14 @@ export async function getInventoryList(
 }
 
 export async function addInventoryNote(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  moduleKey: InventoryModuleKey,
   id: string,
   note: string
 ): Promise<void> {
+  if (moduleKey === "configurator") {
+    throw new Error("Notes are not supported for configurator records.");
+  }
+
   await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
     method: "POST",
     body: JSON.stringify({ note }),
@@ -1111,17 +1115,6 @@ export async function saveInventoryRecord(
 export async function deleteInventoryRecord(moduleKey: InventoryModuleKey, id: string) {
   const path = moduleKey === "configurator" ? "/inventory/configurator" : INVENTORY_ENDPOINTS[moduleKey];
   await apiRequest(`${path}/${id}`, { method: "DELETE" });
-}
-
-export async function addInventoryNote(moduleKey: InventoryModuleKey, id: string, note: string) {
-  if (moduleKey === "configurator") {
-    throw new Error("Notes are not supported for configurator records.");
-  }
-
-  return apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
 }
 
 export async function fetchLookupOptions(

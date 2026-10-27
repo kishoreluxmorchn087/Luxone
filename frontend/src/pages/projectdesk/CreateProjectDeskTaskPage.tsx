@@ -23,17 +23,6 @@ type AssignableUser = {
 const TASK_PRIORITIES: ProjectPriority[] = ["Low", "Medium", "High"];
 const TASK_STATUSES: ProjectTaskStatus[] = ["Not Started", "In Progress", "On Hold", "Completed"];
 
-function getCurrentUserEmail() {
-  try {
-    const raw = localStorage.getItem("loggedInUser");
-    if (!raw) return "";
-    const user = JSON.parse(raw) as { email?: string };
-    return user.email ?? "";
-  } catch {
-    return "";
-  }
-}
-
 function getCurrentUserRole() {
   try {
     const raw = localStorage.getItem("loggedInUser");

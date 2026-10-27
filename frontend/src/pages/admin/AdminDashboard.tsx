@@ -28,7 +28,6 @@ type GroupedOrg = {
 };
 
 const ADMIN_DASHBOARD_CACHE_KEY = "admin-dashboard-cache-v1";
-const MANAGER_DASHBOARD_CACHE_KEY = "manager-dashboard-cache-v1";
 const ADMIN_DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
 const TEAM_UPDATED_EVENT = "team:updated";
 

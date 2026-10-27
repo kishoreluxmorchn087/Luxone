@@ -173,7 +173,7 @@ export default function DomainMappingPage() {
           </div>
         ) : null}
       </div>
-      <DomainMappingModal open={open} onClose={() => setOpen(false)} onSaved={() => void load()} />
+      <DomainMappingModal open={open} initialMapping={null} onClose={() => setOpen(false)} onSaved={() => void load()} />
     </DashboardLayout>
   );
 }
