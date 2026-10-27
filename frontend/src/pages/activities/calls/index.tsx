@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
-import CRMDateInput from "../../../components/crm/CRMDateInput";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeOwnedRows, keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
-import { getCalendarDateFieldsError } from "../../../lib/shared/dateValidation";
 
 type FilterMap = Record<string, string>;
 type CallType = "Outbound" | "Inbound";
@@ -459,8 +457,8 @@ function CallFormModal({
 
       <FormRow label="Call Start Date & Time">
         <div className="flex gap-2">
-          <CRMDateInput
-            dateRule="start"
+          <input
+            type="date"
             value={formValues.startDate}
             onChange={(event) => setFormValues((current) => ({ ...current, startDate: event.target.value }))}
             className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
@@ -695,14 +693,6 @@ export default function CallsPage() {
   }, [calls, filters]);
 
   const createCall = async (payload: Record<string, unknown>) => {
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Call Start Date", value: String(payload.call_start_time ?? "").slice(0, 10), rule: "start" },
-    ]);
-    if (invalidDate) {
-      alert(invalidDate);
-      return;
-    }
-
     try {
       setSaving(true);
       await apiRequest("/calls/", { method: "POST", body: JSON.stringify(payload) });
@@ -718,13 +708,6 @@ export default function CallsPage() {
 
   const updateCall = async (payload: Record<string, unknown>) => {
     if (!editingCall) {
-      return;
-    }
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Call Start Date", value: String(payload.call_start_time ?? "").slice(0, 10), rule: "start" },
-    ]);
-    if (invalidDate) {
-      alert(invalidDate);
       return;
     }
 

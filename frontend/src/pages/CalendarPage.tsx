@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, CheckSquare, Clock3 } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
-import CRMDateInput from "../components/crm/CRMDateInput";
-import { getDateBounds } from "../lib/shared/dateValidation";
 
 type ApiList<T> = T[] | { results?: T[]; data?: T[] };
 
@@ -140,17 +138,6 @@ export default function CalendarPage() {
   }, [canViewActivities, canViewProjects]);
 
   const calendarDays = useMemo(() => buildMonthDays(viewDate), [viewDate]);
-  const calendarBounds = getDateBounds("start");
-  const firstAllowedMonth = new Date(`${calendarBounds.min.slice(0, 7)}-01T00:00:00`);
-  const lastAllowedMonth = new Date(`${calendarBounds.max.slice(0, 7)}-01T00:00:00`);
-  const canGoToPreviousMonth =
-    viewDate.getFullYear() > firstAllowedMonth.getFullYear() ||
-    (viewDate.getFullYear() === firstAllowedMonth.getFullYear() &&
-      viewDate.getMonth() > firstAllowedMonth.getMonth());
-  const canGoToNextMonth =
-    viewDate.getFullYear() < lastAllowedMonth.getFullYear() ||
-    (viewDate.getFullYear() === lastAllowedMonth.getFullYear() &&
-      viewDate.getMonth() < lastAllowedMonth.getMonth());
 
   const selectedActivityTasks = useMemo(
     () => tasks.filter((task) => isSameDay(task.due_date, selectedDate)),
@@ -193,8 +180,8 @@ export default function CalendarPage() {
           </div>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-slate-600">Selected Date</label>
-            <CRMDateInput
-              dateRule="start"
+            <input
+              type="date"
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
@@ -211,9 +198,8 @@ export default function CalendarPage() {
           <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
-              disabled={!canGoToPreviousMonth}
               onClick={() => setViewDate((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
-              className="rounded-lg p-2 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg p-2 hover:bg-slate-100"
             >
               <ChevronLeft size={18} />
             </button>
@@ -222,9 +208,8 @@ export default function CalendarPage() {
             </h2>
             <button
               type="button"
-              disabled={!canGoToNextMonth}
               onClick={() => setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
-              className="rounded-lg p-2 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg p-2 hover:bg-slate-100"
             >
               <ChevronRight size={18} />
             </button>
@@ -241,7 +226,6 @@ export default function CalendarPage() {
               if (!day) return <div key={`empty-${index}`} className="h-11 rounded-lg bg-slate-50" />;
               const dayValue = toInputDate(day);
               const isSelected = dayValue === selectedDate;
-              const isWithinDateRange = dayValue >= calendarBounds.min && dayValue <= calendarBounds.max;
               const hasItems =
                 tasks.some((task) => isSameDay(task.due_date, dayValue)) ||
                 meetings.some((meeting) => isSameDay(meeting.start_datetime || meeting.from_datetime, dayValue)) ||
@@ -253,8 +237,7 @@ export default function CalendarPage() {
                   key={dayValue}
                   type="button"
                   onClick={() => setSelectedDate(dayValue)}
-                  disabled={!isWithinDateRange}
-                  className={`relative h-11 rounded-lg text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`relative h-11 rounded-lg text-sm font-medium transition ${
                     isSelected
                       ? "bg-blue-600 text-white"
                       : "bg-slate-50 text-slate-700 hover:bg-slate-100"
@@ -372,3 +355,4 @@ function EventCard({ title, subtitle, meta }: { title: string; subtitle: string;
     </div>
   );
 }
+

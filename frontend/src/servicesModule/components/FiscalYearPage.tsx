@@ -1,8 +1,6 @@
     import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import CRMDateInput from "../../components/crm/CRMDateInput";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
-import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 import { getFiscalYearSettings, listAppointments, listJobSheets, updateFiscalYearSettings } from "../api";
 import { fiscalYearMonthOptions } from "../config";
 import type { FiscalYearSettings } from "../types";
@@ -67,16 +65,6 @@ export default function FiscalYearPage() {
   }, []);
 
   const handleSave = async () => {
-    if (form.fiscalYearType === "custom") {
-      const invalidDate = getCalendarDateFieldsError([
-        { label: "Custom period start date", value: customPeriod.start, rule: "start" },
-        { label: "Custom period end date", value: customPeriod.end, rule: "future" },
-      ]);
-      if (invalidDate) {
-        setError(invalidDate);
-        return;
-      }
-    }
     if (form.fiscalYearType === "custom" && customPeriod.start && customPeriod.end && customPeriod.end < customPeriod.start) {
       setError("Custom fiscal year end date must be on or after the start date.");
       return;
@@ -161,8 +149,8 @@ export default function FiscalYearPage() {
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Custom period start date</label>
-                  <CRMDateInput
-                    dateRule="start"
+                  <input
+                    type="date"
                     className={inputClass}
                     value={customPeriod.start}
                     onChange={(e) => {
@@ -178,8 +166,8 @@ export default function FiscalYearPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Custom period end date</label>
-                  <CRMDateInput
-                    dateRule="future"
+                  <input
+                    type="date"
                     className={inputClass}
                     value={customPeriod.end}
                     min={customPeriod.start || undefined}
