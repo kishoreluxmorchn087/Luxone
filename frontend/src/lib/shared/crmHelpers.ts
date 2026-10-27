@@ -24,18 +24,11 @@ export function sortRecords<T extends CRMRecord>(
 export function filterRecords<T extends CRMRecord>(
   rows: T[],
   columns: CRMColumn<T>[],
-  filters: Partial<Record<string, string | string[]>>,
+  filters: Partial<Record<string, string>>,
   searchTerm?: string
 ): T[] {
   const columnKeys = new Set(columns.map((c) => c.key));
   const normalizedSearch = (searchTerm ?? "").trim().toLowerCase();
-  const matchesFilter = (rowValue: unknown, filterValue: string | string[]) => {
-    const value = String(rowValue ?? "").toLowerCase();
-    const values = (Array.isArray(filterValue) ? filterValue : [filterValue])
-      .map((item) => item.trim().toLowerCase())
-      .filter(Boolean);
-    return values.length === 0 || values.some((item) => value.includes(item));
-  };
 
   return rows.filter((row) => {
     // 1. Global search term (across all visible columns)
@@ -46,8 +39,9 @@ export function filterRecords<T extends CRMRecord>(
 
     // 2. Column-based filters (header filters)
     const columnMatch = columns.every((column) => {
-      const filterValue = filters[column.key] ?? "";
-      return matchesFilter(row[column.key], filterValue);
+      const filterValue = (filters[column.key] ?? "").trim().toLowerCase();
+      if (!filterValue) return true;
+      return String(row[column.key] ?? "").toLowerCase().includes(filterValue);
     });
 
     if (!columnMatch) return false;
@@ -55,10 +49,12 @@ export function filterRecords<T extends CRMRecord>(
     // 3. Extra filters (sidebar filters)
     return Object.entries(filters).every(([key, value]) => {
       if (typeof key === "string" && columnKeys.has(key as keyof T & string)) return true; // already handled
-      if (!value || (Array.isArray(value) && value.length === 0)) return true;
+      const filterValue = (value ?? "").trim().toLowerCase();
+      if (!filterValue) return true;
       
       // Fallback: try direct key access or find a mapping
-      return matchesFilter(findRowValue(row, key), value);
+      const rowValue = String(findRowValue(row, key) ?? "").toLowerCase();
+      return rowValue.includes(filterValue);
     });
   });
 }
@@ -85,3 +81,4 @@ function findRowValue<T extends CRMRecord>(row: T, key: string): any {
 
   return null;
 }
+

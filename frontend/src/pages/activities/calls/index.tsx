@@ -6,7 +6,7 @@ import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeOwnedRows, keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
 
-type FilterMap = Record<string, string | string[]>;
+type FilterMap = Record<string, string>;
 type CallType = "Outbound" | "Inbound";
 type CallStatus = "Scheduled" | "Completed";
 type RelatedToType = "Account" | "Deal" | "None";
