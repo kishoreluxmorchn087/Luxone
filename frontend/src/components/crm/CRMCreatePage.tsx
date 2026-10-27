@@ -40,6 +40,7 @@ export type CRMCreateField = {
   sanitizeValue?: (value: string) => string;
   validateValue?: (value: string, formData: Record<string, unknown>) => string | null;
   maxLength?: number;
+  min?: number;
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   helperText?: string;
   secondarySanitizeValue?: (value: string) => string;
@@ -283,6 +284,11 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       }
       if (field?.dateRule && field.type === "text") {
         nextValue = formatCalendarDateInput(nextValue, "iso", field.dateRule);
+      if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
+        const numericValue = Number(nextValue);
+        if (Number.isFinite(numericValue) && numericValue < field.min) {
+          nextValue = String(field.min);
+        }
       }
     }
 
@@ -638,6 +644,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           className={inputClass}
           readOnly={field.readOnly}
           maxLength={field.maxLength}
+          min={field.type === "number" ? field.min : undefined}
           inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}

@@ -512,6 +512,17 @@ export async function getInventoryList(
   return normalizeInvoices(items);
 }
 
+export async function addInventoryNote(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  note: string
+): Promise<void> {
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
 async function getRelatedList(path: string, mapper: (item: any) => any) {
   try {
     const data = await apiRequest<any[]>(path);
@@ -1102,6 +1113,17 @@ export async function deleteInventoryRecord(moduleKey: InventoryModuleKey, id: s
   await apiRequest(`${path}/${id}`, { method: "DELETE" });
 }
 
+// export async function addInventoryNote(moduleKey: InventoryModuleKey, id: string, note: string) {
+//   if (moduleKey === "configurator") {
+//     throw new Error("Notes are not supported for configurator records.");
+//   }
+
+//   return apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
+//     method: "POST",
+//     body: JSON.stringify({ note }),
+//   });
+// }
+
 export async function fetchLookupOptions(
   lookup: keyof typeof LOOKUP_PATHS,
   query: string,
@@ -1148,10 +1170,11 @@ export async function addInventoryAttachment(
   moduleKey: Exclude<InventoryModuleKey, "configurator">,
   id: string,
   file: File
-) {
+): Promise<void> {
   const formData = new FormData();
   formData.append("file", file);
-  return apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
+
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
     method: "POST",
     body: formData,
   });

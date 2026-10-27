@@ -98,6 +98,9 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
   const [payload, setPayload] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(searchParams.get("preview") === "1");
   const [emailOpen, setEmailOpen] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const headerActions = useMemo(() => {
     if (moduleKey === "quotes") return ["Convert to Sales Order", "Edit"];
@@ -153,8 +156,8 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               return;
             }
 
-            if (action === "Send Email" && moduleKey === "vendors") {
-              setEmailOpen(true);
+            if (action === "Assign" && moduleKey === "vendors" && id) {
+              navigate(`${meta.baseRoute}/${id}/edit?assign=1`);
               return;
             }
 

@@ -28,6 +28,13 @@ class AccountListSerializer(serializers.ModelSerializer):
     owner_email = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
     owner_details = serializers.SerializerMethodField()
+    has_contacts = serializers.BooleanField(read_only=True)
+    has_deals = serializers.BooleanField(read_only=True)
+    has_cases = serializers.BooleanField(read_only=True)
+    has_emails = serializers.BooleanField(read_only=True)
+    has_invoices = serializers.BooleanField(read_only=True)
+    has_quotes = serializers.BooleanField(read_only=True)
+    has_sales_orders = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Account
@@ -43,6 +50,13 @@ class AccountListSerializer(serializers.ModelSerializer):
             "owner_name",
             "owner_details",
             "industry",
+            "has_contacts",
+            "has_deals",
+            "has_cases",
+            "has_emails",
+            "has_invoices",
+            "has_quotes",
+            "has_sales_orders",
             "created_at",
         ]
 

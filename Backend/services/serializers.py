@@ -231,6 +231,8 @@ class ServiceListSerializer(serializers.ModelSerializer):
             "delivery_team",
             "available_days_mode",
             "available_time_mode",
+            "custom_time_start",
+            "custom_time_end",
             "business_hours",
             "business_hours_name",
             "business_hours_timezone",
@@ -282,6 +284,8 @@ class ServiceWriteSerializer(serializers.ModelSerializer):
             "delivery_team",
             "available_days_mode",
             "available_time_mode",
+            "custom_time_start",
+            "custom_time_end",
             "business_hours",
             "created_by",
             "updated_by",
@@ -314,6 +318,14 @@ class ServiceWriteSerializer(serializers.ModelSerializer):
         available_time_mode = attrs.get("available_time_mode", getattr(self.instance, "available_time_mode", None))
         location_type = attrs.get("location_type", getattr(self.instance, "location_type", None))
         location = (attrs.get("location", getattr(self.instance, "location", "")) or "").strip()
+        custom_start = attrs.get("custom_time_start", getattr(self.instance, "custom_time_start", None))
+        custom_end = attrs.get("custom_time_end", getattr(self.instance, "custom_time_end", None))
+
+        if available_time_mode == CRMService.AvailabilityMode.CUSTOM:
+            if custom_start is None or custom_end is None:
+                raise serializers.ValidationError({"custom_time_start": "Start time is required for custom availability."})
+            if custom_end <= custom_start:
+                raise serializers.ValidationError({"custom_time_end": "End time must be after start time."})
 
         if (available_days_mode == CRMService.AvailabilityMode.BUSINESS_HOURS or available_time_mode == CRMService.AvailabilityMode.BUSINESS_HOURS) and not business_hours:
             default_hours = BusinessHours.objects.filter(is_active=True, is_default=True).first()

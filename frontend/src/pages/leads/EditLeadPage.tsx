@@ -83,8 +83,10 @@ const sections: CRMCreateSection[] = [
         name: "lastName",
         label: "Last Name",
         type: "text",
+        required: true,
         sanitizeValue: sanitizeAlphaSpace,
         maxLength: 30,
+        validateValue: validateRequired("Last Name"),
       },
       {
         name: "title",

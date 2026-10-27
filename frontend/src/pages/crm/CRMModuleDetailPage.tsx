@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CRMDetailHeader from "../../components/crm/CRMDetailHeader";
 import CRMEmptyState from "../../components/crm/CRMEmptyState";
@@ -72,6 +72,7 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "timeline">("overview");
   const [activeRelatedItem, setActiveRelatedItem] = useState(config.relatedListItems[0] || "");
+  const clickedRelatedItemRef = useRef<string | null>(null);
 
   const renderPrimarySecondary = (primary: string, secondary?: string) => {
     const cleanPrimary = String(primary || "").trim() || "Unnamed";
@@ -118,14 +119,28 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
 
         if (visible.length > 0) {
           const found = observed.find((item) => item.element.id === visible[0].target.id);
-          if (found) setActiveRelatedItem(found.item);
+          if (found && !clickedRelatedItemRef.current) setActiveRelatedItem(found.item);
         }
       },
       { rootMargin: "-25% 0px -60% 0px", threshold: [0.1, 0.3, 0.6] }
     );
 
+    const resumeScrollTracking = () => {
+      clickedRelatedItemRef.current = null;
+    };
+
     observed.forEach((entry) => observer.observe(entry.element));
-    return () => observer.disconnect();
+    window.addEventListener("wheel", resumeScrollTracking, { passive: true });
+    window.addEventListener("touchstart", resumeScrollTracking, { passive: true });
+    window.addEventListener("pointerdown", resumeScrollTracking);
+    window.addEventListener("keydown", resumeScrollTracking);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("wheel", resumeScrollTracking);
+      window.removeEventListener("touchstart", resumeScrollTracking);
+      window.removeEventListener("pointerdown", resumeScrollTracking);
+      window.removeEventListener("keydown", resumeScrollTracking);
+    };
   }, [activeTab, relatedListItems, sectionIdMap]);
 
   const isLongTextField = (fieldKey: string) => {
@@ -521,6 +536,7 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
             onSelect={(item) => {
               setActiveTab("overview");
               setActiveRelatedItem(item);
+              clickedRelatedItemRef.current = item;
               window.setTimeout(() => {
                 const targetId = sectionIdMap[item];
                 const element = document.getElementById(targetId);

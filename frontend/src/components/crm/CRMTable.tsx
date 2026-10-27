@@ -55,6 +55,7 @@ type CRMTableProps<T extends CRMRecord> = {
   onTogglePinColumn: (columnKey: string) => void;
   onFilterColumn: (columnKey: string, value: string) => void;
   variant?: "default" | "bordered";
+  density?: "compact" | "normal" | "comfortable";
 };
 
 export default function CRMTable<T extends CRMRecord>({
@@ -79,6 +80,7 @@ export default function CRMTable<T extends CRMRecord>({
   onTogglePinColumn,
   onFilterColumn,
   variant = "default",
+  density = "normal",
 }: CRMTableProps<T>) {
   const isLongTextColumn = (columnKey: string) => {
     const normalized = columnKey.toLowerCase();
@@ -118,6 +120,20 @@ export default function CRMTable<T extends CRMRecord>({
     );
   }
 
+  const cellPaddingClass =
+    density === "compact"
+      ? "py-1.5 px-3 text-xs"
+      : density === "comfortable"
+      ? "py-4 px-4 text-sm"
+      : "py-2.5 px-4 text-sm";
+
+  const headerPaddingClass =
+    density === "compact"
+      ? "py-2 px-3 text-[11px]"
+      : density === "comfortable"
+      ? "py-3.5 px-4 text-xs"
+      : "py-3 px-4 text-xs";
+
   const allChecked = rows.every((row) => selectedIds.includes(row.id));
 
   return (
@@ -141,7 +157,7 @@ export default function CRMTable<T extends CRMRecord>({
             {visibleColumns.map((column) => (
               <th
                 key={column.key}
-                className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
+                className={`${headerPaddingClass} font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
                   pinnedColumn === column.key ? "sticky z-30 bg-slate-50" : ""
                 } ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}
                 style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
@@ -234,13 +250,13 @@ export default function CRMTable<T extends CRMRecord>({
               {visibleColumns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-4 py-3 text-sm text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""} ${variant === "bordered" ? "border border-slate-300" : ""}`}
+                  className={`${cellPaddingClass} text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""} ${variant === "bordered" ? "border border-slate-300" : ""}`}
                   style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
                 >
                   <button
                     type="button"
                     onClick={() => onOpenRow(row)}
-                    className={`w-full text-left text-sm text-slate-700 ${
+                    className={`w-full text-left ${cellPaddingClass.includes("text-xs") ? "text-xs" : "text-sm"} text-slate-700 ${
                       isLongTextColumn(column.key) ? "break-all whitespace-normal" : "break-words"
                     }`}
                   >
@@ -249,7 +265,7 @@ export default function CRMTable<T extends CRMRecord>({
                 </td>
               ))}
 
-              <td className={`px-4 py-3 text-sm text-slate-700 whitespace-nowrap ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
+              <td className={`${cellPaddingClass} text-slate-700 whitespace-nowrap ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
                 <div className="flex items-center justify-center gap-2">
                   <button
                     type="button"

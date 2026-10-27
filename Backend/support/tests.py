@@ -8,7 +8,7 @@ from deals.models import Deal, DealStage
 from deals.services import ensure_default_stages
 from inventory.models import Product
 
-from .models import SupportCase, SupportLinkedRecord, SupportSolution
+from .models import SupportCase, SupportLinkedRecord, SupportSolution, SupportURLLink
 
 
 class SupportSmartDefaultsTests(APITestCase):
@@ -116,3 +116,47 @@ class SupportSmartDefaultsTests(APITestCase):
                 product=self.product,
             ).exists()
         )
+
+    def test_case_links_can_be_created_and_listed(self):
+        case = SupportCase.objects.create(subject="Case with link", owner=self.user)
+        endpoint = f"/api/cases/{case.pk}/links"
+
+        create_response = self.client.post(
+            endpoint,
+            {"label": "Troubleshooting guide", "url": "https://example.com/help"},
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_response.data["url"], "https://example.com/help")
+        self.assertTrue(SupportURLLink.objects.filter(case=case, created_by=self.user).exists())
+
+        list_response = self.client.get(endpoint)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(list_response.data[0]["label"], "Troubleshooting guide")
+
+    def test_solution_links_can_be_created(self):
+        solution = SupportSolution.objects.create(solution_title="Solution with link", owner=self.user)
+        response = self.client.post(
+            f"/api/solutions/{solution.pk}/links",
+            {"label": "Reference", "url": "https://example.com/reference"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(SupportURLLink.objects.filter(solution=solution, url="https://example.com/reference").exists())
+
+    def test_quick_create_product_rejects_negative_unit_price_and_tax(self):
+        for field in ("unit_price", "tax"):
+            with self.subTest(field=field):
+                response = self.client.post(
+                    "/api/support/products/quick-create",
+                    {
+                        "product_name": "Test Product",
+                        "product_code": f"TEST-{field}",
+                        field: "-1",
+                    },
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
