@@ -1,10 +1,12 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import CRMDateInput from "../../../components/crm/CRMDateInput";
 import { apiRequest } from "../../../api/client";
 import { getAccounts } from "../../../lib/api/accountsApi";
 import { getContacts } from "../../../lib/api/contactsApi";
 import type { AccountRecord, ContactRecord } from "../../../lib/shared/crmTypes";
+import { getCalendarDateFieldsError } from "../../../lib/shared/dateValidation";
 
 type TaskFormState = {
   subject: string;
@@ -180,6 +182,14 @@ export default function CreateTaskPage() {
   };
 
   const handleSave = async (stayOnPage: boolean) => {
+    const invalidDate = getCalendarDateFieldsError([
+      { label: "Due date", value: formData.dueDate, rule: "future" },
+    ]);
+    if (invalidDate) {
+      setError(invalidDate);
+      return;
+    }
+
     if (!formData.subject.trim()) {
       setError("Subject is required.");
       return;
@@ -330,10 +340,10 @@ export default function CreateTaskPage() {
                 <label htmlFor="dueDate" className="mb-2 block text-sm font-semibold text-slate-600">
                   Due date
                 </label>
-                <input
+                <CRMDateInput
+                  dateRule="future"
                   id="dueDate"
                   name="dueDate"
-                  type="date"
                   value={formData.dueDate}
                   onChange={handleChange}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500"

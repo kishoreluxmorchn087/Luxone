@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import CRMDateInput from "../../components/crm/CRMDateInput";
 import { createJobSheet, getJobSheet, listAppointments, listServices, updateJobSheet } from "../api";
 import { buildEmptyJobSheetField } from "../utils";
 import { jobSheetStatusOptions } from "../config";
 import type { AppointmentRecord, JobSheetFormData, ServiceRecord } from "../types";
+import { getCalendarDateFieldsError, getDateRangeRule } from "../../lib/shared/dateValidation";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
@@ -97,6 +99,16 @@ export default function JobSheetFormPage() {
     if (!form.serviceId) return setError("Service is required.");
     if (!form.title.trim()) return setError("Title is required.");
     if (form.fields.some((field) => !field.fieldName.trim() || !field.fieldLabel.trim())) return setError("Each job-sheet field needs a name and label.");
+    const invalidDate = getCalendarDateFieldsError(
+      form.fields
+        .filter((field) => field.fieldType === "date")
+        .map((field) => ({
+          label: field.fieldLabel,
+          value: field.fieldValue,
+          rule: getDateRangeRule(field.fieldLabel),
+        }))
+    );
+    if (invalidDate) return setError(invalidDate);
     try {
       setSaving(true);
       setError(null);
@@ -223,8 +235,16 @@ export default function JobSheetFormPage() {
                       <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Field Value</label>
                       {field.fieldType === "textarea" ? (
                         <textarea className={textareaClass} placeholder="Value" value={field.fieldValue} onChange={(e) => setForm((prev) => ({ ...prev, fields: prev.fields.map((item, itemIndex) => itemIndex === index ? { ...item, fieldValue: e.target.value } : item) }))} />
+                      ) : field.fieldType === "date" ? (
+                        <CRMDateInput
+                          dateRule={getDateRangeRule(field.fieldLabel)}
+                          className={inputClass}
+                          placeholder="Value"
+                          value={field.fieldValue}
+                          onChange={(e) => setForm((prev) => ({ ...prev, fields: prev.fields.map((item, itemIndex) => itemIndex === index ? { ...item, fieldValue: e.target.value } : item) }))}
+                        />
                       ) : (
-                        <input type={field.fieldType === "date" ? "date" : "text"} className={inputClass} placeholder="Value" value={field.fieldValue} onChange={(e) => setForm((prev) => ({ ...prev, fields: prev.fields.map((item, itemIndex) => itemIndex === index ? { ...item, fieldValue: e.target.value } : item) }))} />
+                        <input type="text" className={inputClass} placeholder="Value" value={field.fieldValue} onChange={(e) => setForm((prev) => ({ ...prev, fields: prev.fields.map((item, itemIndex) => itemIndex === index ? { ...item, fieldValue: e.target.value } : item) }))} />
                       )}
                     </div>
                   </div>

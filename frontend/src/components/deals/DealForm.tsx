@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { dealOwners } from "../../lib/mock/dealOwners";
 import { dealStages } from "../../lib/mock/dealStages";
+import CRMDateInput from "../crm/CRMDateInput";
 
 interface DealFormProps {
   onSubmit: (values: any) => void;
@@ -50,7 +51,7 @@ const DealForm: React.FC<DealFormProps> = ({ onSubmit, initialValues = {} }) => 
       <input name="leadSource" value={values.leadSource} onChange={handleChange} placeholder="Lead Source" className="border rounded px-2 py-1" />
       <input name="campaignSource" value={values.campaignSource} onChange={handleChange} placeholder="Campaign Source" className="border rounded px-2 py-1" />
       <input name="amount" type="number" value={values.amount} onChange={handleChange} placeholder="Amount" className="border rounded px-2 py-1" />
-      <input name="closingDate" type="date" value={values.closingDate} onChange={handleChange} className="border rounded px-2 py-1" />
+      <CRMDateInput dateRule="future" name="closingDate" value={values.closingDate} onChange={handleChange} className="border rounded px-2 py-1" />
       <select name="stage" value={values.stage} onChange={handleChange} className="border rounded px-2 py-1">
         {dealStages.map((stage) => (
           <option key={stage} value={stage}>{stage}</option>
