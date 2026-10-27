@@ -146,7 +146,13 @@ export default function CreateContactPage() {
           { name: "phone", label: "Phone", type: "text" },
 
           { name: "lastName", label: "Last Name", type: "text", required: true },
-          { name: "mobile", label: "Mobile", type: "text" },
+          {
+            name: "mobile",
+            label: "Mobile",
+            type: "text",
+            validateValue: (value) =>
+              /^\d{10}$/.test(value) ? null : "Mobile number must be exactly 10 digits.",
+          },
           { name: "otherPhone", label: "Other Phone", type: "text" },
           { name: "fax", label: "Fax", type: "text" },
           { name: "assistant", label: "Assistant", type: "text" },

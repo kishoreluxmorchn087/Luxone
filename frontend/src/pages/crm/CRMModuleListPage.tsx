@@ -5,6 +5,7 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMPagination from "../../components/crm/CRMPagination";
 import CRMTable from "../../components/crm/CRMTable";
+import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import {
   ActivityDetailModal,
   AddTagsModal,
@@ -90,13 +91,111 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
-  const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
+  const [density, setDensity] = useState<DensityMode>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_density_${config.module}`);
+      if (saved === "compact" || saved === "normal" || saved === "comfortable") {
+        return saved;
+      }
+    } catch {}
+    return "normal";
+  });
+
+  const [currentPageSize, setCurrentPageSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_pageSize_${config.module}`);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    } catch {}
+    return pageSize;
+  });
+
+  const [currentShowNotes, setCurrentShowNotes] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_showNotes_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
+    return showNotes;
+  });
+
+  const [currentShowActivity, setCurrentShowActivity] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_showActivity_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
+    return showActivity;
+  });
+
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_hiddenCols_${config.module}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const [pinnedColumn, setPinnedColumn] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_pinnedCol_${config.module}`);
+      if (saved) return saved;
+    } catch {}
+    return null;
+  });
+
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
+
+  const handleSetHiddenColumns = (hidden: string[]) => {
+    setHiddenColumns(hidden);
+    try {
+      localStorage.setItem(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
+    } catch {}
+  };
+
+  const handleSetPinnedColumn = (pinned: string | null) => {
+    setPinnedColumn(pinned);
+    try {
+      if (pinned) {
+        localStorage.setItem(`crm_pinnedCol_${config.module}`, pinned);
+      } else {
+        localStorage.removeItem(`crm_pinnedCol_${config.module}`);
+      }
+    } catch {}
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setCurrentPageSize(newSize);
+    setPage(1);
+    try {
+      localStorage.setItem(`crm_pageSize_${config.module}`, String(newSize));
+    } catch {}
+  };
+
+  const handleDensityChange = (newDensity: DensityMode) => {
+    setDensity(newDensity);
+    try {
+      localStorage.setItem(`crm_density_${config.module}`, newDensity);
+    } catch {}
+  };
+
+  const handleToggleShowNotes = (show: boolean) => {
+    setCurrentShowNotes(show);
+    try {
+      localStorage.setItem(`crm_showNotes_${config.module}`, String(show));
+    } catch {}
+  };
+
+  const handleToggleShowActivity = (show: boolean) => {
+    setCurrentShowActivity(show);
+    try {
+      localStorage.setItem(`crm_showActivity_${config.module}`, String(show));
+    } catch {}
+  };
 
   const visibleColumns = useMemo(
     () => config.columns.filter((column) => !hiddenColumns.includes(column.key)),
@@ -119,9 +218,9 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   }, [rows, visibleColumns, columnFilters, sidebarFilters, sortState]);
 
   const paginatedRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return processedRows.slice(start, start + pageSize);
-  }, [page, pageSize, processedRows]);
+    const start = (page - 1) * currentPageSize;
+    return processedRows.slice(start, start + currentPageSize);
+  }, [page, currentPageSize, processedRows]);
 
   const openModal = (modal: ModalState, row: T) => {
     setActiveRow(row);
@@ -458,6 +557,21 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               : undefined
           }
           onMassAction={(action) => setActiveModal(action)}
+          columns={config.columns}
+          hiddenColumns={hiddenColumns}
+          onSetHiddenColumns={handleSetHiddenColumns}
+          pinnedColumn={pinnedColumn}
+          onSetPinnedColumn={handleSetPinnedColumn}
+          pageSize={currentPageSize}
+          onPageSizeChange={handlePageSizeChange}
+          density={density}
+          onDensityChange={handleDensityChange}
+          showNotes={currentShowNotes}
+          onToggleShowNotes={handleToggleShowNotes}
+          showActivity={currentShowActivity}
+          onToggleShowActivity={handleToggleShowActivity}
+          sortState={sortState}
+          moduleName={config.title}
         />
 
         <div className="flex gap-3">
@@ -495,15 +609,16 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 </div>
               </div>
             ) : <CRMTable
-          rows={paginatedRows}
+              rows={paginatedRows}
               columns={visibleColumns}
               rowActions={config.rowActions}
               selectedIds={selectedIds}
               hiddenColumns={hiddenColumns}
               pinnedColumn={pinnedColumn}
               columnFilters={columnFilters}
-              showNotes={showNotes}
-              showActivity={showActivity}
+              showNotes={currentShowNotes}
+              showActivity={currentShowActivity}
+              density={density}
               onToggleAll={(checked) => {
                 if (!checked) {
                   setSelectedIds([]);
@@ -535,28 +650,27 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 setSortState({ key: columnKey, direction })
               }
               onToggleHideColumn={(columnKey) => {
-                setHiddenColumns((prev) =>
-                  prev.includes(columnKey)
-                    ? prev.filter((item) => item !== columnKey)
-                    : [...prev, columnKey]
-                );
+                const next = hiddenColumns.includes(columnKey)
+                  ? hiddenColumns.filter((item) => item !== columnKey)
+                  : [...hiddenColumns, columnKey];
+                handleSetHiddenColumns(next);
 
                 if (pinnedColumn === columnKey) {
-                  setPinnedColumn(null);
+                  handleSetPinnedColumn(null);
                 }
               }}
               onTogglePinColumn={(columnKey) =>
-                setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))
+                handleSetPinnedColumn(pinnedColumn === columnKey ? null : columnKey)
               }
               onFilterColumn={(columnKey, value) =>
                 setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))
               }
             />}
 
-            {!hideTable && !loading && processedRows.length > pageSize && (
+            {!hideTable && !loading && processedRows.length > currentPageSize && (
               <CRMPagination
                 page={page}
-                pageSize={pageSize}
+                pageSize={currentPageSize}
                 totalItems={processedRows.length}
                 onPageChange={setPage}
               />

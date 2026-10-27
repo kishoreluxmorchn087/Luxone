@@ -35,13 +35,7 @@ export const dealFilterSections: FilterSection[] = [
   },
   {
     title: "Filter By Fields",
-    items: [
-      { label: "Deal Name", key: "dealName" },
-      { label: "Account Name", key: "accountName" },
-      { label: "Deal Owner", key: "dealOwner" },
-      { label: "Stage", key: "stage" },
-      { label: "Type", key: "type" },
-    ],
+    items: ["Deal Name", "Account Name", "Deal Owner", "Stage", "Type"],
   },
   {
     title: "Filter By Related Modules",
