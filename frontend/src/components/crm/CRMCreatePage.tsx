@@ -284,7 +284,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       }
       if (field?.dateRule && field.type === "text") {
         nextValue = formatCalendarDateInput(nextValue, "iso", field.dateRule);
-      }
       if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
         const numericValue = Number(nextValue);
         if (Number.isFinite(numericValue) && numericValue < field.min) {
