@@ -6,7 +6,7 @@ import type { CompanyDetails, DomainMapping, ServiceSettings, TeamMember } from 
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
-const phonePattern = /^\+?[0-9\-().\s]{7,20}$/;
+const phonePattern = /^\d{10}$/;
 type CompanyDetailsField = "companyName" | "phone";
 type CompanyDetailsErrors = Partial<Record<CompanyDetailsField, string>>;
 
@@ -58,7 +58,7 @@ export default function CompanyDetailsPage() {
       validationErrors.companyName = "Company Name is required.";
     }
     if (form.phone.trim() && !phonePattern.test(form.phone.trim())) {
-      validationErrors.phone = "Enter a valid phone number.";
+      validationErrors.phone = "Phone number must be exactly 10 digits.";
     }
     setFieldErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
@@ -98,7 +98,26 @@ export default function CompanyDetailsPage() {
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-name">Company Name</label><input id="company-name" required className={`${inputClass}${fieldErrors.companyName ? " border-rose-500" : ""}`} value={form.companyName} aria-invalid={Boolean(fieldErrors.companyName)} aria-describedby={fieldErrors.companyName ? "company-name-error" : undefined} onChange={(e) => { setForm({ ...form, companyName: e.target.value }); setFieldErrors({ ...fieldErrors, companyName: undefined }); }} />{fieldErrors.companyName ? <p id="company-name-error" className="mt-1 text-xs text-rose-600">{fieldErrors.companyName}</p> : null}</div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Company Email</label><input className={inputClass} value={form.companyEmail} onChange={(e) => setForm({ ...form, companyEmail: e.target.value })} /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Contact Person</label><input className={inputClass} value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-phone">Phone</label><input id="company-phone" type="tel" className={`${inputClass}${fieldErrors.phone ? " border-rose-500" : ""}`} value={form.phone} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "company-phone-error" : undefined} onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFieldErrors({ ...fieldErrors, phone: undefined }); }} />{fieldErrors.phone ? <p id="company-phone-error" className="mt-1 text-xs text-rose-600">{fieldErrors.phone}</p> : null}</div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-phone">Phone</label>
+                <input
+                  id="company-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="Enter 10-digit phone number"
+                  className={`${inputClass}${fieldErrors.phone ? " border-rose-500" : ""}`}
+                  value={form.phone}
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  aria-describedby={fieldErrors.phone ? "company-phone-error" : undefined}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setForm({ ...form, phone: numericValue });
+                    setFieldErrors({ ...fieldErrors, phone: undefined });
+                  }}
+                />
+                {fieldErrors.phone ? <p id="company-phone-error" className="mt-1 text-xs text-rose-600">{fieldErrors.phone}</p> : null}
+              </div>
               <div className="md:col-span-2"><label className="mb-1.5 block text-sm font-medium text-slate-700">Address</label><textarea className={textareaClass} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
             </div>
           </CRMSectionCard>
