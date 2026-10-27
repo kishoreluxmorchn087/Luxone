@@ -156,11 +156,6 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               return;
             }
 
-            if (action === "Send Email" && moduleKey === "vendors") {
-              setEmailOpen(true);
-              return;
-            }
-
             if (!id) return;
 
             if (action === "Attach" && moduleKey === "vendors") {

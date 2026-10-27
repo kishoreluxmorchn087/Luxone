@@ -29,12 +29,6 @@ import InventoryTotalsPanel from "./InventoryTotalsPanel";
 
 type Props = { moduleKey: InventoryModuleKey };
 
-type AssignableUser = {
-  id: number | string;
-  name?: string;
-  email: string;
-};
-
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
 
@@ -395,7 +389,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
-  const isVendorAssignment = moduleKey === "vendors" && searchParams.get("assign") === "1";
   const isDuplicate = Boolean(duplicateId) && (moduleKey === "invoices" || moduleKey === "purchase-orders");
   const isEdit = Boolean(id);
   const [form, setForm] = useState<InventoryFormValues>(() => getInitialValues(moduleKey));
@@ -405,9 +398,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewData, setReviewData] = useState<any | null>(null);
   const [quickVendorOpen, setQuickVendorOpen] = useState(false);
-  const [vendorOwners, setVendorOwners] = useState<AssignableUser[]>([]);
-  const [vendorOwnersLoading, setVendorOwnersLoading] = useState(false);
-  const [vendorOwnersError, setVendorOwnersError] = useState<string | null>(null);
   const anyForm = form as any;
   const currentUserName = getLoggedInUserName();
   const totals = useMemo(() => Array.isArray(anyForm.items) ? recalculateDocument(anyForm.items as InventoryLineItem[], Number(anyForm.adjustment || 0)) : null, [anyForm.adjustment, anyForm.items]);
@@ -470,30 +460,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       cancelled = true;
     };
   }, [duplicateId, id, isDuplicate, isEdit, meta.singular, moduleKey]);
-
-  useEffect(() => {
-    if (!isVendorAssignment) return;
-
-    let active = true;
-    setVendorOwnersLoading(true);
-    setVendorOwnersError(null);
-    apiRequest<AssignableUser[] | { results?: AssignableUser[] }>("/auth/manage-users/")
-      .then((response) => {
-        if (!active) return;
-        setVendorOwners(Array.isArray(response) ? response : response.results ?? []);
-      })
-      .catch((err) => {
-        if (!active) return;
-        setVendorOwnersError(err instanceof Error ? err.message : "Failed to load assignment options.");
-      })
-      .finally(() => {
-        if (active) setVendorOwnersLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [isVendorAssignment]);
 
   useEffect(() => {
     if (moduleKey !== "quotes" || !anyForm.deal) return;
@@ -764,11 +730,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   }, [anyForm.purchaseOrder, anyForm.salesOrder, moduleKey]);
 
   const save = async () => {
-    if (isVendorAssignment && !String(anyForm.vendorOwner || "").trim()) {
-      setError("Select a user to assign this vendor.");
-      return;
-    }
-
     try {
       setSaving(true);
       setError(null);
@@ -950,12 +911,12 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       <div className="space-y-4">
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">{isVendorAssignment ? "Assign Vendor" : isEdit ? `Edit ${meta.singular}` : isDuplicate ? `Duplicate ${meta.singular}` : meta.createLabel}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{isEdit ? `Edit ${meta.singular}` : isDuplicate ? `Duplicate ${meta.singular}` : meta.createLabel}</h1>
             <p className="text-sm text-slate-500">Integrated {meta.singular.toLowerCase()} form connected to the CRM backend.</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => navigate(isEdit && id ? `${meta.baseRoute}/${id}` : meta.baseRoute)} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">Cancel</button>
-            <button type="button" disabled={saving || loading || (isVendorAssignment && (vendorOwnersLoading || Boolean(vendorOwnersError) || vendorOwners.length === 0))} onClick={() => void onSaveClick()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{loading ? "Loading..." : saving ? "Saving..." : isVendorAssignment ? "Assign" : isEdit ? "Update" : isDuplicate ? "Create Duplicate" : "Save"}</button>
+            <button type="button" disabled={saving || loading} onClick={() => void onSaveClick()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{loading ? "Loading..." : saving ? "Saving..." : isEdit ? "Update" : isDuplicate ? "Create Duplicate" : "Save"}</button>
           </div>
         </div>
 
@@ -964,7 +925,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
         {!loading && (
           <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700">
             <span className="font-medium text-slate-900">Before you save:</span>{" "}
-            {isVendorAssignment ? "Choose a user to assign this vendor, then save the assignment." : formGuidance[moduleKey]}
+            {formGuidance[moduleKey]}
           </div>
         )}
 
@@ -1000,32 +961,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
               )}
               {moduleKey === "vendors" && (
                 <>
-                  {isVendorAssignment && (
-                    <>
-                      <Field label="Assign to">
-                        <select
-                          className={inputClass}
-                          value={anyForm.vendorOwner || ""}
-                          disabled={vendorOwnersLoading || Boolean(vendorOwnersError)}
-                          onChange={(e) => updateInventoryForm({ ...anyForm, vendorOwner: e.target.value })}
-                        >
-                          <option value="">{vendorOwnersLoading ? "Loading users..." : "Select a user"}</option>
-                          {anyForm.vendorOwner && !vendorOwners.some((user) => String(user.id) === String(anyForm.vendorOwner)) && (
-                            <option value={anyForm.vendorOwner}>Current owner</option>
-                          )}
-                          {vendorOwners.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.name || user.email}
-                            </option>
-                          ))}
-                        </select>
-                        {vendorOwnersError && <p className="mt-1 text-sm text-rose-600">{vendorOwnersError}</p>}
-                      </Field>
-                      {!vendorOwnersLoading && !vendorOwnersError && vendorOwners.length === 0 && (
-                        <p className="text-sm text-slate-500">No assignment options are available.</p>
-                      )}
-                    </>
-                  )}
                   <Field label="Vendor Name"><input className={inputClass} value={anyForm.vendorName} onChange={(e) => setForm({ ...anyForm, vendorName: e.target.value })} /></Field>
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
                   <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
