@@ -37,13 +37,25 @@ const sections: CRMCreateSection[] = [
       { name: "title", label: "Title", type: "text" },
       { name: "department", label: "Department", type: "text" },
       { name: "email", label: "Email", type: "email" },
-      { name: "phone", label: "Phone", type: "text" },
+      {
+        name: "phone",
+        label: "Phone",
+        type: "text",
+        sanitizeValue: (value) => value.replace(/\D/g, ""),
+        maxLength: 20,
+        validateValue: (value) =>
+          /^\d{0,20}$/.test(value)
+            ? null
+            : "Phone number must contain digits only and no more than 20 digits.",
+      },
 
       { name: "lastName", label: "Last Name", type: "text", required: true },
       {
         name: "mobile",
         label: "Mobile",
         type: "text",
+        sanitizeValue: (value) => value.replace(/\D/g, ""),
+        maxLength: 10,
         validateValue: (value) =>
           /^\d{10}$/.test(value) ? null : "Mobile number must be exactly 10 digits.",
       },
