@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
-import CRMDateInput from "../../components/crm/CRMDateInput";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getLoggedInUser, getLoggedInUserName } from "../../lib/auth/currentUser";
-import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 import { getInventoryRecordSnapshot, reviewInvoiceChanges, saveInventoryRecord } from "../api";
 import { getInventoryMeta } from "../config";
 import type {
@@ -784,21 +782,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   };
 
   const onSaveClick = async () => {
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Support Start Date", value: anyForm.supportStartDate, rule: "start" },
-      { label: "Support Expiry Date", value: anyForm.supportExpiryDate, rule: "future" },
-      { label: "Invoice Date", value: anyForm.invoiceDate, rule: "start" },
-      { label: "Valid Until", value: anyForm.validUntil, rule: "future" },
-      { label: "Due Date", value: anyForm.dueDate, rule: "future" },
-      { label: "Subscription Start Date", value: anyForm.subscriptionStartDate, rule: "start" },
-      { label: "Subscription End Date", value: anyForm.subscriptionEndDate, rule: "future" },
-      { label: "Renewal Due Date", value: anyForm.renewalDueDate, rule: "future" },
-    ]);
-    if (invalidDate) {
-      setError(invalidDate);
-      return;
-    }
-
     const requireSelectedLookup = (idValue: string, labelValue: string, fieldLabel: string) => {
       if (String(labelValue || "").trim().length > 0 && String(idValue || "").trim().length === 0) {
         setError(`Select a valid ${fieldLabel.toLowerCase()} from the dropdown.`);
@@ -1010,8 +993,8 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Subscription Term (Months)"><input type="number" min={1} step={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Renewal Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired ?? true)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} />Renewal Required</label></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Support Start Date"><CRMDateInput dateRule="start" className={inputClass} value={anyForm.supportStartDate || ""} onChange={(e) => setForm({ ...anyForm, supportStartDate: e.target.value })} /></Field>
-                  <Field label="Support Expiry Date"><CRMDateInput dateRule="future" className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(e) => setForm({ ...anyForm, supportExpiryDate: e.target.value })} /></Field>
+                  <Field label="Support Start Date"><input type="date" className={inputClass} value={anyForm.supportStartDate || ""} onChange={(e) => setForm({ ...anyForm, supportStartDate: e.target.value })} /></Field>
+                  <Field label="Support Expiry Date"><input type="date" className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(e) => setForm({ ...anyForm, supportExpiryDate: e.target.value })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
                 </>
               )}
@@ -1355,16 +1338,16 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                 {moduleKey === "sales-orders" && <Field label="Customer No"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.customerNo || ""} readOnly placeholder="Auto-filled from account" /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="Requisition Number"><input className={inputClass} value={anyForm.requisitionNumber || ""} onChange={(e) => setForm({ ...anyForm, requisitionNumber: e.target.value })} /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="PO Number"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.poNumber || ""} readOnly placeholder="Auto-generated on save" /></Field>}
-                {moduleKey === "invoices" && <Field label="Invoice Date"><CRMDateInput dateRule="start" className={inputClass} value={anyForm.invoiceDate || ""} onChange={(e) => setForm({ ...anyForm, invoiceDate: e.target.value })} /></Field>}
+                {moduleKey === "invoices" && <Field label="Invoice Date"><input type="date" className={inputClass} value={anyForm.invoiceDate || ""} onChange={(e) => setForm({ ...anyForm, invoiceDate: e.target.value })} /></Field>}
                 {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Status"><input className={inputClass} value={anyForm.status || ""} onChange={(e) => setForm({ ...anyForm, status: e.target.value })} /></Field>}
                 <Field label="Carrier"><input className={inputClass} value={anyForm.carrier || ""} onChange={(e) => setForm({ ...anyForm, carrier: e.target.value })} /></Field>
                 {moduleKey === "quotes" && (
                   <div>
-                    <Field label="Valid Until"><CRMDateInput dateRule="future" className={inputClass} value={anyForm.validUntil || ""} onChange={(e) => updateInventoryForm({ ...anyForm, validUntil: e.target.value })} /></Field>
+                    <Field label="Valid Until"><input type="date" className={inputClass} value={anyForm.validUntil || ""} onChange={(e) => updateInventoryForm({ ...anyForm, validUntil: e.target.value })} /></Field>
                     <p className="mt-1 text-xs text-slate-500">Set the last date the customer can accept this quote.</p>
                   </div>
                 )}
-                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><CRMDateInput dateRule="future" className={inputClass} value={anyForm.dueDate || ""} onChange={(e) => setForm({ ...anyForm, dueDate: e.target.value })} /></Field>}
+                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><input type="date" className={inputClass} value={anyForm.dueDate || ""} onChange={(e) => setForm({ ...anyForm, dueDate: e.target.value })} /></Field>}
                 {moduleKey === "sales-orders" && <Field label="Quote Name"><InventoryLookupField lookup="quotes" value={anyForm.quote || ""} displayValue={anyForm.quoteLabel || ""} onChange={(option) => setForm({ ...anyForm, quote: option?.id || "", quoteLabel: option?.label || "" })} /></Field>}
                 {moduleKey !== "purchase-orders" && (
                   <div>
@@ -1397,9 +1380,9 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
                   <Field label="Licensed Users"><input type="number" min={1} className={inputClass} value={anyForm.licensedUsers ?? 1} onChange={(e) => setForm({ ...anyForm, licensedUsers: Number(e.target.value) })} /></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Subscription Start Date"><CRMDateInput dateRule="start" className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionStartDate: e.target.value })} /></Field>
-                  <Field label="Subscription End Date"><CRMDateInput dateRule="future" className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionEndDate: e.target.value })} /></Field>
-                  <Field label="Renewal Due Date"><CRMDateInput dateRule="future" className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(e) => setForm({ ...anyForm, renewalDueDate: e.target.value })} /></Field>
+                  <Field label="Subscription Start Date"><input type="date" className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionStartDate: e.target.value })} /></Field>
+                  <Field label="Subscription End Date"><input type="date" className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionEndDate: e.target.value })} /></Field>
+                  <Field label="Renewal Due Date"><input type="date" className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(e) => setForm({ ...anyForm, renewalDueDate: e.target.value })} /></Field>
                 </div>
               </div>
             )}

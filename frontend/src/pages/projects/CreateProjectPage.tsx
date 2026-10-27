@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { apiRequest } from "../../api/client";
-import CRMDateInput from "../../components/crm/CRMDateInput";
 import type { CreateProjectPayload, Project } from "./types";
-import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 
 const emptyForm: CreateProjectPayload = {
   project_code: "",
@@ -113,14 +111,6 @@ export default function CreateProjectPage() {
     e.preventDefault();
     if (!formData.project_code || !formData.name) {
       setError("Project name is required");
-      return;
-    }
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Start Date", value: formData.start_date, rule: "start" },
-      { label: "Due Date", value: formData.due_date, rule: "future" },
-    ]);
-    if (invalidDate) {
-      setError(invalidDate);
       return;
     }
     const payload = {
@@ -259,8 +249,8 @@ export default function CreateProjectPage() {
               </FormField>
 
               <FormField label="Start Date">
-                <CRMDateInput
-                  dateRule="start"
+                <input
+                  type="date"
                   name="start_date"
                   value={formData.start_date}
                   onChange={handleChange}
@@ -269,8 +259,8 @@ export default function CreateProjectPage() {
               </FormField>
 
               <FormField label="Due Date">
-                <CRMDateInput
-                  dateRule="future"
+                <input
+                  type="date"
                   name="due_date"
                   value={formData.due_date}
                   onChange={handleChange}

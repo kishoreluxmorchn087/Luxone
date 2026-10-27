@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import CRMDateInput from "../../components/crm/CRMDateInput";
-import { getCalendarDateFieldsError } from "../../lib/shared/dateValidation";
 import {
   appointmentCoverageStatusOptions,
   appointmentCoverageTypeOptions,
@@ -294,10 +292,6 @@ export default function AppointmentFormPage() {
   const handleSubmit = async () => {
     if (!form.serviceId) return setError("Service is required.");
     if (!form.appointmentDate) return setError("Appointment date is required.");
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Appointment Date", value: form.appointmentDate, rule: "future" },
-    ]);
-    if (invalidDate) return setError(invalidDate);
     if (!form.appointmentStartTime) return setError("Appointment start time is required.");
     if (holidays.some((item) => item.date === form.appointmentDate)) {
       return setError("Appointments cannot be booked on a holiday.");
@@ -375,7 +369,7 @@ export default function AppointmentFormPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Appointment Date</label>
-                <CRMDateInput dateRule="future" className={inputClass} value={form.appointmentDate} onChange={(e) => setForm({ ...form, appointmentDate: e.target.value })} />
+                <input type="date" className={inputClass} value={form.appointmentDate} onChange={(e) => setForm({ ...form, appointmentDate: e.target.value })} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Location</label>

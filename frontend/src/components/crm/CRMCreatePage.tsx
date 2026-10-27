@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
-import CRMDateInput from "./CRMDateInput";
 import { ChevronDown } from "lucide-react";
-import {
-  formatCalendarDateInput,
-  getCalendarDateError,
-  isValidCalendarDateValue,
-  type DateRangeRule,
-} from "../../lib/shared/dateValidation";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
@@ -21,7 +14,6 @@ export type CRMCreateFieldType =
   | "textarea"
   | "checkbox"
   | "select"
-  | "date"
   | "currency"
   | "country"
   | "state"
@@ -51,7 +43,6 @@ export type CRMCreateField = {
   placeholder?: string;
   rows?: number;
   readOnly?: boolean;
-  dateRule?: DateRangeRule;
 };
 
 export type CRMCreateSection = {
@@ -205,9 +196,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       return null;
     }
 
-    if (field.dateRule && value && !isValidCalendarDateValue(value, field.dateRule)) {
-      return getCalendarDateError(field.dateRule, "iso");
-    }
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
@@ -282,8 +270,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
       }
-      if (field?.dateRule && field.type === "text") {
-        nextValue = formatCalendarDateInput(nextValue, "iso", field.dateRule);
       if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
         const numericValue = Number(nextValue);
         if (Number.isFinite(numericValue) && numericValue < field.min) {
@@ -505,22 +491,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             readOnly={field.readOnly}
             maxLength={field.maxLength}
             inputMode={field.inputMode}
-          />
-          {getFieldMessage(field.name)}
-        </div>
-      );
-    }
-
-    if (field.type === "date") {
-      return (
-        <div>
-          <CRMDateInput
-            dateRule={field.dateRule ?? "start"}
-            name={field.name}
-            value={value}
-            onChange={handleChange}
-            onBlur={() => handleFieldBlur(field.name)}
-            className={inputClass}
           />
           {getFieldMessage(field.name)}
         </div>

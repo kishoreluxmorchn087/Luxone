@@ -1155,17 +1155,6 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
-export async function addInventoryNote(
-  moduleKey: Exclude<InventoryModuleKey, "configurator">,
-  id: string,
-  note: string
-) {
-  return apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
-}
-
 export async function addInventoryAttachment(
   moduleKey: Exclude<InventoryModuleKey, "configurator">,
   id: string,

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
-import CRMDateInput from "../../../components/crm/CRMDateInput";
 import { apiRequest } from "../../../api/client";
-import { getCalendarDateFieldsError } from "../../../lib/shared/dateValidation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -333,14 +331,6 @@ export default function CallsPage() {
   };
 
   const handleCreateScheduledCall = async (form: CallFormState) => {
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Call Start Date", value: form.startDate, rule: "start" },
-    ]);
-    if (invalidDate) {
-      alert(invalidDate);
-      return;
-    }
-
     try {
       await apiRequest("/calls/", {
         method: "POST",
@@ -364,14 +354,6 @@ export default function CallsPage() {
   };
 
   const handleCreateLoggedCall = async (form: CallFormState) => {
-    const invalidDate = getCalendarDateFieldsError([
-      { label: "Call Start Date", value: form.startDate, rule: "start" },
-    ]);
-    if (invalidDate) {
-      alert(invalidDate);
-      return;
-    }
-
     try {
       await apiRequest("/calls/", {
         method: "POST",
@@ -876,8 +858,8 @@ function ScheduleCallModal({
 
             <ModalRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <CRMDateInput
-                  dateRule="start"
+                <input
+                  type="date"
                   value={form.startDate}
                   onChange={(e) => updateField("startDate", e.target.value)}
                   className="border-r border-slate-300 px-3 py-3 text-sm outline-none"
@@ -1080,8 +1062,8 @@ function LogCallModal({
 
             <ModalRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <CRMDateInput
-                  dateRule="start"
+                <input
+                  type="date"
                   value={form.startDate}
                   onChange={(e) => updateField("startDate", e.target.value)}
                   className="border-r border-slate-300 px-3 py-3 text-sm outline-none"
