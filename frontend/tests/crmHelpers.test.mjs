@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { sortRecords } from "../src/lib/shared/crmHelpers.ts";
+import { getInventorySortConfig } from "../src/inventory/config.ts";
 
 test("sortRecords sorts strings alphabetically and handles empty values", () => {
   const vendors = [
@@ -31,4 +32,45 @@ test("sortRecords sorts numeric values numerically in either direction", () => {
     sortRecords(values, "amount", "desc").map((row) => row.amount),
     [10, 2, null]
   );
+});
+
+test("Inventory sort fields are limited to each module's configured columns", () => {
+  const expectedFields = {
+    vendors: ["Vendor Name", "Email", "Phone", "Website", "Vendor Owner"],
+    products: ["Product Name", "SKU", "Type", "Billing Cycle", "Vendor", "Category", "Unit Price", "Deployment"],
+    "price-books": ["Price Book Name", "Owner", "Status", "Pricing Model", "Updated At"],
+    quotes: ["Subject", "Quote Stage", "Account", "Contact", "Valid Until", "Grand Total"],
+    "sales-orders": ["Subject", "Status", "Account", "Contact", "Due Date", "Grand Total"],
+    "purchase-orders": ["Subject", "Vendor", "PO Number", "Status", "Due Date", "Grand Total"],
+    invoices: ["Subject", "Status", "Account", "Invoice Date", "Due Date", "Grand Total"],
+    configurator: ["Name", "Target Module", "Layout", "Subform", "Lookup", "Status"],
+  };
+
+  for (const [moduleKey, fields] of Object.entries(expectedFields)) {
+    const { sortFields, sortFieldKeyMap } = getInventorySortConfig(moduleKey);
+
+    assert.deepEqual(sortFields, ["None", ...fields], `${moduleKey} sort fields`);
+    assert.deepEqual(
+      Object.keys(sortFieldKeyMap),
+      fields,
+      `${moduleKey} sort field mappings`
+    );
+
+    for (const field of fields) {
+      const key = sortFieldKeyMap[field];
+      assert.ok(key, `${moduleKey} ${field} has a record key`);
+
+      const rows = [{ [key]: "Zulu" }, { [key]: "Alpha" }];
+      assert.deepEqual(
+        sortRecords(rows, key, "asc").map((row) => row[key]),
+        ["Alpha", "Zulu"],
+        `${moduleKey} ${field} sorts ascending`
+      );
+      assert.deepEqual(
+        sortRecords(rows, key, "desc").map((row) => row[key]),
+        ["Zulu", "Alpha"],
+        `${moduleKey} ${field} sorts descending`
+      );
+    }
+  }
 });
