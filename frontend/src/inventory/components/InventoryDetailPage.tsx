@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import CRMDetailHeader from "../../components/crm/CRMDetailHeader";
 import CRMEmptyState from "../../components/crm/CRMEmptyState";
@@ -431,21 +430,19 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           }}
         />
       )}
-      {moduleKey === "vendors" &&
-        createPortal(
-          <SendEmailModal
-            open={emailOpen}
-            onClose={() => setEmailOpen(false)}
-            toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
-            recordName={detail.name}
-            allowAttachments
-            onSend={async (email) => {
-              if (!id) throw new Error("Vendor record is unavailable.");
-              await sendVendorEmail(id, email);
-            }}
-          />,
-          document.body
-        )}
+      {moduleKey === "vendors" && (
+        <SendEmailModal
+          open={emailOpen}
+          onClose={() => setEmailOpen(false)}
+          toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
+          recordName={detail.name}
+          allowAttachments
+          onSend={async (email) => {
+            if (!id) throw new Error("Vendor record is unavailable.");
+            await sendVendorEmail(id, email);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }
