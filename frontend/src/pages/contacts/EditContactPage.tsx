@@ -38,20 +38,18 @@ const sections: CRMCreateSection[] = [
       { name: "title", label: "Title", type: "text" },
       { name: "department", label: "Department", type: "text" },
       { name: "email", label: "Email", type: "email", validateValue: validateContactEmail },
-      { name: "phone", label: "Phone", type: "text" },
+      { name: "phone", label: "Phone", type: "phone" },
 
       { name: "lastName", label: "Last Name", type: "text", required: true },
       {
         name: "mobile",
         label: "Mobile",
-        type: "text",
-        validateValue: (value) =>
-          /^\d{10}$/.test(value) ? null : "Mobile number must be exactly 10 digits.",
+        type: "mobile",
       },
-      { name: "otherPhone", label: "Other Phone", type: "text" },
+      { name: "otherPhone", label: "Other Phone", type: "phone" },
       { name: "fax", label: "Fax", type: "text" },
       { name: "assistant", label: "Assistant", type: "text" },
-      { name: "assistantPhone", label: "Assistant Phone", type: "text" },
+      { name: "assistantPhone", label: "Assistant Phone", type: "phone" },
     ],
   },
   {
