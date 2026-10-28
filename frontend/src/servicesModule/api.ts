@@ -549,6 +549,10 @@ export async function updateDomainMapping(id: string, accountType: string, domai
   );
 }
 
+export async function deleteDomainMapping(id: string) {
+  await apiRequest<void>(`/settings/domain-mapping/${id}/`, { method: "DELETE" });
+}
+
 export async function verifyDomainMapping(id: string) {
   return mapDomainMapping(
     await apiRequest<any>("/settings/domain-mapping/verify/", { method: "POST", body: JSON.stringify({ id: Number(id) }) })
