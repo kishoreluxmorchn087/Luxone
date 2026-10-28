@@ -43,6 +43,7 @@ type CRMTableProps<T extends CRMRecord> = {
   columnFilters: Partial<Record<string, string>>;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActionsColumn?: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (id: string, checked: boolean) => void;
   onOpenRow: (row: T) => void;
@@ -68,6 +69,7 @@ export default function CRMTable<T extends CRMRecord>({
   columnFilters,
   showNotes = true,
   showActivity = true,
+  showActionsColumn = true,
   onToggleAll,
   onToggleRow,
   onOpenRow,
@@ -191,9 +193,11 @@ export default function CRMTable<T extends CRMRecord>({
                 </div>
               </th>
             ))}
-            <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-center ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}>
-              ACTIONS
-            </th>
+            {showActionsColumn ? (
+              <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-center ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}>
+                ACTIONS
+              </th>
+            ) : null}
           </tr>
         </thead>
 
@@ -265,34 +269,36 @@ export default function CRMTable<T extends CRMRecord>({
                 </td>
               ))}
 
-              <td className={`${cellPaddingClass} text-slate-700 whitespace-nowrap ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    title="Update"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRowAction("edit", row);
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100 hover:shadow-sm"
-                  >
-                    <Pencil size={13} className="text-blue-600" />
-                    <span>Update</span>
-                  </button>
-                  <button
-                    type="button"
-                    title="Delete"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRowAction("delete", row);
-                    }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 hover:shadow-sm"
-                  >
-                    <Trash2 size={13} className="text-rose-600" />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </td>
+              {showActionsColumn ? (
+                <td className={`${cellPaddingClass} text-slate-700 whitespace-nowrap ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      title="Update"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRowAction("edit", row);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100 hover:shadow-sm"
+                    >
+                      <Pencil size={13} className="text-blue-600" />
+                      <span>Update</span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRowAction("delete", row);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 hover:shadow-sm"
+                    >
+                      <Trash2 size={13} className="text-rose-600" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

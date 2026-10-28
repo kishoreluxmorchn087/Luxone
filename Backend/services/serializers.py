@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import re
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -995,11 +996,14 @@ class ServiceCompanyDetailsSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at"]
 
     def validate_phone(self, value):
-        if value and not re.fullmatch(r"[0-9+()\-\s]+", value):
-            raise serializers.ValidationError(
-                "Phone number can contain only numbers and valid phone characters."
-            )
-        return value   
+        if value:
+            clean_value = str(value).strip()
+            if not re.fullmatch(r"^\d{10}$", clean_value):
+                raise serializers.ValidationError(
+                    "Phone number must be exactly 10 digits and contain only numbers."
+                )
+            return clean_value
+        return value
 
     def get_public_booking_base_url(self, obj):
         return get_public_booking_base_url()

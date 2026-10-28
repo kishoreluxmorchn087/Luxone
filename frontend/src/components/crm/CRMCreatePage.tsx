@@ -26,6 +26,7 @@ export type CRMCreateField = {
   label: string;
   type: CRMCreateFieldType;
   required?: boolean;
+  requiredIndicator?: boolean;
   options?: string[];
   secondaryName?: string;
   secondaryRequired?: boolean;
@@ -179,12 +180,10 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     field,
     isSecondary,
     value,
-    sourceName,
   }: {
     field: CRMCreateField;
     isSecondary: boolean;
     value: string;
-    sourceName: string;
   }): string | null => {
     if (isSecondary) {
       if (field.secondaryValidateValue) {
@@ -202,12 +201,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (field.required && !value.trim()) {
       return `${field.label} is required.`;
     }
-    if (field.type === "name-composite" && sourceName === field.name && field.secondaryRequired) {
-      const secondaryValue = String(formData[field.secondaryName ?? ""] ?? "");
-      if (!secondaryValue.trim()) {
-        return `${field.label} is required.`;
-      }
-    }
     return null;
   };
 
@@ -219,7 +212,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       field,
       isSecondary,
       value,
-      sourceName: name,
     });
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -313,7 +305,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             field,
             isSecondary: false,
             value: String(formData[field.name] ?? ""),
-            sourceName: field.name,
           });
           if (primaryMessage) {
             validationErrors[field.name] = primaryMessage;
@@ -323,7 +314,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               field,
               isSecondary: true,
               value: String(formData[field.secondaryName] ?? ""),
-              sourceName: field.secondaryName,
             });
             if (secondaryMessage) {
               validationErrors[field.secondaryName] = secondaryMessage;
@@ -545,6 +535,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               inputMode={field.secondaryInputMode}
             />
           </div>
+          {getFieldMessage(field.name)}
           {getFieldMessage(field.secondaryName ?? "")}
         </div>
       );
@@ -618,6 +609,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}
+        {field.helperText && (
+          <p className="mt-1 text-[11px] leading-4 text-slate-500">{field.helperText}</p>
+        )}
       </div>
     );
   };
@@ -690,7 +684,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                           <div key={field.name} className="contents">
                             <label className={labelClass}>
                               {field.label}
-                              {(field.required || field.secondaryRequired) && (
+                              {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                 <span className="ml-1 text-red-600">*</span>
                               )}
                             </label>
@@ -708,7 +702,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>
@@ -724,7 +718,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>

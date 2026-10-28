@@ -16,6 +16,7 @@ interface Meeting {
   end_date?: string;
   location?: string;
   organizer?: { name?: string; email?: string };
+  lead_name?: string;
   contact_name?: string;
   account_name?: string;
   status?: string;
@@ -260,7 +261,7 @@ export default function MeetingsPage() {
                           {meeting.location || "—"}
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-600">
-                          {meeting.account_name || "—"}
+                          {meeting.lead_name || meeting.account_name || "—"}
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-600">
                           {meeting.contact_name || "—"}

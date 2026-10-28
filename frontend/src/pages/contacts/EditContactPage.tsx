@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import CRMCreatePage, { type CRMCreateSection } from "../../components/crm/CRMCreatePage";
 import { getContactById, updateContact } from "../../lib/api/contactsApi";
 import { SALUTATION_OPTIONS } from "../../config/crm/createOptions";
+import { validateContactEmail } from "./contactValidation";
 
 type ContactEditValues = {
   contactOwner: string;
@@ -36,7 +37,7 @@ const sections: CRMCreateSection[] = [
       { name: "accountName", label: "Account Name", type: "text", required: true },
       { name: "title", label: "Title", type: "text" },
       { name: "department", label: "Department", type: "text" },
-      { name: "email", label: "Email", type: "email" },
+      { name: "email", label: "Email", type: "email", validateValue: validateContactEmail },
       { name: "phone", label: "Phone", type: "text" },
 
       { name: "lastName", label: "Last Name", type: "text", required: true },

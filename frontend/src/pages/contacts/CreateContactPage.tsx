@@ -6,6 +6,7 @@ import { createContact } from "../../lib/api/contactsApi";
 import { getLeadById } from "../../lib/api/leadsApi";
 import { getLoggedInUserName } from "../../lib/auth/currentUser";
 import { SALUTATION_OPTIONS } from "../../config/crm/createOptions";
+import { validateContactEmail } from "./contactValidation";
 
 type ContactCreateValues = {
   contactOwner: string;
@@ -135,14 +136,16 @@ export default function CreateContactPage() {
             name: "salutation",
             label: "First Name",
             type: "name-composite",
+            required: true,
             options: SALUTATION_OPTIONS,
+            validateValue: (value) => (value.trim() ? null : "Salutation is required."),
             secondaryName: "firstName",
             secondaryRequired: true,
           },
           { name: "accountName", label: "Account Name", type: "lookup", required: true, options: accountOptions, placeholder: "Search or select an account" },
           { name: "title", label: "Title", type: "text" },
           { name: "department", label: "Department", type: "text" },
-          { name: "email", label: "Email", type: "email" },
+          { name: "email", label: "Email", type: "email", validateValue: validateContactEmail },
           { name: "phone", label: "Phone", type: "text" },
 
           { name: "lastName", label: "Last Name", type: "text", required: true },
@@ -150,8 +153,12 @@ export default function CreateContactPage() {
             name: "mobile",
             label: "Mobile",
             type: "text",
+            requiredIndicator: true,
+            helperText: "At least one contact method is required: Email, Phone, Mobile, or Other Phone.",
             validateValue: (value) =>
-              /^\d{10}$/.test(value) ? null : "Mobile number must be exactly 10 digits.",
+              !value.trim() || /^\d{10}$/.test(value)
+                ? null
+                : "Mobile number must be exactly 10 digits.",
           },
           { name: "otherPhone", label: "Other Phone", type: "text" },
           { name: "fax", label: "Fax", type: "text" },

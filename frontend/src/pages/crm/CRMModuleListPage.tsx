@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { copyToClipboard } from "../../lib/clipboard";
 import { apiRequest } from "../../api/client";
 import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
@@ -32,6 +34,7 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
     rows: T[];
@@ -78,6 +81,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   pageSize = 1000,
   showNotes = true,
   showActivity = false,
+  showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
   hideFilterSidebar = false,
@@ -145,10 +149,11 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   });
 
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
+  const isFilterOpen = filterOpen ?? !hideFilterSidebar;
 
   const handleSetHiddenColumns = (hidden: string[]) => {
     setHiddenColumns(hidden);
@@ -232,11 +237,37 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     setActiveRow(null);
   };
 
+  const [copyToast, setCopyToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({
+    visible: false,
+    message: "",
+    type: "success",
+  });
+
   const handleRowAction = (actionKey: string, row: T) => {
     if (actionKey === "copy-url") {
-      void navigator.clipboard.writeText(
-        `${window.location.origin}${config.baseRoute}/${row.id}`
-      );
+      const url = `${window.location.origin}${config.baseRoute}/${row.id}`;
+      void copyToClipboard(url).then((success) => {
+        if (success) {
+          setCopyToast({
+            visible: true,
+            message: "URL copied to clipboard!",
+            type: "success",
+          });
+        } else {
+          setCopyToast({
+            visible: true,
+            message: "Failed to copy URL to clipboard.",
+            type: "error",
+          });
+        }
+        setTimeout(() => {
+          setCopyToast((prev) => ({ ...prev, visible: false }));
+        }, 2500);
+      });
       return;
     }
 
@@ -539,10 +570,10 @@ export default function CRMModuleListPage<T extends CRMRecord>({
           createButtonLabel={`Create ${config.title.slice(0, -1)}`}
           sortFields={config.sortFields}
           sortFieldKeyMap={config.sortFieldKeyMap}
-          isFilterOpen={filterOpen}
+          isFilterOpen={isFilterOpen}
           onToggleFilter={() => {
             if (!config.filterSections) return;
-            setFilterOpen((prev) => !prev);
+            setFilterOpen((prev) => !(prev ?? !hideFilterSidebar));
           }}
           onCreateClick={() => navigate(`${config.baseRoute}/create`)}
           onApplySort={
@@ -575,7 +606,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         />
 
         <div className="flex gap-3">
-          {config.filterSections && filterOpen && !hideFilterSidebar && (
+          {config.filterSections && isFilterOpen && (
             <FilterSidebar
               title={`Filter ${config.title} by`}
               sections={config.filterSections}
@@ -618,6 +649,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               columnFilters={columnFilters}
               showNotes={currentShowNotes}
               showActivity={currentShowActivity}
+              showActionsColumn={showActionsColumn}
               density={density}
               onToggleAll={(checked) => {
                 if (!checked) {
@@ -759,6 +791,16 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         count={processedRows.length}
         onConfirm={handleMassConvert}
       />
+      {copyToast.visible && (
+        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl transition-all">
+          {copyToast.type === "success" ? (
+            <CheckCircle2 size={18} className="text-emerald-400" />
+          ) : (
+            <AlertCircle size={18} className="text-rose-400" />
+          )}
+          <span>{copyToast.message}</span>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
