@@ -75,6 +75,7 @@ interface CallFormValues {
   relatedToId: number | null;
   relatedToLabel: string;
   callType: CallType;
+  status: CallStatus;
   startDate: string;
   startTime: string;
   subject: string;
@@ -132,6 +133,7 @@ function emptyFormValues(variant: "schedule" | "log"): CallFormValues {
     relatedToId: null,
     relatedToLabel: "",
     callType: "Outbound",
+    status: variant === "schedule" ? "Scheduled" : "Completed",
     startDate: getTodayDate(),
     startTime: variant === "schedule" ? "13:00" : getCurrentTime(),
     subject: "",
@@ -152,6 +154,7 @@ function callToFormValues(call: CallRecord): CallFormValues {
     relatedToId: call.relatedToId,
     relatedToLabel: call.relatedTo === "-" ? "" : call.relatedTo,
     callType: call.callType,
+    status: call.status,
     startDate: call.startDate,
     startTime: call.startTime,
     subject: call.subject,
@@ -187,11 +190,11 @@ function toApiRecord(call: ApiCall): CallRecord {
   };
 }
 
-function buildPayload(values: CallFormValues, status: CallStatus) {
+function buildPayload(values: CallFormValues) {
   return {
     subject: values.subject || `${values.callType} call with ${values.callForLabel || "Unknown"}`,
     call_type: values.callType,
-    call_status: status,
+    call_status: values.status,
     call_start_time: `${values.startDate}T${values.startTime}:00`,
     duration_minutes: Number(values.durationMinutes) || 0,
     duration_seconds: Number(values.durationSeconds) || 0,
@@ -358,7 +361,7 @@ function CallFormModal({
   onClose,
   onSubmit,
   saving,
-  status,
+  allowStatusEdit = false,
 }: {
   title: string;
   submitLabel: string;
@@ -366,7 +369,7 @@ function CallFormModal({
   onClose: () => void;
   onSubmit: (payload: Record<string, unknown>) => void;
   saving?: boolean;
-  status: CallStatus;
+  allowStatusEdit?: boolean;
 }) {
   const { contacts, leads, accounts, deals } = useLookupData();
   const [formValues, setFormValues] = useState<CallFormValues>(initialValues);
@@ -384,7 +387,7 @@ function CallFormModal({
         : [];
 
   const handleSubmit = () => {
-    onSubmit(buildPayload(formValues, status));
+    onSubmit(buildPayload(formValues));
   };
 
   return (
@@ -454,6 +457,24 @@ function CallFormModal({
           <option value="Inbound">Inbound</option>
         </select>
       </FormRow>
+
+      {allowStatusEdit && (
+        <FormRow label="Status">
+          <select
+            value={formValues.status}
+            onChange={(event) =>
+              setFormValues((current) => ({
+                ...current,
+                status: event.target.value as CallStatus,
+              }))
+            }
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
+          >
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </FormRow>
+      )}
 
       <FormRow label="Call Start Time">
         <div className="flex gap-2">
@@ -921,7 +942,6 @@ export default function CallsPage() {
           onClose={() => setShowSchedule(false)}
           onSubmit={createCall}
           saving={saving}
-          status="Scheduled"
         />
       )}
 
@@ -933,7 +953,6 @@ export default function CallsPage() {
           onClose={() => setShowLog(false)}
           onSubmit={createCall}
           saving={saving}
-          status="Completed"
         />
       )}
 
@@ -945,7 +964,7 @@ export default function CallsPage() {
           onClose={() => setEditingCall(null)}
           onSubmit={updateCall}
           saving={saving}
-          status={editingCall.status}
+          allowStatusEdit
         />
       )}
 
