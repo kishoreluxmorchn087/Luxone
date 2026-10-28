@@ -6,6 +6,7 @@ import type {
   SocialPlatform,
   SourceType,
 } from "./types";
+import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
 const providerLabels: Record<IntegrationProviderType, string> = {
   zoho_mail: "Business Mail",
@@ -103,12 +104,7 @@ export function formatPortalUrl(value: string | null | undefined) {
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return "-";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(parsed);
+  return formatDateTimeForDisplay(value);
 }
 
 export function fallbackValue<T>(value: T | null | undefined, fallback = "-") {

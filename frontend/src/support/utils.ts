@@ -1,18 +1,15 @@
 import type { TimelineItem } from "../lib/shared/crmTypes";
 import type { SupportImportFieldMapping } from "./types";
+import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
 
 export function formatSupportDate(value?: string) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return formatDateTimeForDisplay(value);
 }
 
 export function formatSupportDateOnly(value?: string) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
+  return formatDateForDisplay(value);
 }
 
 export function formatStatusLabel(value?: string) {
@@ -58,4 +55,3 @@ export function mapTimelineItems(items: Array<any>): TimelineItem[] {
     by: item.created_by_email || "",
   }));
 }
-

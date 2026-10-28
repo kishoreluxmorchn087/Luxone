@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import DatePicker from "../../../components/common/DatePicker";
 import { apiRequest } from "../../../api/client";
 import {
   ChevronDown,
@@ -121,6 +122,10 @@ export default function CreateMeetingPage() {
   const [showMore, setShowMore] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
+  const [meetingContactSearch, setMeetingContactSearch] = useState("");
+  const [selectedMeetingContactId, setSelectedMeetingContactId] = useState<number | null>(null);
+  const [selectedMeetingContactName, setSelectedMeetingContactName] = useState("");
+  const [showMeetingContactDropdown, setShowMeetingContactDropdown] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
 
   // Real data from backend
@@ -244,18 +249,14 @@ export default function CreateMeetingPage() {
                 : "None";
         const relatedId = relatedType === "Account"
           ? meeting.account ?? null
-          : relatedType === "Contact"
-            ? meeting.contact ?? null
-            : relatedType === "Lead"
-              ? meeting.lead ?? null
-              : null;
+          : relatedType === "Lead"
+            ? meeting.lead ?? null
+            : null;
         const relatedName = relatedType === "Account"
           ? meeting.account_name ?? ""
-          : relatedType === "Contact"
-            ? meeting.contact_name ?? ""
-            : relatedType === "Lead"
-              ? meeting.lead_name ?? ""
-              : "";
+          : relatedType === "Lead"
+            ? meeting.lead_name ?? ""
+            : "";
 
         setFormData({
           title: meeting.title ?? "",
@@ -278,6 +279,9 @@ export default function CreateMeetingPage() {
         setSelectedRelatedId(relatedId);
         setSelectedRelatedName(relatedName);
         setRelatedSearch("");
+        setSelectedMeetingContactId(meeting.contact ?? null);
+        setSelectedMeetingContactName(meeting.contact_name ?? "");
+        setMeetingContactSearch("");
       })
       .catch((err) => {
         if (isMounted) {
@@ -309,12 +313,12 @@ export default function CreateMeetingPage() {
               ? account.searchText.includes(relatedSearch.trim().toLowerCase())
               : true
           )
-        : contactOptions.filter((contact) =>
-          relatedSearch.trim()
-            ? contact.name.toLowerCase().includes(relatedSearch.trim().toLowerCase()) ||
-              contact.email.toLowerCase().includes(relatedSearch.trim().toLowerCase())
-            : true
-        );
+        : [];
+
+  const filteredMeetingContacts = contactOptions.filter((contact) =>
+    contact.name.toLowerCase().includes(meetingContactSearch.toLowerCase()) ||
+    contact.email.toLowerCase().includes(meetingContactSearch.toLowerCase())
+  );
 
   const selectedIds = new Set(participants.map((item) => item.id));
 
@@ -389,7 +393,7 @@ export default function CreateMeetingPage() {
       repeat: formData.repeat,
       participants_reminder: formData.participants_reminder,
       lead: formData.related_to === "Lead" ? selectedRelatedId : null,
-      contact: formData.related_to === "Contact" ? selectedRelatedId : null,
+      contact: selectedMeetingContactId,
       account: formData.related_to === "Account" ? selectedRelatedId : null,
     };
   };
@@ -507,11 +511,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="From">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="from_date"
                       value={formData.from_date}
-                      onChange={handleFieldChange}
+                      onChange={(from_date) => setFormData((previous) => ({ ...previous, from_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (
@@ -528,11 +531,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="To">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="to_date"
                       value={formData.to_date}
-                      onChange={handleFieldChange}
+                      onChange={(to_date) => setFormData((previous) => ({ ...previous, to_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (
@@ -628,7 +630,7 @@ export default function CreateMeetingPage() {
                   </div>
                 </Field>
 
-                {(formData.related_to === "Lead" || formData.related_to === "Contact" || formData.related_to === "Account") && (
+                {(formData.related_to === "Lead" || formData.related_to === "Account") && (
                   <Field label={formData.related_to}>
                     <div className="relative">
                       <input
@@ -671,6 +673,48 @@ export default function CreateMeetingPage() {
                     </div>
                   </Field>
                 )}
+
+                <Field label="Contact">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search Contact..."
+                      value={selectedMeetingContactName || meetingContactSearch}
+                      onChange={(e) => {
+                        setSelectedMeetingContactId(null);
+                        setSelectedMeetingContactName("");
+                        setMeetingContactSearch(e.target.value);
+                        setShowMeetingContactDropdown(true);
+                      }}
+                      onFocus={() => setShowMeetingContactDropdown(true)}
+                      onClick={() => setShowMeetingContactDropdown(true)}
+                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 pr-6 text-[15px] text-slate-900 outline-none focus:border-blue-600"
+                    />
+                    <Search className="pointer-events-none absolute right-0 top-2 h-4 w-4 text-slate-400" />
+                    {showMeetingContactDropdown && !selectedMeetingContactId && (
+                      <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                        {filteredMeetingContacts.slice(0, 12).map((contact) => (
+                          <button
+                            key={contact.id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-[14px] text-slate-800 hover:bg-slate-100"
+                            onClick={() => {
+                              setSelectedMeetingContactId(contact.id);
+                              setSelectedMeetingContactName(contact.name);
+                              setMeetingContactSearch("");
+                              setShowMeetingContactDropdown(false);
+                            }}
+                          >
+                            {contact.name}
+                          </button>
+                        ))}
+                        {filteredMeetingContacts.length === 0 && (
+                          <p className="px-3 py-2 text-sm text-slate-500">No contacts found.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Field>
 
                 <Field label="Repeat">
                   <div className="flex items-center justify-between gap-3 border-b border-slate-300 py-1">

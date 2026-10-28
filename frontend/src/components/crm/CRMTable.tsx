@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 import { Phone, CalendarCheck, CalendarDays, Activity, Pencil, Trash2 } from "lucide-react";
 import type { CRMColumn, CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
 import CRMRowMoreOptionsMenu from "./CRMRowMoreOptionsMenu";
@@ -28,7 +29,7 @@ function ActivityReminderBadge({ activity, onClick }: { activity: ActivityBadge;
       className={`inline-flex cursor-pointer items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium transition-colors ${colorMap[activity.type]}`}
     >
       {iconMap[activity.type]}
-      {activity.date}
+      {formatDateTimeForDisplay(activity.date)}
     </button>
   );
 }
@@ -91,6 +92,12 @@ export default function CRMTable<T extends CRMRecord>({
       normalized.includes("website") ||
       normalized.includes("address")
     );
+  };
+  const formatCellValue = (columnKey: string, value: unknown) => {
+    if (typeof value !== "string" || !/(date|_at|At$)/i.test(columnKey)) {
+      return String(value || "-");
+    }
+    return formatDateTimeForDisplay(value) || "-";
   };
 
   const formatCellValue = (columnKey: string, value: unknown) => {

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { dealOwners } from "../../lib/mock/dealOwners";
 import { dealStages } from "../../lib/mock/dealStages";
+import DatePicker from "../common/DatePicker";
+import { validateDatePickerInputs } from "../../lib/dateUtils";
 
 interface DealFormProps {
   onSubmit: (values: any) => void;
@@ -32,6 +34,7 @@ const DealForm: React.FC<DealFormProps> = ({ onSubmit, initialValues = {} }) => 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateDatePickerInputs()) return;
     onSubmit(values);
   };
 
@@ -50,7 +53,7 @@ const DealForm: React.FC<DealFormProps> = ({ onSubmit, initialValues = {} }) => 
       <input name="leadSource" value={values.leadSource} onChange={handleChange} placeholder="Lead Source" className="border rounded px-2 py-1" />
       <input name="campaignSource" value={values.campaignSource} onChange={handleChange} placeholder="Campaign Source" className="border rounded px-2 py-1" />
       <input name="amount" type="number" value={values.amount} onChange={handleChange} placeholder="Amount" className="border rounded px-2 py-1" />
-      <input name="closingDate" type="date" value={values.closingDate} onChange={handleChange} className="border rounded px-2 py-1" />
+      <DatePicker name="closingDate" futureOnly value={values.closingDate} onChange={(closingDate) => setValues((v: any) => ({ ...v, closingDate }))} className="border rounded px-2 py-1" />
       <select name="stage" value={values.stage} onChange={handleChange} className="border rounded px-2 py-1">
         {dealStages.map((stage) => (
           <option key={stage} value={stage}>{stage}</option>
@@ -63,7 +66,7 @@ const DealForm: React.FC<DealFormProps> = ({ onSubmit, initialValues = {} }) => 
       <div className="flex gap-2">
         <button type="button" className="border px-4 py-2 rounded" onClick={() => setValues(initialValues)}>Cancel</button>
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
-        <button type="button" className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => { onSubmit(values); setValues({}); }}>Save and New</button>
+        <button type="button" className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => { if (!validateDatePickerInputs()) return; onSubmit(values); setValues({}); }}>Save and New</button>
       </div>
     </form>
   );
