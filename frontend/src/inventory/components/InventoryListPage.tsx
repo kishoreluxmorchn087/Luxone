@@ -8,7 +8,7 @@ import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
-import { getInventoryMeta } from "../config";
+import { getInventoryMeta, getInventorySortConfig } from "../config";
 import { formatMoney } from "../utils";
 import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
@@ -17,29 +17,6 @@ import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
-};
-
-const vendorSortFields = [
-  "None",
-  "Vendor Name",
-  "Email",
-  "Phone",
-  "Website",
-  "Vendor Owner",
-  "Category",
-  "Created Time",
-  "Modified Time",
-];
-
-const vendorSortFieldKeyMap: Partial<Record<string, string>> = {
-  "Vendor Name": "vendorName",
-  Email: "email",
-  Phone: "phone",
-  Website: "website",
-  "Vendor Owner": "vendorOwner",
-  Category: "category",
-  "Created Time": "createdAt",
-  "Modified Time": "updatedAt",
 };
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
@@ -105,6 +82,7 @@ function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDet
 
 export default function InventoryListPage({ moduleKey }: InventoryListPageProps) {
   const meta = getInventoryMeta(moduleKey);
+  const sortConfig = useMemo(() => getInventorySortConfig(moduleKey), [moduleKey]);
   const navigate = useNavigate();
   const [rows, setRows] = useState<CRMRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,6 +130,11 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setSortState(null);
+    setPage(1);
+  }, [moduleKey]);
 
   const visibleColumns = useMemo(
     () => meta.columns.filter((column) => !hiddenColumns.includes(column.key)),
@@ -229,20 +212,16 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           showImportActions={Boolean(meta.importRoute)}
-          sortFields={moduleKey === "vendors" ? vendorSortFields : undefined}
-          sortFieldKeyMap={moduleKey === "vendors" ? vendorSortFieldKeyMap : undefined}
+          sortFields={sortConfig.sortFields}
+          sortFieldKeyMap={sortConfig.sortFieldKeyMap}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
-          onApplySort={
-            moduleKey === "vendors"
-              ? (key, direction) => {
-                  setSortState(key ? { key, direction } : null);
-                  setPage(1);
-                }
-              : undefined
-          }
-          sortState={moduleKey === "vendors" ? sortState : undefined}
+          onApplySort={(key, direction) => {
+            setSortState(key ? { key, direction } : null);
+            setPage(1);
+          }}
+          sortState={sortState}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
