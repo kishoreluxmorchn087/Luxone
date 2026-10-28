@@ -787,16 +787,18 @@ export function DeleteModal({
       title="Delete Record"
       maxWidthClassName="max-w-sm"
       footer={
-        <>
-          <button onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
+        <div className="flex w-full items-center justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
           <button
+            type="button"
             onClick={() => void handleDelete()}
             disabled={deleting}
-            className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50"
+            className="inline-flex min-w-20 items-center justify-center rounded-lg border border-rose-700 bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+            style={{ backgroundColor: "#e11d48", color: "#ffffff" }}
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
-        </>
+        </div>
       }
     >
       <p className="text-sm text-slate-700">
