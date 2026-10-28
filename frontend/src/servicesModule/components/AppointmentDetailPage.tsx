@@ -6,6 +6,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getAppointment, listJobSheets } from "../api";
 import { formatDateOnly, formatTimeValue } from "../utils";
 import type { AppointmentRecord, JobSheetRecord } from "../types";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 export default function AppointmentDetailPage() {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ export default function AppointmentDetailPage() {
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Serial Number</p><p className="mt-1 text-sm text-slate-800">{appointment.productSerialNumber || "-"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Sales Order</p><p className="mt-1 text-sm text-slate-800">{appointment.salesOrderSubject || appointment.salesOrderId || "-"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Invoice</p><p className="mt-1 text-sm text-slate-800">{appointment.invoiceSubject || appointment.invoiceId || "-"}</p></div>
-              <div><p className="text-xs uppercase tracking-wide text-slate-500">Completed At</p><p className="mt-1 text-sm text-slate-800">{appointment.completedAt ? new Date(appointment.completedAt).toLocaleString() : "-"}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Completed At</p><p className="mt-1 text-sm text-slate-800">{formatDateTimeForDisplay(appointment.completedAt) || "-"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Business Hours</p><p className="mt-1 text-sm text-slate-800">{appointment.businessHoursName || "-"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Timezone</p><p className="mt-1 text-sm text-slate-800">{appointment.businessHoursTimezone || "-"}</p></div>
             </div>

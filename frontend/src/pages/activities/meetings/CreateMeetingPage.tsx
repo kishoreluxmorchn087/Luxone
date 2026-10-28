@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import DatePicker from "../../../components/common/DatePicker";
 import { apiRequest } from "../../../api/client";
 import {
   ChevronDown,
@@ -507,11 +508,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="From">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="from_date"
                       value={formData.from_date}
-                      onChange={handleFieldChange}
+                      onChange={(from_date) => setFormData((previous) => ({ ...previous, from_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (
@@ -528,11 +528,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="To">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="to_date"
                       value={formData.to_date}
-                      onChange={handleFieldChange}
+                      onChange={(to_date) => setFormData((previous) => ({ ...previous, to_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (

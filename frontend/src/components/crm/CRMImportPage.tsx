@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, FileText, Search } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { apiRequest } from "../../api/client";
+import { formatDateForDisplay, getDatePickerBounds, isDateWithinBounds, parseDateInput } from "../../lib/dateUtils";
 import { addLeadNote, getLeads } from "../../lib/api/leadsApi";
 import type { LeadRecord } from "../../lib/shared/crmTypes";
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
@@ -1035,14 +1036,7 @@ export default function CRMImportPage({
       return Number.isNaN(parsed) ? raw : parsed;
     }
     if (moduleConfig?.dateFields.has(field)) {
-      const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (isoMatch) {
-        return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-      }
-      const altMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (altMatch) {
-        return `${altMatch[3]}-${altMatch[1]}-${altMatch[2]}`;
-      }
+      return parseDateInput(raw) ?? raw;
     }
     return raw;
   };
@@ -1213,6 +1207,20 @@ export default function CRMImportPage({
       }
 
       const invalids: string[] = [];
+      rows.forEach((row, index) => {
+        headers.forEach((header) => {
+          const field = mapping[header];
+          if (!field || !moduleConfig.dateFields.has(field)) return;
+          const raw = String(row[header] ?? "").trim();
+          if (!raw) return;
+
+          const date = parseDateInput(raw);
+          const bounds = getDatePickerBounds({ futureOnly: field === "closing_date" });
+          if (!date || !isDateWithinBounds(date, bounds)) {
+            invalids.push(`Row ${index + 2}: Invalid ${field}; use DD-MM-YYYY within the allowed date range.`);
+          }
+        });
+      });
       records.forEach((record, index) => {
         moduleConfig.emailFields.forEach((field) => {
           const value = record[field];
@@ -1543,7 +1551,9 @@ export default function CRMImportPage({
                         <tr key={`preview-${index}`} className="border-b border-[#f1f5f9]">
                           {previewColumns.map((col) => (
                             <td key={col} className="px-3 py-2">
-                              {String(row[col] ?? "")}
+                              {moduleConfig?.dateFields.has(col)
+                                ? formatDateForDisplay(String(row[col] ?? "")) || String(row[col] ?? "")
+                                : String(row[col] ?? "")}
                             </td>
                           ))}
                         </tr>

@@ -8,6 +8,7 @@ import {
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../hooks/useAuth";
 import { removeDashboardCache } from "../../lib/dashboardCache";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 
 const TEAM_UPDATED_EVENT = "team:updated";
 const ADMIN_DASHBOARD_CACHE_KEY = "admin-dashboard-cache-v1";
@@ -94,8 +95,7 @@ function extractList<T>(res: ApiList<T>): T[] {
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-GB");
+  return formatDateForDisplay(value);
 }
 
 function getLeadName(lead: Lead) {

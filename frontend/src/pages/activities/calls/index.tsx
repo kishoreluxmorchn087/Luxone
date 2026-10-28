@@ -3,6 +3,8 @@ import { Filter, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
+import DatePicker from "../../../components/common/DatePicker";
+import { formatDateForDisplay, validateDatePickerInputs } from "../../../lib/dateUtils";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeOwnedRows, keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
 
@@ -113,8 +115,7 @@ function getCurrentTime() {
 }
 
 function formatDisplayDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
-  return `${day}/${month}/${year}`;
+  return formatDateForDisplay(dateStr);
 }
 
 function formatDisplayTime(timeStr: string) {
@@ -387,7 +388,8 @@ function CallFormModal({
         : [];
 
   const handleSubmit = () => {
-    onSubmit(buildPayload(formValues));
+    if (!validateDatePickerInputs()) return;
+    onSubmit(buildPayload(formValues, status));
   };
 
   return (
@@ -478,10 +480,10 @@ function CallFormModal({
 
       <FormRow label="Call Start Time">
         <div className="flex gap-2">
-          <input
-            type="date"
+          <DatePicker
+            required
             value={formValues.startDate}
-            onChange={(event) => setFormValues((current) => ({ ...current, startDate: event.target.value }))}
+            onChange={(startDate) => setFormValues((current) => ({ ...current, startDate }))}
             className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
           />
           <input
