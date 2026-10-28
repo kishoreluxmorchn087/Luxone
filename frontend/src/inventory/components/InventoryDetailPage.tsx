@@ -167,6 +167,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               return;
             }
 
+            if (action === "New" && moduleKey === "vendors") {
+              navigate(`${meta.baseRoute}/create`);
+              return;
+            }
+
             if (!id) return;
 
             if (action === "Attach" && moduleKey === "vendors") {
