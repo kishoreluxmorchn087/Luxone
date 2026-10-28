@@ -19,6 +19,29 @@ type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
 };
 
+const vendorSortFields = [
+  "None",
+  "Vendor Name",
+  "Email",
+  "Phone",
+  "Website",
+  "Vendor Owner",
+  "Category",
+  "Created Time",
+  "Modified Time",
+];
+
+const vendorSortFieldKeyMap: Partial<Record<string, string>> = {
+  "Vendor Name": "vendorName",
+  Email: "email",
+  Phone: "phone",
+  Website: "website",
+  "Vendor Owner": "vendorOwner",
+  Category: "category",
+  "Created Time": "createdAt",
+  "Modified Time": "updatedAt",
+};
+
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
   const today = new Date();
@@ -205,9 +228,20 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           showImportActions={Boolean(meta.importRoute)}
+          sortFields={moduleKey === "vendors" ? vendorSortFields : undefined}
+          sortFieldKeyMap={moduleKey === "vendors" ? vendorSortFieldKeyMap : undefined}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
+          onApplySort={
+            moduleKey === "vendors"
+              ? (key, direction) => {
+                  setSortState(key ? { key, direction } : null);
+                  setPage(1);
+                }
+              : undefined
+          }
+          sortState={moduleKey === "vendors" ? sortState : undefined}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
