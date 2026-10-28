@@ -296,6 +296,11 @@ export default function SocialIntegrationsPage() {
       return;
     }
 
+    if (handle && !handle.startsWith("@")) {
+      setAccountError("Handle must start with @ (for example, @brandname).");
+      return;
+    }
+
     if (!handle && !pageId) {
       setAccountError("Enter either a handle or page ID to identify the social account.");
       return;
