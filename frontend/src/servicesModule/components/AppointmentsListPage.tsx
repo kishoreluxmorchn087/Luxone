@@ -84,6 +84,7 @@ export default function AppointmentsListPage() {
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           showImportActions={false}
           isFilterOpen={filterOpen}
