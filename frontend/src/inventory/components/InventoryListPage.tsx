@@ -10,13 +10,36 @@ import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
-import { LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
+import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
+};
+
+const vendorSortFields = [
+  "None",
+  "Vendor Name",
+  "Email",
+  "Phone",
+  "Website",
+  "Vendor Owner",
+  "Category",
+  "Created Time",
+  "Modified Time",
+];
+
+const vendorSortFieldKeyMap: Partial<Record<string, string>> = {
+  "Vendor Name": "vendorName",
+  Email: "email",
+  Phone: "phone",
+  Website: "website",
+  "Vendor Owner": "vendorOwner",
+  Category: "category",
+  "Created Time": "createdAt",
+  "Modified Time": "updatedAt",
 };
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
@@ -98,6 +121,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [massAction, setMassAction] = useState<"mass-delete" | "mass-update" | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<CRMRecord | null>(null);
   const [activeVendorName, setActiveVendorName] = useState("");
   const [activeNoteVendor, setActiveNoteVendor] = useState<CRMRecord | null>(null);
   const [activityModal, setActivityModal] = useState<"schedule-call" | "meeting" | "task" | "log-call" | null>(null);
@@ -205,9 +229,20 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           showImportActions={Boolean(meta.importRoute)}
+          sortFields={moduleKey === "vendors" ? vendorSortFields : undefined}
+          sortFieldKeyMap={moduleKey === "vendors" ? vendorSortFieldKeyMap : undefined}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
+          onApplySort={
+            moduleKey === "vendors"
+              ? (key, direction) => {
+                  setSortState(key ? { key, direction } : null);
+                  setPage(1);
+                }
+              : undefined
+          }
+          sortState={moduleKey === "vendors" ? sortState : undefined}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onMassAction={setMassAction}
@@ -452,8 +487,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                       return;
                     }
                     if (actionKey === "delete") {
-                      await deleteInventoryRecord(moduleKey, row.id);
-                      void load();
+                      setRecordToDelete(row);
                       return;
                     }
                     if (actionKey === "convert-to-sales-order") {
@@ -657,6 +691,26 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         onClose={() => setMassAction(null)}
         count={selectedIds.length > 0 ? selectedIds.length : processedRows.length}
         onConfirm={handleMassDelete}
+      />
+
+      <DeleteModal
+        open={recordToDelete !== null}
+        onClose={() => setRecordToDelete(null)}
+        recordName={
+          recordToDelete
+            ? String(
+                (recordToDelete as Record<string, unknown>).productName ||
+                  (recordToDelete as Record<string, unknown>).vendorName ||
+                  (recordToDelete as Record<string, unknown>).name ||
+                  meta.singular.toLowerCase()
+              )
+            : meta.singular.toLowerCase()
+        }
+        onConfirm={async () => {
+          if (!recordToDelete) throw new Error("No record selected for deletion.");
+          await deleteInventoryRecord(moduleKey, recordToDelete.id);
+          await load();
+        }}
       />
 
       <MassUpdateModal

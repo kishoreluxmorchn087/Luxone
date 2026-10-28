@@ -3,6 +3,8 @@ import { Filter, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
+import DatePicker from "../../../components/common/DatePicker";
+import { formatDateForDisplay, validateDatePickerInputs } from "../../../lib/dateUtils";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeOwnedRows, keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
 
@@ -75,6 +77,7 @@ interface CallFormValues {
   relatedToId: number | null;
   relatedToLabel: string;
   callType: CallType;
+  status: CallStatus;
   startDate: string;
   startTime: string;
   subject: string;
@@ -112,8 +115,7 @@ function getCurrentTime() {
 }
 
 function formatDisplayDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
-  return `${day}/${month}/${year}`;
+  return formatDateForDisplay(dateStr);
 }
 
 function formatDisplayTime(timeStr: string) {
@@ -132,6 +134,7 @@ function emptyFormValues(variant: "schedule" | "log"): CallFormValues {
     relatedToId: null,
     relatedToLabel: "",
     callType: "Outbound",
+    status: variant === "schedule" ? "Scheduled" : "Completed",
     startDate: getTodayDate(),
     startTime: variant === "schedule" ? "13:00" : getCurrentTime(),
     subject: "",
@@ -152,6 +155,7 @@ function callToFormValues(call: CallRecord): CallFormValues {
     relatedToId: call.relatedToId,
     relatedToLabel: call.relatedTo === "-" ? "" : call.relatedTo,
     callType: call.callType,
+    status: call.status,
     startDate: call.startDate,
     startTime: call.startTime,
     subject: call.subject,
@@ -187,11 +191,11 @@ function toApiRecord(call: ApiCall): CallRecord {
   };
 }
 
-function buildPayload(values: CallFormValues, status: CallStatus) {
+function buildPayload(values: CallFormValues) {
   return {
     subject: values.subject || `${values.callType} call with ${values.callForLabel || "Unknown"}`,
     call_type: values.callType,
-    call_status: status,
+    call_status: values.status,
     call_start_time: `${values.startDate}T${values.startTime}:00`,
     duration_minutes: Number(values.durationMinutes) || 0,
     duration_seconds: Number(values.durationSeconds) || 0,
@@ -358,7 +362,7 @@ function CallFormModal({
   onClose,
   onSubmit,
   saving,
-  status,
+  allowStatusEdit = false,
 }: {
   title: string;
   submitLabel: string;
@@ -366,7 +370,7 @@ function CallFormModal({
   onClose: () => void;
   onSubmit: (payload: Record<string, unknown>) => void;
   saving?: boolean;
-  status: CallStatus;
+  allowStatusEdit?: boolean;
 }) {
   const { contacts, leads, accounts, deals } = useLookupData();
   const [formValues, setFormValues] = useState<CallFormValues>(initialValues);
@@ -384,6 +388,7 @@ function CallFormModal({
         : [];
 
   const handleSubmit = () => {
+    if (!validateDatePickerInputs()) return;
     onSubmit(buildPayload(formValues, status));
   };
 
@@ -455,12 +460,30 @@ function CallFormModal({
         </select>
       </FormRow>
 
-      <FormRow label="Call Start Date & Time">
+      {allowStatusEdit && (
+        <FormRow label="Status">
+          <select
+            value={formValues.status}
+            onChange={(event) =>
+              setFormValues((current) => ({
+                ...current,
+                status: event.target.value as CallStatus,
+              }))
+            }
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
+          >
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </FormRow>
+      )}
+
+      <FormRow label="Call Start Time">
         <div className="flex gap-2">
-          <input
-            type="date"
+          <DatePicker
+            required
             value={formValues.startDate}
-            onChange={(event) => setFormValues((current) => ({ ...current, startDate: event.target.value }))}
+            onChange={(startDate) => setFormValues((current) => ({ ...current, startDate }))}
             className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
           />
           <input
@@ -952,7 +975,6 @@ export default function CallsPage() {
           onClose={() => setShowSchedule(false)}
           onSubmit={createCall}
           saving={saving}
-          status="Scheduled"
         />
       )}
 
@@ -964,7 +986,6 @@ export default function CallsPage() {
           onClose={() => setShowLog(false)}
           onSubmit={createCall}
           saving={saving}
-          status="Completed"
         />
       )}
 
@@ -976,7 +997,7 @@ export default function CallsPage() {
           onClose={() => setEditingCall(null)}
           onSubmit={updateCall}
           saving={saving}
-          status={editingCall.status}
+          allowStatusEdit
         />
       )}
 

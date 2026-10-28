@@ -748,7 +748,7 @@ export async function getInventoryDetail(
     fields: Object.entries({
       "Product Code": detail.product_code,
       Manufacturer: detail.manufacturer,
-      Category: detail.product_category,
+      Category: moduleKey === "vendors" ? detail.category : detail.product_category,
       "Product Type": detail.product_type,
       "Deployment Model": detail.deployment_model,
       "License Type": detail.license_type,
@@ -756,7 +756,7 @@ export async function getInventoryDetail(
       "Subscription Term (Months)": detail.subscription_term_months,
       "Renewal Required": detail.renewal_required === undefined ? "" : detail.renewal_required ? "Yes" : "No",
       "Implementation Required": detail.implementation_required === undefined ? "" : detail.implementation_required ? "Yes" : "No",
-      Vendor: detail.vendor_name,
+      Vendor: moduleKey === "vendors" ? undefined : detail.vendor_name,
       "Price Book": detail.name,
       Active: detail.active ? "Active" : detail.active === false ? "Inactive" : "",
       "Quote Stage": detail.quote_stage,

@@ -10,7 +10,7 @@ type Props = Readonly<{
   open: boolean;
   initialMapping: DomainMapping | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 }>;
 
 export default function DomainMappingModal({ open, initialMapping, onClose, onSaved }: Props) {
@@ -61,7 +61,7 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
         }
         if (initialMapping) {
           await updateDomainMapping(initialMapping.id, accountType, domain);
-          onSaved();
+          await onSaved();
           onClose();
           return;
         }
@@ -70,7 +70,7 @@ export default function DomainMappingModal({ open, initialMapping, onClose, onSa
       }
       if (step === 2) {
         await verifyDomainMapping(mappingId);
-        onSaved();
+        await onSaved();
         onClose();
         return;
       }
@@ -221,4 +221,3 @@ function isPublicDomain(value: string) {
     return false;
   }
 }
-

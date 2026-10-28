@@ -19,6 +19,7 @@ import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 type InventoryDetailPageProps = {
   moduleKey: InventoryModuleKey;
@@ -75,6 +76,11 @@ function renderRelatedRecord(record: any, navigate: ReturnType<typeof useNavigat
       )}
     </div>
   );
+}
+
+function formatDetailValue(label: string, value: unknown) {
+  const text = String(value ?? "");
+  return /date/i.test(label) ? formatDateTimeForDisplay(text) : text;
 }
 
 export default function InventoryDetailPage({ moduleKey }: InventoryDetailPageProps) {
@@ -153,6 +159,16 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           onAction={async (action) => {
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
+              return;
+            }
+
+            if (action === "Assign" && moduleKey === "vendors" && id) {
+              navigate(`${meta.baseRoute}/${id}/edit?assign=1`);
+              return;
+            }
+
+            if (action === "New" && moduleKey === "vendors") {
+              navigate(`${meta.baseRoute}/create`);
               return;
             }
 
@@ -281,7 +297,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(item.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {item.value || "-"}
+                        {formatDetailValue(item.label, item.value) || "-"}
                       </p>
                     </div>
                   ))}
@@ -298,7 +314,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(field.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {field.value || "-"}
+                        {formatDetailValue(field.label, field.value) || "-"}
                       </p>
                     </div>
                   ))}

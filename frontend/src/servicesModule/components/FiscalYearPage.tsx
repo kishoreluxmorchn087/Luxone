@@ -4,6 +4,8 @@ import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import { getFiscalYearSettings, listAppointments, listJobSheets, updateFiscalYearSettings } from "../api";
 import { fiscalYearMonthOptions } from "../config";
 import type { FiscalYearSettings } from "../types";
+import DatePicker from "../../components/common/DatePicker";
+import { formatDateForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const customPeriodStorageKey = "services-fiscal-year-custom-period";
@@ -65,6 +67,8 @@ export default function FiscalYearPage() {
   }, []);
 
   const handleSave = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (form.fiscalYearType === "custom" && customPeriod.start && customPeriod.end && customPeriod.end < customPeriod.start) {
       setError("Custom fiscal year end date must be on or after the start date.");
       return;
@@ -149,12 +153,10 @@ export default function FiscalYearPage() {
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Custom period start date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     className={inputClass}
                     value={customPeriod.start}
-                    onChange={(e) => {
-                      const start = e.target.value;
+                    onChange={(start) => {
                       setCustomPeriod((current) => ({ ...current, start }));
                       if (start) {
                         const startsInMonth = Number(start.slice(5, 7));
@@ -166,18 +168,17 @@ export default function FiscalYearPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Custom period end date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     className={inputClass}
                     value={customPeriod.end}
                     min={customPeriod.start || undefined}
-                    onChange={(e) => setCustomPeriod((current) => ({ ...current, end: e.target.value }))}
+                    onChange={(end) => setCustomPeriod((current) => ({ ...current, end }))}
                   />
                 </div>
               </div>
             ) : null}
             <div><p className="text-xs uppercase tracking-wide text-slate-500">Current Fiscal Year</p><p className="mt-1 text-sm text-slate-800">{form.fiscalYearLabel || "-"}</p></div>
-            <div><p className="text-xs uppercase tracking-wide text-slate-500">Current Period</p><p className="mt-1 text-sm text-slate-800">{form.fiscalYearType === "custom" && customPeriod.start && customPeriod.end ? `${customPeriod.start} to ${customPeriod.end}` : form.currentPeriodStart && form.currentPeriodEnd ? `${form.currentPeriodStart} to ${form.currentPeriodEnd}` : "-"}</p></div>
+            <div><p className="text-xs uppercase tracking-wide text-slate-500">Current Period</p><p className="mt-1 text-sm text-slate-800">{form.fiscalYearType === "custom" && customPeriod.start && customPeriod.end ? `${formatDateForDisplay(customPeriod.start)} to ${formatDateForDisplay(customPeriod.end)}` : form.currentPeriodStart && form.currentPeriodEnd ? `${formatDateForDisplay(form.currentPeriodStart)} to ${formatDateForDisplay(form.currentPeriodEnd)}` : "-"}</p></div>
           </div>
         </CRMSectionCard>
         <div className="grid gap-3 md:grid-cols-3">

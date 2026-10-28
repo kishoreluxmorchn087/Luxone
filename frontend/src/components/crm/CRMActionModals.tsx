@@ -1,6 +1,8 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CRMModalBase from "./CRMModalBase";
+import DatePicker from "../common/DatePicker";
+import { formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
 
 // ── Shared call helpers ────────────────────────────────────────────────────
 
@@ -258,6 +260,8 @@ export function NoteModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (!note.trim()) {
       setError("Please enter a note.");
       return;
@@ -595,7 +599,7 @@ const handleSave = async () => {
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <DatePicker value={startDate} onChange={setStartDate} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>
@@ -673,6 +677,7 @@ export function LogCallModal({
 
   const handleSave = async () => {
     if (!subject.trim()) { setError("Subject is required."); return; }
+    if (!validateDatePickerInputs()) return;
     try {
       setSaving(true);
       setError(null);
@@ -718,7 +723,7 @@ export function LogCallModal({
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <DatePicker value={startDate} onChange={setStartDate} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>
@@ -782,16 +787,18 @@ export function DeleteModal({
       title="Delete Record"
       maxWidthClassName="max-w-sm"
       footer={
-        <>
-          <button onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
+        <div className="flex w-full items-center justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
           <button
+            type="button"
             onClick={() => void handleDelete()}
             disabled={deleting}
-            className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50"
+            className="inline-flex min-w-20 items-center justify-center rounded-lg border border-rose-700 bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+            style={{ backgroundColor: "#e11d48", color: "#ffffff" }}
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
-        </>
+        </div>
       }
     >
       <p className="text-sm text-slate-700">
@@ -915,7 +922,7 @@ export function ActivityDetailModal({
         <div className="space-y-3 px-5 py-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-slate-500">Date</span>
-            <span className="font-semibold text-slate-800">{activity.date}</span>
+            <span className="font-semibold text-slate-800">{formatDateTimeForDisplay(activity.date)}</span>
           </div>
           {recordName && (
             <div className="flex items-center justify-between text-sm">
