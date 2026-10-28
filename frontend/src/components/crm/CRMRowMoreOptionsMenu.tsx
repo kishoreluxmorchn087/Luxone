@@ -1,5 +1,5 @@
 import { ChevronRight, MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
 
@@ -60,30 +60,73 @@ function ActionSubMenu({ actions, onClickAction, onClose }: SubMenuProps) {
 export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRowMoreOptionsMenuProps) {
   const [open, setOpen] = useState(false);
   const [openNested, setOpenNested] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const [menuWidth, setMenuWidth] = useState(176);
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const updateMenuPosition = useCallback((menuHeight: number) => {
+    const anchor = ref.current?.getBoundingClientRect();
+    if (!anchor) return;
+
+    const viewportMargin = 8;
+    const menuWidth = 176;
+    const gap = 4;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = document.documentElement.clientWidth;
+    const left = Math.min(
+      Math.max(anchor.left, viewportMargin),
+      Math.max(viewportMargin, viewportWidth - menuWidth - viewportMargin)
+    );
+    const fitsBelow = anchor.bottom + gap + menuHeight <= viewportHeight - viewportMargin;
+    const fitsAbove = anchor.top - gap - menuHeight >= viewportMargin;
+    const top = fitsBelow
+      ? anchor.bottom + gap
+      : fitsAbove
+        ? anchor.top - gap - menuHeight
+        : Math.min(
+            Math.max(anchor.bottom + gap, viewportMargin),
+            Math.max(viewportMargin, viewportHeight - menuHeight - viewportMargin)
+          );
+
+    setMenuPosition({ left, top });
+  }, []);
 
   useEffect(() => {
     const onOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-
-      if (ref.current?.contains(target)) return;
-
-      const menu = document.getElementById("crm-row-more-options-portal");
-
-      if (menu?.contains(target)) return;
-
-      setOpen(false);
-      setOpenNested(null);
+      if (!ref.current?.contains(target) && !menuRef.current?.contains(target)) {
+        setOpen(false);
+        setOpenNested(null);
+        setMenuPosition(null);
+      }
     };
     document.addEventListener("mousedown", onOutside);
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current) return;
+    updateMenuPosition(menuRef.current.getBoundingClientRect().height);
+  }, [open, actions.length, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const reposition = () => {
+      if (menuRef.current) updateMenuPosition(menuRef.current.getBoundingClientRect().height);
+    };
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open, updateMenuPosition]);
+
   const handleClose = () => {
     setOpen(false);
     setOpenNested(null);
+    setMenuPosition(null);
   };
 
   const handleActionClick = (actionKey: string) => {
@@ -92,37 +135,13 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
   };
 
   const handleToggle = () => {
-    alert("More options button clicked!");
-  if (!open && ref.current) {
-    const rect = ref.current.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-    const estimatedMenuHeight = Math.min(260, viewportHeight - 16);
-    const estimatedMenuWidth = 176;
-
-    const shouldOpenUp =
-      viewportHeight - rect.bottom < estimatedMenuHeight + 8;
-
-    const calculatedTop = shouldOpenUp
-      ? rect.top - estimatedMenuHeight - 4
-      : rect.bottom + 4;
-
-    setMenuPosition({
-      top: Math.max(
-        8,
-        Math.min(calculatedTop, viewportHeight - estimatedMenuHeight - 8)
-      ),
-      left: Math.max(
-        8,
-        Math.min(rect.left, viewportWidth - estimatedMenuWidth - 8)
-      ),
-    });
-
-    setMenuWidth(estimatedMenuWidth);
-  }
-
-  setOpen((prev) => !prev);
-};
+    if (open) {
+      handleClose();
+    } else {
+      updateMenuPosition(Math.min(actions.length * 36 + 10, window.innerHeight - 16));
+      setOpen(true);
+    }
+  };
 
   return (
     <div ref={ref} className="relative" onClick={(event) => event.stopPropagation()}>
@@ -134,48 +153,46 @@ export default function CRMRowMoreOptionsMenu({ actions, onClickAction }: CRMRow
         <MoreHorizontal size={16} />
       </button>
 
-            {open
+      {open && menuPosition
         ? createPortal(
             <div
-              id="crm-row-more-options-portal"
+              ref={menuRef}
+              className="fixed z-[60] w-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
               style={{
-                position: "fixed",
-                top: menuPosition.top,
                 left: menuPosition.left,
-                width: menuWidth,
-                zIndex: 9999,
+                top: menuPosition.top,
+                maxHeight: "calc(100vh - 16px)",
               }}
-              className="rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
             >
-          {actions.map((action) =>
-            action.children?.length ? (
-              <div key={action.key} className="relative">
-                <button
-                  type="button"
-                  onMouseEnter={() => setOpenNested(action.key)}
-                  onClick={() => setOpenNested((prev) => (prev === action.key ? null : action.key))}
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <span>{action.label}</span>
-                  <ChevronRight size={14} className={openNested === action.key ? "rotate-90" : ""} />
-                </button>
-                {openNested === action.key ? (
-                  <ActionSubMenu actions={action.children} onClickAction={handleActionClick} onClose={handleClose} />
-                ) : null}
-              </div>
-            ) : (
-              <button
-                key={action.key}
-                type="button"
-                onClick={() => handleActionClick(action.key)}
-                className={`block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-50 ${
-                  action.destructive ? "text-rose-600" : "text-slate-700"
-                }`}
-              >
-                {action.label}
-              </button>
-            )
-            )}
+              {actions.map((action) =>
+                action.children?.length ? (
+                  <div key={action.key} className="relative">
+                    <button
+                      type="button"
+                      onMouseEnter={() => setOpenNested(action.key)}
+                      onClick={() => setOpenNested((prev) => (prev === action.key ? null : action.key))}
+                      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <span>{action.label}</span>
+                      <ChevronRight size={14} className={openNested === action.key ? "rotate-90" : ""} />
+                    </button>
+                    {openNested === action.key ? (
+                      <ActionSubMenu actions={action.children} onClickAction={handleActionClick} onClose={handleClose} />
+                    ) : null}
+                  </div>
+                ) : (
+                  <button
+                    key={action.key}
+                    type="button"
+                    onClick={() => handleActionClick(action.key)}
+                    className={`block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-50 ${
+                      action.destructive ? "text-rose-600" : "text-slate-700"
+                    }`}
+                  >
+                    {action.label}
+                  </button>
+                )
+              )}
             </div>,
             document.body
           )

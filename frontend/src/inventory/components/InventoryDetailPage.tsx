@@ -155,6 +155,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
 
             if (!id) return;
 
+            if (action === "Attach" && moduleKey === "vendors") {
+              attachmentInputRef.current?.click();
+              return;
+            }
+
             if (action === "Preview" && (moduleKey === "invoices" || moduleKey === "purchase-orders")) {
               setPreviewOpen(true);
               return;
@@ -205,6 +210,41 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
             }
           }}
         />
+
+        {moduleKey === "vendors" && (
+          <>
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              className="hidden"
+              aria-label="Select a vendor attachment"
+              onChange={async (event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (!file || !id) return;
+
+                try {
+                  setAttachmentError(null);
+                  setUploadingAttachment(true);
+                  await addInventoryAttachment("vendors", id, file);
+                  setPayload(await getInventoryDetail("vendors", id));
+                } catch (err) {
+                  setAttachmentError(err instanceof Error ? err.message : "Failed to upload attachment.");
+                } finally {
+                  setUploadingAttachment(false);
+                }
+              }}
+            />
+            {attachmentError && (
+              <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {attachmentError}
+              </p>
+            )}
+            {uploadingAttachment && (
+              <p role="status" className="text-sm text-slate-600">Uploading attachment...</p>
+            )}
+          </>
+        )}
 
         <CRMTabs activeTab={activeTab} onChange={setActiveTab} />
 
