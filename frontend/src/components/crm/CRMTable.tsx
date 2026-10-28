@@ -100,6 +100,18 @@ export default function CRMTable<T extends CRMRecord>({
     return formatDateTimeForDisplay(value) || "-";
   };
 
+  const formatCellValue = (columnKey: string, value: unknown) => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (columnKey === "annualRevenue" || columnKey.toLowerCase().includes("revenue")) {
+      const num = Number(String(value).replace(/,/g, ""));
+      if (Number.isFinite(num)) {
+        if (num === 0) return "-";
+        return `Rs. ${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+      }
+    }
+    return String(value);
+  };
+
   const [openHeaderMenu, setOpenHeaderMenu] = useState<string | null>(null);
   const [activeFilterColumn, setActiveFilterColumn] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
