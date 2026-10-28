@@ -28,7 +28,6 @@ import InventoryReviewChangesModal from "./InventoryReviewChangesModal";
 import InventoryTotalsPanel from "./InventoryTotalsPanel";
 import DatePicker from "../../components/common/DatePicker";
 import { validateDatePickerInputs } from "../../lib/dateUtils";
-import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 
 type Props = { moduleKey: InventoryModuleKey };
 
@@ -769,11 +768,6 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   const save = async () => {
     if (!validateDatePickerInputs()) return;
 
-    if (moduleKey === "vendors" && !isValidPhoneNumber(String(anyForm.phone || ""))) {
-      setError("Phone number must contain digits only and be no more than 20 digits.");
-      return;
-    }
-
     if (isVendorAssignment && !String(anyForm.vendorOwner || "").trim()) {
       setError("Select a user to assign this vendor.");
       return;
@@ -1038,7 +1032,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   )}
                   <Field label="Vendor Name"><input className={inputClass} value={anyForm.vendorName} onChange={(e) => setForm({ ...anyForm, vendorName: e.target.value })} /></Field>
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
-                  <Field label="Phone"><input type="tel" inputMode="numeric" maxLength={PHONE_NUMBER_MAX_LENGTH} className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: sanitizePhoneNumber(e.target.value) })} /></Field>
+                  <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
                   <Field label="Website"><input className={inputClass} value={anyForm.website || ""} onChange={(e) => setForm({ ...anyForm, website: e.target.value })} /></Field>
                   <Field label="Category"><input className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>

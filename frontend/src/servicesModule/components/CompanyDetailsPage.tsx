@@ -3,12 +3,12 @@ import { Check, Copy } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import { copyToClipboard } from "../../lib/clipboard";
-import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 import { getCompanyDetails, getServicesSetupStatus, listAppointments, listDomainMappings, listJobSheets, listServices, listTeamMembers, updateCompanyDetails } from "../api";
 import type { CompanyDetails, DomainMapping, ServiceSettings, TeamMember } from "../types";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
+const phonePattern = /^\d{10}$/;
 type CompanyDetailsField = "companyName" | "phone";
 type CompanyDetailsErrors = Partial<Record<CompanyDetailsField, string>>;
 
@@ -60,8 +60,8 @@ export default function CompanyDetailsPage() {
     if (!form.companyName.trim()) {
       validationErrors.companyName = "Company Name is required.";
     }
-    if (!isValidPhoneNumber(form.phone)) {
-      validationErrors.phone = "Phone number must contain digits only and be no more than 20 digits.";
+    if (form.phone.trim() && !phonePattern.test(form.phone.trim())) {
+      validationErrors.phone = "Phone number must be exactly 10 digits.";
     }
     setFieldErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
@@ -107,14 +107,14 @@ export default function CompanyDetailsPage() {
                   id="company-phone"
                   type="tel"
                   inputMode="numeric"
-                  maxLength={PHONE_NUMBER_MAX_LENGTH}
-                  placeholder="Enter phone number"
+                  maxLength={10}
+                  placeholder="Enter 10-digit phone number"
                   className={`${inputClass}${fieldErrors.phone ? " border-rose-500" : ""}`}
                   value={form.phone}
                   aria-invalid={Boolean(fieldErrors.phone)}
                   aria-describedby={fieldErrors.phone ? "company-phone-error" : undefined}
                   onChange={(e) => {
-                    const numericValue = sanitizePhoneNumber(e.target.value);
+                    const numericValue = e.target.value.replace(/\D/g, "").slice(0, 10);
                     setForm({ ...form, phone: numericValue });
                     setFieldErrors({ ...fieldErrors, phone: undefined });
                   }}

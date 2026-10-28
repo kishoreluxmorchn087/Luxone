@@ -3,13 +3,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
 import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
-import {
-  isValidMobileNumber,
-  isValidPhoneNumber,
-  MOBILE_NUMBER_LENGTH,
-  PHONE_NUMBER_MAX_LENGTH,
-  sanitizePhoneNumber,
-} from "../../lib/shared/phoneNumber";
 import DatePicker from "../common/DatePicker";
 import { formatDateForInput, parseDateInput, validateDatePickerInputs } from "../../lib/dateUtils";
 
@@ -22,7 +15,6 @@ export type CRMCreateFieldType =
   | "email"
   | "number"
   | "phone"
-  | "mobile"
   | "textarea"
   | "checkbox"
   | "select"
@@ -207,12 +199,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       return null;
     }
 
-    if (field.type === "mobile" && !isValidMobileNumber(value)) {
-      return "Mobile number must be exactly 10 digits.";
-    }
-    if (field.type === "phone" && !isValidPhoneNumber(value)) {
-      return "Phone number must contain digits only and be no more than 20 digits.";
-    }
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
@@ -286,11 +272,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     let nextValue = value;
 
     if (type !== "checkbox") {
-      if (field?.type === "mobile") {
-        nextValue = sanitizePhoneNumber(value, MOBILE_NUMBER_LENGTH);
-      } else if (field?.type === "phone") {
-        nextValue = sanitizePhoneNumber(value, PHONE_NUMBER_MAX_LENGTH);
-      } else if (sanitizeValue) {
+      if (sanitizeValue) {
         nextValue = sanitizeValue(nextValue);
       } else if (field?.type === "currency") {
         nextValue = formatCurrencyInput(nextValue);
@@ -621,6 +603,37 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       );
     }
 
+    if (field.type === "phone") {
+      return (
+        <div className="relative">
+          <input
+            type="tel"
+            name={field.name}
+            value={value}
+            onChange={(e) => {
+              // Strip anything that isn't a digit or a plus sign
+              const digitsAndPlus = e.target.value.replace(/[^\d+]/g, "");
+              setFormData((prev) => ({ ...prev, [field.name]: digitsAndPlus }));
+              setIsDirty(true);
+              setFieldErrors((prev) => {
+                if (!prev[field.name]) return prev;
+                const next = { ...prev };
+                delete next[field.name];
+                return next;
+              });
+              if (errorMsg) setErrorMsg(null);
+            }}
+            onBlur={() => handleFieldBlur(field.name)}
+            className={inputClass}
+            placeholder={field.placeholder ?? "Enter phone number"}
+            maxLength={field.maxLength ?? 15}
+            inputMode="tel"
+          />
+          {getFieldMessage(field.name)}
+        </div>
+      );
+    }
+
     if (field.type === "date") {
       return (
         <div>
@@ -650,15 +663,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     return (
       <div>
         <input
-          type={
-            field.type === "email"
-              ? "email"
-              : field.type === "number"
-                ? "number"
-                : field.type === "phone" || field.type === "mobile"
-                  ? "tel"
-                  : "text"
-          }
+          type={field.type === "email" ? "email" : field.type === "number" ? "number" : "text"}
           name={field.name}
           value={value}
           onChange={handleChange}
@@ -666,19 +671,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           placeholder={field.placeholder ?? ""}
           className={inputClass}
           readOnly={field.readOnly}
-          maxLength={
-            field.maxLength ??
-            (field.type === "mobile"
-              ? MOBILE_NUMBER_LENGTH
-              : field.type === "phone"
-                ? PHONE_NUMBER_MAX_LENGTH
-                : undefined)
-          }
+          maxLength={field.maxLength}
           min={field.type === "number" ? field.min : undefined}
-          inputMode={
-            field.inputMode ??
-            (field.type === "phone" || field.type === "mobile" ? "numeric" : undefined)
-          }
+          inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}
         {field.helperText && (

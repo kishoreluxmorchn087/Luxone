@@ -28,6 +28,12 @@ const validateRequiredEmail = (value: string) => {
   
   return null;
 };
+const validateRequiredPhone = (value: string) => {
+  if (!value.trim()) return "Phone number is required.";
+  if (value.length !== 10) return "Phone number must be exactly 10 digits.";
+  return null;
+};
+
 type LeadCreateValues = {
   leadOwner: string;
   salutation: string;
@@ -126,13 +132,20 @@ const sections: CRMCreateSection[] = [
       {
         name: "phone",
         label: "Phone",
-        type: "phone",
+        type: "text",
         required: true,
+        sanitizeValue: sanitizeDigits,
+        inputMode: "numeric",
+        maxLength: 10,
+        validateValue: validateRequiredPhone,
       },
       {
         name: "mobile",
         label: "Mobile",
-        type: "mobile",
+        type: "text",
+        sanitizeValue: sanitizeDigits,
+        inputMode: "numeric",
+        maxLength: 10,
       },
       { name: "salutation", label: "Salutation", type: "select", options: SALUTATION_OPTIONS },
       { name: "leadSource", label: "Lead Source", type: "select", options: LEAD_SOURCE_OPTIONS },
