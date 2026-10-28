@@ -151,6 +151,10 @@ function CurrencyField({
   );
 }
 
+function sanitizeNumericInput(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 export default function CreateCampaignPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -187,7 +191,11 @@ export default function CreateCampaignPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    const value =
+      ["budgetedCost", "expectedRevenue", "actualCost"].includes(name)
+        ? sanitizeNumericInput(e.target.value)
+        : e.target.value;
 
     setError(null);
     setSuccessMessage(null);

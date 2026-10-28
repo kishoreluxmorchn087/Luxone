@@ -7,6 +7,34 @@ import type { DomainMapping } from "../types";
 import DomainMappingModal from "./DomainMappingModal";
 import { copyToClipboard } from "../../lib/clipboard";
 
+function getPortalHref(value: string) {
+  const rawValue = value.trim();
+  if (!rawValue) return null;
+
+  const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(rawValue);
+  const isDomainWithPort = /^[^/?#]+:\d+(?:[/?#]|$)/.test(rawValue);
+  if (hasScheme && !isDomainWithPort && !/^https?:/i.test(rawValue)) return null;
+
+  try {
+    const url = new URL(hasScheme && !isDomainWithPort ? rawValue : `https://${rawValue}`);
+    return /^https?:$/.test(url.protocol) && url.hostname ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderPortalUrl(value?: string) {
+  const portalUrl = value?.trim();
+  if (!portalUrl) return "-";
+
+  const href = getPortalHref(portalUrl);
+  return href ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:underline">
+      {portalUrl}
+    </a>
+  ) : portalUrl;
+}
+
 export default function DomainMappingPage() {
   const [rows, setRows] = useState<DomainMapping[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +194,10 @@ export default function DomainMappingPage() {
                   <div><p className="text-xs uppercase tracking-wide text-slate-500">Account</p><p className="mt-1 text-sm text-slate-800">{row.accountType.toUpperCase()}</p></div>
                   <div><p className="text-xs uppercase tracking-wide text-slate-500">CNAME Target</p><p className="mt-1 text-sm text-slate-800">{row.cnameTarget}</p></div>
                   <div><p className="text-xs uppercase tracking-wide text-slate-500">Verification</p><p className="mt-1 text-sm text-slate-800">{row.verificationStatus}</p></div>
-                  <div><p className="text-xs uppercase tracking-wide text-slate-500">Portal URL</p><p className="mt-1 text-sm text-slate-800">{row.publicBookingBaseUrl || "-"}</p></div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Portal URL</p>
+                    <p className="mt-1 text-sm text-slate-800">{renderPortalUrl(row.publicBookingBaseUrl)}</p>
+                  </div>
                 </div>
               </CRMSectionCard>
             ))}
