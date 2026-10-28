@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
-import { listDomainMappings, listServices, verifyDomainMapping } from "../api";
+import { deleteDomainMapping, listDomainMappings, listServices, verifyDomainMapping } from "../api";
 import type { DomainMapping } from "../types";
 import DomainMappingModal from "./DomainMappingModal";
 import { copyToClipboard } from "../../lib/clipboard";
@@ -40,6 +40,8 @@ export default function DomainMappingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [editingMapping, setEditingMapping] = useState<DomainMapping | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [verificationNotice, setVerificationNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [publishedServices, setPublishedServices] = useState(0);
@@ -51,8 +53,10 @@ export default function DomainMappingPage() {
       const [domainRows, services] = await Promise.all([listDomainMappings(), listServices()]);
       setRows(domainRows);
       setPublishedServices(services.filter((service) => Boolean(service.publicBookingUrl)).length);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load domain mappings.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -85,6 +89,29 @@ export default function DomainMappingPage() {
     }
   };
 
+  const handleSaved = async () => {
+    if (await load()) {
+      setVerificationNotice({ tone: "success", message: "Domain mapping saved successfully." });
+    }
+  };
+
+  const handleDelete = async (mapping: DomainMapping) => {
+    if (!window.confirm(`Remove the mapping for ${mapping.domain}?`)) return;
+
+    try {
+      setDeletingId(mapping.id);
+      setError(null);
+      setVerificationNotice(null);
+      await deleteDomainMapping(mapping.id);
+      setRows((currentRows) => currentRows.filter((row) => row.id !== mapping.id));
+      setVerificationNotice({ tone: "success", message: `${mapping.domain} was removed successfully.` });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to remove domain mapping.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = async (value: string, label: string, rowId?: string) => {
@@ -107,7 +134,16 @@ export default function DomainMappingPage() {
             <h1 className="text-lg font-semibold text-slate-900">Domain Mapping</h1>
             <p className="text-sm text-slate-500">Map custom domains for CRM, Sandbox, and Portal-facing service experiences.</p>
           </div>
-          <button type="button" onClick={() => setOpen(true)} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">Map Domain</button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingMapping(null);
+              setOpen(true);
+            }}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Map Domain
+          </button>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -152,6 +188,24 @@ export default function DomainMappingPage() {
                 title={row.domain}
                 action={
                   <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingMapping(row);
+                        setOpen(true);
+                      }}
+                      className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(row)}
+                      disabled={deletingId === row.id}
+                      className="rounded-md border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {deletingId === row.id ? "Removing..." : "Delete"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleCopy(row.cnameTarget, "CNAME target", row.id)}
@@ -204,7 +258,12 @@ export default function DomainMappingPage() {
           </div>
         ) : null}
       </div>
-      <DomainMappingModal open={open} onClose={() => setOpen(false)} onSaved={() => void load()} />
+      <DomainMappingModal
+        open={open}
+        initialMapping={editingMapping}
+        onClose={() => setOpen(false)}
+        onSaved={handleSaved}
+      />
     </DashboardLayout>
   );
 }
