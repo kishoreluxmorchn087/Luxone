@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Filter, Loader2, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
@@ -24,7 +24,28 @@ interface Meeting {
   created_at?: string;
 }
 
+function formatDate(dateString?: string) {
+  if (!dateString) return "—";
+  return formatDateTimeForDisplay(dateString);
+}
+
 const MEETING_FILTER_SECTIONS: FilterSection[] = [
+  {
+    title: "Title",
+    items: [{ label: "Title contains", key: "title" }],
+  },
+  {
+    title: "From",
+    items: [{ label: "From date contains", key: "from" }],
+  },
+  {
+    title: "To",
+    items: [{ label: "To date contains", key: "to" }],
+  },
+  {
+    title: "Location",
+    items: [{ label: "Location contains", key: "location" }],
+  },
   {
     title: "Status",
     items: [{ label: "Status contains", key: "status" }],
@@ -48,7 +69,7 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [, setFilters] = useState<FilterMap>({});
+  const [filters, setFilters] = useState<FilterMap>({});
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [deleting, setDeleting] = useState(false);
 
@@ -76,6 +97,30 @@ export default function MeetingsPage() {
     void loadMeetings();
   }, [loadMeetings]);
 
+  const filteredMeetings = useMemo(() => {
+    const filterFields: Record<string, (meeting: Meeting) => string> = {
+      title: (m) => m.title || "",
+      from: (m) => `${m.start_date || ""} ${formatDate(m.start_date)}`,
+      to: (m) => `${m.end_date || ""} ${formatDate(m.end_date)}`,
+      location: (m) => m.location || "",
+      status: (m) => m.status || "Scheduled",
+      organizer: (m) => `${m.organizer?.name || ""} ${m.organizer?.email || ""}`,
+      related: (m) => `${m.lead_name || ""} ${m.contact_name || ""} ${m.account_name || ""}`,
+      company: (m) => m.account_name || "",
+    };
+
+    return meetings.filter((meeting) =>
+      Object.entries(filters).every(([key, value]) => {
+        if (!value.trim()) return true;
+        const getFieldValue = filterFields[key];
+        return (
+          !getFieldValue ||
+          getFieldValue(meeting).toLowerCase().includes(value.trim().toLowerCase())
+        );
+      })
+    );
+  }, [meetings, filters]);
+
   const toggleSelect = (id: string | number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -85,7 +130,7 @@ export default function MeetingsPage() {
   };
 
   const toggleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? new Set(meetings.map((m) => m.id)) : new Set());
+    setSelectedIds(checked ? new Set(filteredMeetings.map((m) => m.id)) : new Set());
   };
 
   const handleDelete = async () => {
@@ -102,11 +147,6 @@ export default function MeetingsPage() {
       setDeleting(false);
     }
   };
-
-  function formatDate(dateString?: string) {
-    if (!dateString) return "—";
-    return formatDateTimeForDisplay(dateString);
-  }
 
   if (loading) {
     return (
@@ -202,9 +242,11 @@ export default function MeetingsPage() {
               </div>
             )}
 
-            {meetings.length === 0 ? (
+            {filteredMeetings.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-                <p className="text-sm font-medium text-slate-500">No meetings found.</p>
+                <p className="text-sm font-medium text-slate-500">
+                  {meetings.length ? "No meetings match the selected filters." : "No meetings found."}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -214,8 +256,8 @@ export default function MeetingsPage() {
                       <th className="w-10 px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={selectedIds.size === meetings.length && meetings.length > 0}
-                          ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < meetings.length; }}
+                          checked={selectedIds.size === filteredMeetings.length && filteredMeetings.length > 0}
+                          ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredMeetings.length; }}
                           onChange={(e) => toggleSelectAll(e.target.checked)}
                           className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-600"
                         />
@@ -230,7 +272,7 @@ export default function MeetingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {meetings.map((meeting) => (
+                    {filteredMeetings.map((meeting) => (
                       <tr
                         key={meeting.id}
                         className={`border-b transition hover:bg-slate-50 cursor-pointer ${selectedIds.has(meeting.id) ? "bg-blue-50" : ""}`}
