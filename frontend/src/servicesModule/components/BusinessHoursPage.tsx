@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
-import { deleteBusinessHours, listAppointments, listBusinessHours, listServices, setDefaultBusinessHours } from "../api";
+import { deleteBusinessHours, listAppointments, listBusinessHours, listServices } from "../api";
 import type { BusinessHours } from "../types";
 import { businessHoursDayOrder } from "../config";
 import { formatTimeValue } from "../utils";
@@ -79,18 +79,9 @@ export default function BusinessHoursPage() {
               title={row.name}
               action={
                 <div className="flex gap-2">
-                  {!row.isDefault ? (
-                    <button
-                      type="button"
-                      onClick={() => void setDefaultBusinessHours(row.id).then(load)}
-                      className="text-xs font-medium text-blue-600 hover:underline"
-                      title="Set as default business hours"
-                    >
-                      Set Default
-                    </button>
-                  ) : (
+                  {row.isDefault ? (
                     <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Default</span>
-                  )}
+                  ) : null}
                   <button type="button" onClick={() => setSelected(row)} className="text-xs font-medium text-slate-600">Edit</button>
                   <button type="button" onClick={() => void deleteBusinessHours(row.id).then(load)} className="text-xs font-medium text-rose-600">Delete</button>
                 </div>

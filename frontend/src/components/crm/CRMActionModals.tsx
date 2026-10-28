@@ -1009,7 +1009,7 @@ export function MassDeleteModal({
             disabled={deleting}
             className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
           >
-            {deleting ? "Deleting..." : "Delete All"}
+            {deleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       }

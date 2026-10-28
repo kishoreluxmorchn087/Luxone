@@ -75,6 +75,7 @@ export default function ServicesListPage() {
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           showImportActions={false}
           isFilterOpen={filterOpen}
