@@ -126,6 +126,8 @@ export default function EmailProviderForm({
 
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
+      } else if (!values.email_address.trim().toLowerCase().endsWith("@gmail.com")) {
+        nextErrors.email_address = "Email must end with @gmail.com";
       } else if (!isValidEmail(values.email_address)) {
         nextErrors.email_address = "Enter a valid email address";
       } else if (!isValidEmailForProvider(values.email_address, values.provider_type)) {
@@ -137,7 +139,9 @@ export default function EmailProviderForm({
       }
 
       const replyTo = values.reply_to_address.trim();
-      if (replyTo && !isValidEmail(replyTo)) {
+      if (replyTo && !replyTo.toLowerCase().endsWith("@gmail.com")) {
+        nextErrors.reply_to_address = "Email must end with @gmail.com";
+      } else if (replyTo && !isValidEmail(replyTo)) {
         nextErrors.reply_to_address = "Enter a valid email address";
       }
 
@@ -274,7 +278,7 @@ export default function EmailProviderForm({
               value={values.email_address}
               onChange={(event) => setField("email_address", event.target.value)}
               className={inputClassName("email_address")}
-              placeholder="name@company.com"
+              placeholder="support@gmail.com"
             />
             {renderFieldError("email_address")}
           </label>
@@ -288,7 +292,7 @@ export default function EmailProviderForm({
               value={values.display_name}
               onChange={(event) => setField("display_name", event.target.value)}
               className={inputClassName("display_name")}
-              placeholder="Lavanya"
+              placeholder="Support Team"
             />
             {renderFieldError("display_name")}
           </label>
@@ -303,7 +307,7 @@ export default function EmailProviderForm({
               value={values.reply_to_address}
               onChange={(event) => setField("reply_to_address", event.target.value)}
               className={inputClassName("reply_to_address")}
-              placeholder="support@zora.com"
+              placeholder="support@gmail.com"
             />
             {renderFieldError("reply_to_address")}
           </label>
