@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { createPortal } from "react-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { ChevronDown, ExternalLink, UserPlus, X } from "lucide-react";
+import { ChevronDown, UserPlus } from "lucide-react";
 import { createCampaign, getCampaignById, updateCampaign, type CampaignFormData } from "../../lib/api/campaignsApi";
 import DatePicker from "../../components/common/DatePicker";
 import { validateDatePickerInputs } from "../../lib/dateUtils";
@@ -164,7 +163,6 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<CampaignFormState>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [formViewsOpen, setFormViewsOpen] = useState(false);
   const ownerLabel = getLoggedInUserLabel();
 
   // Load existing campaign when editing
@@ -482,135 +480,9 @@ export default function CreateCampaignPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-5 border-t border-[#d9e1ef] px-8 py-3">
-              <button
-                type="button"
-                onClick={() => setFormViewsOpen(true)}
-                className="text-[14px] text-[#1d4ed8] hover:underline"
-              >
-                Create Form Views
-              </button>
-
-            </div>
           </div>
         </div>
       </div>
-      {formViewsOpen
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
-              onMouseDown={(event) => {
-                if (event.target === event.currentTarget) setFormViewsOpen(false);
-              }}
-            >
-              <section
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="campaign-form-views-title"
-                className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white shadow-2xl"
-              >
-                <header className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
-                  <div>
-                    <h2 id="campaign-form-views-title" className="text-lg font-semibold text-slate-900">
-                      Campaign Form Views
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Preview the public form used to collect campaign leads.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFormViewsOpen(false)}
-                    aria-label="Close form views"
-                    className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                  >
-                    <X size={20} />
-                  </button>
-                </header>
-
-                <div className="p-6">
-                  <div className="mx-auto max-w-lg rounded-[14px] border border-[#d9e1ef] bg-white p-6 shadow-sm sm:p-8">
-                    <div className="mb-6 text-center">
-                      <h3 className="text-[22px] font-semibold text-[#1f2d3d]">Get in Touch</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Fill out the form below and we'll get back to you shortly.
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <label className="text-[13px] font-medium text-[#4e6485]">
-                          First Name *
-                          <input disabled placeholder="John" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                        </label>
-                        <label className="text-[13px] font-medium text-[#4e6485]">
-                          Last Name *
-                          <input disabled placeholder="Doe" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                        </label>
-                      </div>
-                      <label className="block text-[13px] font-medium text-[#4e6485]">
-                        Email Address *
-                        <input disabled type="email" placeholder="john@example.com" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                      </label>
-                      <label className="block text-[13px] font-medium text-[#4e6485]">
-                        Phone Number *
-                        <input disabled type="tel" placeholder="Enter phone number" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                      </label>
-                      <label className="block text-[13px] font-medium text-[#4e6485]">
-                        Company *
-                        <input disabled placeholder="Your company name" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                      </label>
-                      <label className="block text-[13px] font-medium text-[#4e6485]">
-                        Website *
-                        <input disabled type="url" placeholder="https://yourcompany.com" className="mt-1 h-[40px] w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 text-[14px] font-normal text-slate-700" />
-                      </label>
-                      <label className="block text-[13px] font-medium text-[#4e6485]">
-                        Message / Notes *
-                        <textarea disabled rows={3} placeholder="Tell us more about what you're looking for..." className="mt-1 w-full rounded-[6px] border border-[#cfd7e6] bg-slate-50 px-3 py-2 text-[14px] font-normal text-slate-700" />
-                      </label>
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full rounded-[8px] bg-gradient-to-b from-[#359de9] to-[#365eea] py-2.5 text-[15px] font-medium text-white opacity-70"
-                      >
-                        Submit
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-slate-500">
-                      {id
-                        ? "This is a non-submittable preview of the public form."
-                        : "Save the campaign to generate a shareable form link."}
-                    </p>
-                    {id ? (
-                      <a
-                        href={`/public/campaigns/${encodeURIComponent(id)}/form`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex shrink-0 items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                      >
-                        Open live form
-                        <ExternalLink size={15} />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-
-                <footer className="flex justify-end border-t border-slate-200 px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormViewsOpen(false)}
-                    className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Close
-                  </button>
-                </footer>
-              </section>
-            </div>,
-            document.body
-          )
-        : null}
     </DashboardLayout>
   );
 }
