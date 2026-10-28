@@ -21,6 +21,7 @@ type ModuleToolbarProps = {
   createButtonLabel: string;
   baseRoute?: string;
   importPrimaryLabel?: string;
+  massDeleteLabel?: string;
   showImportActions?: boolean;
   sortFields?: string[];
   sortFieldKeyMap?: Partial<Record<string, string>>;
@@ -74,6 +75,7 @@ export default function ModuleToolbar({
   createButtonLabel,
   baseRoute,
   importPrimaryLabel,
+  massDeleteLabel = "Mass Delete",
   showImportActions = true,
   sortFields,
   sortFieldKeyMap,
@@ -334,7 +336,7 @@ export default function ModuleToolbar({
             onClick={() => onMassAction?.("mass-delete")}
             className="cursor-pointer rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition duration-150 hover:bg-red-100 hover:shadow-sm"
           >
-            Mass Delete
+            {massDeleteLabel}
           </button>
         </div>
       </div>
