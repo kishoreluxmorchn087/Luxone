@@ -5,7 +5,6 @@ import DatePicker from "../../../components/common/DatePicker";
 import { apiRequest } from "../../../api/client";
 import {
   ChevronDown,
-  Pencil,
   Search,
   X,
 } from "lucide-react";
@@ -717,19 +716,19 @@ export default function CreateMeetingPage() {
                 </Field>
 
                 <Field label="Repeat">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-300 py-1">
+                  <div className="relative border-b border-slate-300">
                     <select
                       name="repeat"
                       value={formData.repeat}
                       onChange={handleFieldChange}
-                      className="w-full appearance-none bg-transparent text-[15px] text-slate-900 outline-none"
+                      className="w-full appearance-none bg-transparent py-1 pr-6 text-[15px] text-slate-900 outline-none"
                     >
                       <option value="None">None</option>
                       <option value="Daily">Daily</option>
                       <option value="Weekly">Weekly</option>
                       <option value="Monthly">Monthly</option>
                     </select>
-                    <Pencil className="h-4 w-4 text-blue-600" />
+                    <ChevronDown className="pointer-events-none absolute right-0 top-2 h-4 w-4 text-slate-500" />
                   </div>
                 </Field>
 
