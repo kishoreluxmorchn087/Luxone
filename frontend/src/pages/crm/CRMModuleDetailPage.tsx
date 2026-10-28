@@ -12,6 +12,7 @@ import { AddTagsModal, DeleteModal, SendEmailModal, TaskModal } from "../../comp
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DocumentsSection from "../documents/DocumentsSection";
 import { apiRequest } from "../../api/client";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 import { sendAccountEmail } from "../../lib/api/accountsApi";
 import { sendContactEmail } from "../../lib/api/contactsApi";
 import { sendLeadEmail } from "../../lib/api/leadsApi";
@@ -415,7 +416,7 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
                   {item.dealName}
                 </button>
                 <p className="text-xs text-slate-500">
-                  {item.stage} • {item.closingDate ? new Date(item.closingDate).toLocaleDateString("en-GB") : "—"}
+                  {item.stage} • {item.closingDate ? formatDateTimeForDisplay(item.closingDate) : "—"}
                 </p>
               </div>
               <span className="text-sm font-semibold text-slate-700">${item.amount.toLocaleString()}</span>
@@ -742,6 +743,9 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
   const formatFieldValue = (fieldKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") {
       return fieldKey.toLowerCase().includes("owner") ? "Assigned to you" : "Not provided";
+    }
+    if (typeof value === "string" && /(date|_at|At$)/i.test(fieldKey)) {
+      return formatDateTimeForDisplay(value);
     }
     return String(value);
   };

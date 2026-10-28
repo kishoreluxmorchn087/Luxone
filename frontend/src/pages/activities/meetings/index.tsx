@@ -6,6 +6,7 @@ import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
+import { formatDateTimeForDisplay } from "../../../lib/dateUtils";
 
 type FilterMap = Record<string, string>;
 
@@ -103,12 +104,7 @@ export default function MeetingsPage() {
 
   function formatDate(dateString?: string) {
     if (!dateString) return "—";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US") + " " + date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return formatDateTimeForDisplay(dateString);
   }
 
   if (loading) {

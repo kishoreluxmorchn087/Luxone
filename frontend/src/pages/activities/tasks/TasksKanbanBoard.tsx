@@ -3,6 +3,7 @@ import { AlertCircle, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../../../api/client";
 import { keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
+import { formatDateForDisplay } from "../../../lib/dateUtils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,9 +67,7 @@ function getTaskListFromResponse(response: ApiResponse): TaskRecord[] {
 
 function formatDate(value?: string | null) {
   if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return formatDateForDisplay(value);
 }
 
 function isOverdue(value?: string | null) {

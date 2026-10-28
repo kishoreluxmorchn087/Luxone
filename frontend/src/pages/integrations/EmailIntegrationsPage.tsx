@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { integrationsApi } from "../../integrations/api";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 import IntegrationHeader from "../../integrations/components/IntegrationHeader";
 import AddDomainModal from "../../integrations/components/AddDomainModal";
 import BCCDropboxAddEmailModal from "../../integrations/components/BCCDropboxAddEmailModal";
@@ -348,7 +349,7 @@ export default function EmailIntegrationsPage() {
   );
   const latestInboxMessage = salesInboxFeed[0] || null;
   const latestInboxLabel = latestInboxMessage?.received_at
-    ? new Date(latestInboxMessage.received_at).toLocaleString()
+    ? formatDateTimeForDisplay(latestInboxMessage.received_at)
     : "No synced messages yet";
 
   useEffect(() => {
