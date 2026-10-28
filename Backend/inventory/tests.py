@@ -26,18 +26,46 @@ class VendorCategoryTests(APITestCase):
     def test_vendor_category_is_saved_and_returned_when_reopened(self):
         create_response = self.client.post(
             "/api/inventory/vendors/",
-            {"vendor_name": "Technology Supplier", "category": "Technology"},
+            {
+                "vendor_name": "Technology Supplier",
+                "category": "Technology",
+            },
             format="json",
         )
 
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
         vendor_id = create_response.data["id"]
+        self.assertEqual(create_response.data["vendor_name"], "Technology Supplier")
         self.assertEqual(create_response.data["category"], "Technology")
 
         detail_response = self.client.get(f"/api/inventory/vendors/{vendor_id}/")
 
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data["vendor_name"], "Technology Supplier")
         self.assertEqual(detail_response.data["category"], "Technology")
+
+    def test_vendor_name_can_be_edited_and_viewed(self):
+        create_response = self.client.post(
+            "/api/inventory/vendors/",
+            {"vendor_name": "Original Supplier"},
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        vendor_id = create_response.data["id"]
+
+        update_response = self.client.patch(
+            f"/api/inventory/vendors/{vendor_id}/",
+            {"vendor_name": "Updated Supplier"},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.data["vendor_name"], "Updated Supplier")
+
+        detail_response = self.client.get(f"/api/inventory/vendors/{vendor_id}/")
+
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data["vendor_name"], "Updated Supplier")
 
     @patch("inventory.views.create_outgoing_crm_email")
     @patch("inventory.views.get_user_default_email_provider")
