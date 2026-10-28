@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
+import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
@@ -207,6 +208,15 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   const handleFieldBlur = (name: string) => {
     const { field, isSecondary } = findFieldByInputName(name);
     if (!field) return;
+
+    if (field.type === "currency") {
+      const raw = String(formData[name] ?? "");
+      if (raw.endsWith(".")) {
+        const cleaned = raw.slice(0, -1);
+        setFormData((prev) => ({ ...prev, [name]: cleaned }));
+      }
+    }
+
     const value = String(formData[name] ?? "");
     const message = validateFieldValue({
       field,
@@ -258,6 +268,8 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (type !== "checkbox") {
       if (sanitizeValue) {
         nextValue = sanitizeValue(nextValue);
+      } else if (field?.type === "currency") {
+        nextValue = formatCurrencyInput(nextValue);
       }
       if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
@@ -268,6 +280,27 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           nextValue = String(field.min);
         }
       }
+    }
+
+    if (field?.type === "currency" && e.target instanceof HTMLInputElement) {
+      const input = e.target;
+      const prevPos = input.selectionStart ?? value.length;
+      const digitsBefore = value.slice(0, prevPos).replace(/[^\d.]/g, "").length;
+
+      requestAnimationFrame(() => {
+        let count = 0;
+        let targetPos = nextValue.length;
+        for (let i = 0; i < nextValue.length; i++) {
+          if (/[\d.]/.test(nextValue[i])) {
+            count++;
+            if (count === digitsBefore) {
+              targetPos = i + 1;
+              break;
+            }
+          }
+        }
+        input.setSelectionRange(targetPos, targetPos);
+      });
     }
 
     setFormData((prev) => ({
@@ -550,9 +583,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             onChange={handleChange}
             onBlur={() => handleFieldBlur(field.name)}
             className={`${inputClass} pr-4 pl-11`}
-            placeholder={field.placeholder ?? ""}
+            placeholder={field.placeholder ?? "0.00"}
             maxLength={field.maxLength}
-            inputMode={field.inputMode}
+            inputMode={field.inputMode ?? "decimal"}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.
