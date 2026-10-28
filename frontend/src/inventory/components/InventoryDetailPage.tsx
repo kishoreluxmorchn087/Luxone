@@ -157,16 +157,6 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           actions={headerActions}
           onBack={() => navigate(meta.baseRoute)}
           onAction={async (action) => {
-            if (action === "Send Email" && moduleKey === "vendors") {
-              setEmailOpen(true);
-              return;
-            }
-
-            if (action === "New" && moduleKey === "vendors") {
-              navigate(`${meta.baseRoute}/create`);
-              return;
-            }
-
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
               return;
