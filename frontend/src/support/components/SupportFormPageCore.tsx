@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getLoggedInUser, getLoggedInUserName } from "../../lib/auth/currentUser";
+import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 import { createCase, createSolution, getCaseFormData, getCaseSnapshot, getSolutionDetail, updateCase, updateSolution } from "../api";
 import {
   caseOriginOptions,
@@ -407,6 +408,10 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
           setError("Subject is required.");
           return;
         }
+        if (!isValidPhoneNumber(caseForm.phone)) {
+          setError("Phone number must contain digits only and be no more than 20 digits.");
+          return;
+        }
         const response = isEdit && id ? await updateCase(id, caseForm) : await createCase(caseForm);
         if (createNew) {
           setCaseForm(emptyCaseForm);
@@ -483,7 +488,7 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
                 <Field label="Reported By"><input className={inputClass} value={caseForm.reportedBy} onChange={(e) => setCaseForm({ ...caseForm, reportedBy: e.target.value })} /></Field>
                 <Field label="Deal Name"><CaseLookupField label="Deal" lookup="deals" value={caseForm.deal} displayValue={caseForm.dealLabel} onChange={handleDealSelect} /></Field>
                 <Field label="Email"><input className={inputClass} value={caseForm.email} onChange={(e) => setCaseForm({ ...caseForm, email: e.target.value })} /></Field>
-                <Field label="Phone"><input className={inputClass} value={caseForm.phone} onChange={(e) => setCaseForm({ ...caseForm, phone: e.target.value })} /></Field>
+                <Field label="Phone"><input type="tel" inputMode="numeric" maxLength={PHONE_NUMBER_MAX_LENGTH} className={inputClass} value={caseForm.phone} onChange={(e) => setCaseForm({ ...caseForm, phone: sanitizePhoneNumber(e.target.value) })} /></Field>
                 <Field label="Company"><input className={inputClass} value={caseForm.company} onChange={(e) => setCaseForm({ ...caseForm, company: e.target.value })} /></Field>
                 <Field label="Lead">
                   <div className="space-y-1">
