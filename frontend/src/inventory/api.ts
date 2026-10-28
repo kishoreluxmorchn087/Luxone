@@ -1155,19 +1155,15 @@ export async function getInventoryRecordSnapshot(
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
 }
 
-export async function addInventoryNote(moduleKey: InventoryModuleKey, id: string, note: string) {
-  const basePath = moduleKey === "configurator" ? "/inventory/configurator" : INVENTORY_ENDPOINTS[moduleKey];
-  return apiRequest(`${basePath}/${id}/notes`, {
-    method: "POST",
-    body: JSON.stringify({ note }),
-  });
-}
-
-export async function addInventoryAttachment(moduleKey: InventoryModuleKey, id: string, file: File) {
-  const basePath = moduleKey === "configurator" ? "/inventory/configurator" : INVENTORY_ENDPOINTS[moduleKey];
+export async function addInventoryAttachment(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  file: File
+): Promise<void> {
   const formData = new FormData();
   formData.append("file", file);
-  return apiRequest(`${basePath}/${id}/attachments`, {
+
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
     method: "POST",
     body: formData,
   });
