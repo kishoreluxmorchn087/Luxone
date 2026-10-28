@@ -17,6 +17,23 @@ import { ProjectPriorityBadge, ProjectStatusBadge } from "./ProjectStatusBadge";
 import { CalendarDays, FileText, FolderKanban, ArrowLeft, Pencil, Plus, Trash2, Check, X, Eye } from "lucide-react";
 
 type TabKey = "overview" | "tasks" | "files" | "notes" | "meetings";
+type MeetingEditForm = {
+  title: string;
+  participants: string;
+  meeting_type: ProjectMeeting["meeting_type"];
+  meeting_link: string;
+  location: string;
+  start_datetime: string;
+  status: ProjectMeeting["status"];
+};
+
+function toLocalDateTimeValue(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
 
 function getCurrentUserEmail() {
   try {
@@ -72,6 +89,11 @@ export default function ProjectDetailPage() {
   const [editingNoteContent, setEditingNoteContent] = useState("");
   const [noteActionLoading, setNoteActionLoading] = useState<string | number | null>(null);
   const [attendanceLoadingId, setAttendanceLoadingId] = useState<string | number | null>(null);
+  const [editingMeeting, setEditingMeeting] = useState<ProjectMeeting | null>(null);
+  const [meetingEditForm, setMeetingEditForm] = useState<MeetingEditForm | null>(null);
+  const [meetingSaving, setMeetingSaving] = useState(false);
+  const [meetingDeletingId, setMeetingDeletingId] = useState<string | number | null>(null);
+  const [meetingActionError, setMeetingActionError] = useState<string | null>(null);
   const currentUser = useMemo(() => getCurrentUserProfile(), []);
   const canManageMeetingAttendance = ["admin", "sub_admin", "manager"].includes(
     currentUser.role.trim().toLowerCase()
@@ -201,6 +223,146 @@ export default function ProjectDetailPage() {
       alert(err instanceof Error ? err.message : "Failed to update meeting attendance.");
     } finally {
       setAttendanceLoadingId(null);
+    }
+  };
+
+  const handleStartEditMeeting = (meeting: ProjectMeeting) => {
+    setEditingMeeting(meeting);
+    setMeetingEditForm({
+      title: meeting.title,
+      participants: meeting.participants || "",
+      meeting_type: meeting.meeting_type,
+      meeting_link: meeting.meeting_link || "",
+      location: meeting.location || "",
+      start_datetime: toLocalDateTimeValue(meeting.start_datetime),
+      status: meeting.status,
+    });
+    setMeetingActionError(null);
+  };
+
+  const handleSaveMeeting = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingMeeting || !meetingEditForm) return;
+
+    const title = meetingEditForm.title.trim();
+    if (!title || !meetingEditForm.start_datetime) {
+      setMeetingActionError("Meeting title and date & time are required.");
+      return;
+    }
+    if (
+      meetingEditForm.meeting_type === "Online" &&
+      !meetingEditForm.meeting_link.trim()
+    ) {
+      setMeetingActionError("Meeting link is required for online meetings.");
+      return;
+    }
+    if (
+      meetingEditForm.meeting_type === "Offline" &&
+      !meetingEditForm.location.trim()
+    ) {
+      setMeetingActionError("Location is required for offline meetings.");
+      return;
+    }
+
+    const participantNames = meetingEditForm.participants
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const originalParticipantNames = (editingMeeting.participants || "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const participantsChanged =
+      JSON.stringify(participantNames) !== JSON.stringify(originalParticipantNames);
+    const payload: Record<string, unknown> = {
+      title,
+      meeting_type: meetingEditForm.meeting_type,
+      start_datetime: meetingEditForm.start_datetime,
+      status: meetingEditForm.status,
+      meeting_link:
+        meetingEditForm.meeting_type === "Online"
+          ? meetingEditForm.meeting_link.trim()
+          : "",
+      location:
+        meetingEditForm.meeting_type === "Offline"
+          ? meetingEditForm.location.trim()
+          : "",
+    };
+
+    if (participantsChanged) {
+      payload.participant_entries = participantNames.map((name) => {
+        const existingParticipant = editingMeeting.attendance_records.find(
+          (participant) =>
+            participant.participant_name.trim().toLowerCase() === name.toLowerCase() ||
+            participant.participant_email.trim().toLowerCase() === name.toLowerCase()
+        );
+        return {
+          name,
+          email: existingParticipant?.participant_email || "",
+        };
+      });
+    }
+
+    try {
+      setMeetingSaving(true);
+      setMeetingActionError(null);
+      const updatedMeeting = await apiRequest<ProjectMeeting>(
+        `/projectdesk/meetings/${editingMeeting.id}/`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
+      setProject((current) =>
+        current
+          ? {
+              ...current,
+              meetings: current.meetings.map((meeting) =>
+                String(meeting.id) === String(updatedMeeting.id)
+                  ? updatedMeeting
+                  : meeting
+              ),
+            }
+          : current
+      );
+      setEditingMeeting(null);
+      setMeetingEditForm(null);
+    } catch (err) {
+      setMeetingActionError(
+        err instanceof Error ? err.message : "Failed to update meeting."
+      );
+    } finally {
+      setMeetingSaving(false);
+    }
+  };
+
+  const handleDeleteMeeting = async (meeting: ProjectMeeting) => {
+    if (!window.confirm(`Delete "${meeting.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setMeetingDeletingId(meeting.id);
+      setMeetingActionError(null);
+      await apiRequest(`/projectdesk/meetings/${meeting.id}/`, {
+        method: "DELETE",
+      });
+      setProject((current) =>
+        current
+          ? {
+              ...current,
+              meetings: current.meetings.filter(
+                (item) => String(item.id) !== String(meeting.id)
+              ),
+            }
+          : current
+      );
+    } catch (err) {
+      setMeetingActionError(
+        err instanceof Error ? err.message : "Failed to delete meeting."
+      );
+    } finally {
+      setMeetingDeletingId(null);
     }
   };
 
@@ -574,6 +736,11 @@ export default function ProjectDetailPage() {
 
           {activeTab === "meetings" && (
             <div className="space-y-4">
+              {meetingActionError && !editingMeeting && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {meetingActionError}
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-medium text-slate-600">
                   {filteredMeetings.length} meeting{filteredMeetings.length === 1 ? "" : "s"}
@@ -610,6 +777,29 @@ export default function ProjectDetailPage() {
                         {meeting.status}
                       </div>
                     </div>
+
+                    {(meeting.status === "Scheduled" ||
+                      meeting.status === "Rescheduled") && (
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditMeeting(meeting)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteMeeting(meeting)}
+                          disabled={meetingDeletingId === meeting.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {meetingDeletingId === meeting.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    )}
 
                     <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -648,6 +838,182 @@ export default function ProjectDetailPage() {
 
         </div>
       </div>
+      {editingMeeting && meetingEditForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+          <form
+            onSubmit={(event) => void handleSaveMeeting(event)}
+            className="max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Edit meeting</h2>
+                <p className="mt-1 text-sm text-slate-500">{editingMeeting.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingMeeting(null);
+                  setMeetingEditForm(null);
+                  setMeetingActionError(null);
+                }}
+                aria-label="Close edit meeting dialog"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {meetingActionError && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {meetingActionError}
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+                Meeting title
+                <input
+                  required
+                  value={meetingEditForm.title}
+                  onChange={(event) =>
+                    setMeetingEditForm((current) =>
+                      current ? { ...current, title: event.target.value } : current
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Date & time
+                <input
+                  required
+                  type="datetime-local"
+                  value={meetingEditForm.start_datetime}
+                  onChange={(event) =>
+                    setMeetingEditForm((current) =>
+                      current
+                        ? { ...current, start_datetime: event.target.value }
+                        : current
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Status
+                <select
+                  value={meetingEditForm.status}
+                  onChange={(event) =>
+                    setMeetingEditForm((current) =>
+                      current
+                        ? {
+                            ...current,
+                            status: event.target.value as ProjectMeeting["status"],
+                          }
+                        : current
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {["Scheduled", "Completed", "Cancelled", "Rescheduled"].map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+                Participants (comma-separated)
+                <input
+                  value={meetingEditForm.participants}
+                  onChange={(event) =>
+                    setMeetingEditForm((current) =>
+                      current
+                        ? { ...current, participants: event.target.value }
+                        : current
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Meeting type
+                <select
+                  value={meetingEditForm.meeting_type}
+                  onChange={(event) =>
+                    setMeetingEditForm((current) =>
+                      current
+                        ? {
+                            ...current,
+                            meeting_type: event.target.value as ProjectMeeting["meeting_type"],
+                          }
+                        : current
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="Online">Online</option>
+                  <option value="Offline">Offline</option>
+                </select>
+              </label>
+              {meetingEditForm.meeting_type === "Online" ? (
+                <label className="text-sm font-medium text-slate-700">
+                  Meeting link
+                  <input
+                    required
+                    type="url"
+                    value={meetingEditForm.meeting_link}
+                    onChange={(event) =>
+                      setMeetingEditForm((current) =>
+                        current
+                          ? { ...current, meeting_link: event.target.value }
+                          : current
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+              ) : (
+                <label className="text-sm font-medium text-slate-700">
+                  Location
+                  <input
+                    required
+                    value={meetingEditForm.location}
+                    onChange={(event) =>
+                      setMeetingEditForm((current) =>
+                        current ? { ...current, location: event.target.value } : current
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingMeeting(null);
+                  setMeetingEditForm(null);
+                  setMeetingActionError(null);
+                }}
+                disabled={meetingSaving}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={meetingSaving}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {meetingSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
