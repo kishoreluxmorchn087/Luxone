@@ -9,7 +9,7 @@ import type { CompanyDetails, DomainMapping, ServiceSettings, TeamMember } from 
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
-type CompanyDetailsField = "companyName" | "phone";
+type CompanyDetailsField = "companyName" | "contactPerson" | "phone";
 type CompanyDetailsErrors = Partial<Record<CompanyDetailsField, string>>;
 
 export default function CompanyDetailsPage() {
@@ -60,6 +60,9 @@ export default function CompanyDetailsPage() {
     if (!form.companyName.trim()) {
       validationErrors.companyName = "Company Name is required.";
     }
+    if (!form.contactPerson.trim()) {
+      validationErrors.contactPerson = "Contact Person Name is required.";
+    }
     if (!isValidPhoneNumber(form.phone)) {
       validationErrors.phone = "Phone number must contain digits only and be no more than 20 digits.";
     }
@@ -100,7 +103,7 @@ export default function CompanyDetailsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-name">Company Name</label><input id="company-name" required className={`${inputClass}${fieldErrors.companyName ? " border-rose-500" : ""}`} value={form.companyName} aria-invalid={Boolean(fieldErrors.companyName)} aria-describedby={fieldErrors.companyName ? "company-name-error" : undefined} onChange={(e) => { setForm({ ...form, companyName: e.target.value }); setFieldErrors({ ...fieldErrors, companyName: undefined }); }} />{fieldErrors.companyName ? <p id="company-name-error" className="mt-1 text-xs text-rose-600">{fieldErrors.companyName}</p> : null}</div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Company Email</label><input className={inputClass} value={form.companyEmail} onChange={(e) => setForm({ ...form, companyEmail: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Contact Person</label><input className={inputClass} value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="contact-person">Contact Person Name</label><input id="contact-person" required className={`${inputClass}${fieldErrors.contactPerson ? " border-rose-500" : ""}`} value={form.contactPerson} aria-invalid={Boolean(fieldErrors.contactPerson)} aria-describedby={fieldErrors.contactPerson ? "contact-person-error" : undefined} onChange={(e) => { setForm({ ...form, contactPerson: e.target.value }); setFieldErrors({ ...fieldErrors, contactPerson: undefined }); }} />{fieldErrors.contactPerson ? <p id="contact-person-error" className="mt-1 text-xs text-rose-600">{fieldErrors.contactPerson}</p> : null}</div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-phone">Phone</label>
                 <input

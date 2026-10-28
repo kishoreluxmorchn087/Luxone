@@ -1123,6 +1123,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                               className={inputClass}
                               placeholder="From Qty"
                               value={range.fromRange ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
                               onChange={(e) => {
                                  const value = e.target.value;
                                  if (value !== "" && Number(value) < 0) return;
@@ -1139,6 +1140,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                               className={inputClass}
                               placeholder="To Qty"
                               value={range.toRange ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
                               onChange={(e) => { 
                                  const value = e.target.value;
                                   if (value !== "" && Number(value) < 0) return;
@@ -1155,11 +1157,12 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                               className={inputClass}
                               placeholder="Discount %"
                               value={range.discountPercentage  ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
                               onChange={(e) => {
                                  const value = e.target.value;
                                   if (value === "") {
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], discountPercentage:0 };
+                                ranges[index] = { ...ranges[index], discountPercentage:"" };
 
                                 updateInventoryForm({ ...anyForm, ranges });
                                  return;
@@ -1171,6 +1174,13 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                                      ranges[index] = { ...ranges[index],discountPercentage: discount,    };
 
                                      updateInventoryForm({ ...anyForm, ranges, });
+                              }}
+                              onBlur={(e) => {
+                                if (e.currentTarget.value === "") {
+                                  const ranges = [...anyForm.ranges];
+                                  ranges[index] = { ...ranges[index], discountPercentage: 0 };
+                                  updateInventoryForm({ ...anyForm, ranges });
+                                }
                               }}
                             />
                             <button
