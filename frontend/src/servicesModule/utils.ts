@@ -1,4 +1,5 @@
 import type { BusinessHours, BusinessHoursDayKey, JobSheetField } from "./types";
+import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
 
 function createJobSheetFieldKey() {
   return `job-field-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -21,16 +22,12 @@ export function formatDuration(minutes: number) {
 
 export function formatDateTime(value?: string) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return formatDateTimeForDisplay(value);
 }
 
 export function formatDateOnly(value?: string) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
+  return formatDateForDisplay(value);
 }
 
 export function formatTimeValue(value?: string) {

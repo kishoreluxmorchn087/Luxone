@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
+import { formatDateForDisplay, formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
 import type {
   Project,
   ProjectTask,
@@ -347,8 +349,8 @@ export default function ProjectDetailPage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <InfoCard label="Assigned Manager" value={project.owner} />
-            <InfoCard label="Start Date" value={project.start_date ?? ""} icon={<CalendarDays className="h-4 w-4" />} />
-            <InfoCard label="Due Date" value={project.due_date ?? ""} icon={<CalendarDays className="h-4 w-4" />} />
+            <InfoCard label="Start Date" value={formatDateForDisplay(project.start_date)} icon={<CalendarDays className="h-4 w-4" />} />
+            <InfoCard label="Due Date" value={formatDateForDisplay(project.due_date)} icon={<CalendarDays className="h-4 w-4" />} />
             <InfoCard label="Account" value={project.account_name ?? ""} />
             <InfoCard label="Contact" value={project.contact_name ?? ""} />
             <InfoCard label="Deal" value={project.deal_name ?? ""} />
@@ -438,7 +440,7 @@ export default function ProjectDetailPage() {
                     <div>
                       <p className="font-medium text-slate-800">{file.name}</p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {file.type} • {file.uploaded_by} • {file.uploaded_at}
+                        {file.type} • {file.uploaded_by} • {formatDateTimeForDisplay(file.uploaded_at)}
                       </p>
                     </div>
                     {file.file_url && (
@@ -510,7 +512,7 @@ export default function ProjectDetailPage() {
                         />
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="text-xs text-slate-500">
-                            {note.created_by} • {note.created_at}
+                            {note.created_by} • {formatDateTimeForDisplay(note.created_at)}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -540,7 +542,7 @@ export default function ProjectDetailPage() {
                         <p className="text-sm leading-6 text-slate-700">{note.content}</p>
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="text-xs text-slate-500">
-                            {note.created_by} • {note.created_at}
+                            {note.created_by} • {formatDateTimeForDisplay(note.created_at)}
                           </div>
                           {note.created_by === getCurrentUserEmail() ? (
                             <div className="flex flex-wrap gap-2">
@@ -831,6 +833,8 @@ function TaskModal({
   const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200";
 
   const handleSave = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (!form.title.trim()) {
       setError("Task title is required.");
       return;
@@ -940,11 +944,11 @@ function TaskModal({
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Due Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     className={inputCls}
                     value={form.due_date ?? ""}
-                    onChange={(e) => setForm((previous) => ({ ...previous, due_date: e.target.value }))}
+                    futureOnly
+                    onChange={(due_date) => setForm((previous) => ({ ...previous, due_date }))}
                   />
                 </div>
                 <div>
@@ -998,7 +1002,7 @@ function TaskModal({
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Due Date</p>
-                  <p className="mt-1 text-sm text-slate-700">{task.due_date || "-"}</p>
+                  <p className="mt-1 text-sm text-slate-700">{formatDateForDisplay(task.due_date) || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Priority</p>
@@ -1116,6 +1120,8 @@ function EditableTasksTable({
   };
 
   const handleAddSave = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (!form.title.trim()) {
       setError("Task title is required.");
       return;
@@ -1224,11 +1230,11 @@ function EditableTasksTable({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Due Date</label>
-              <input
-                type="date"
+              <DatePicker
                 className={`${inputCls} bg-white`}
                 value={form.due_date ?? ""}
-                onChange={(e) => setForm((previous) => ({ ...previous, due_date: e.target.value }))}
+                futureOnly
+                onChange={(due_date) => setForm((previous) => ({ ...previous, due_date }))}
               />
             </div>
             <div>
@@ -1298,7 +1304,7 @@ function EditableTasksTable({
                 <td className="px-4 py-3 font-medium text-slate-800">{task.title || "-"}</td>
                 <td className="px-4 py-3 text-slate-600">{task.owner || "-"}</td>
                 <td className="px-4 py-3 text-slate-600">{task.assigned_by || "-"}</td>
-                <td className="px-4 py-3 text-slate-600">{task.due_date || "-"}</td>
+                <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(task.due_date) || "-"}</td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <select
                     value={task.status}

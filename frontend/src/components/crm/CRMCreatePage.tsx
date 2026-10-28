@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
+import DatePicker from "../common/DatePicker";
+import { formatDateForInput, parseDateInput, validateDatePickerInputs } from "../../lib/dateUtils";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
 
 export type CRMCreateFieldType =
   | "text"
+  | "date"
   | "email"
   | "number"
   | "phone"
@@ -198,6 +201,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
+    if (field.type === "date" && value && !parseDateInput(formatDateForInput(value))) {
+      return `${field.label} must be a valid date.`;
+    }
     if (field.required && !value.trim()) {
       return `${field.label} is required.`;
     }
@@ -294,6 +300,8 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   };
 
   const handleSave = async (goToNew = false) => {
+    if (!validateDatePickerInputs()) return;
+
     try {
       setSaving(true);
       setErrorMsg(null);
@@ -587,6 +595,32 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             placeholder={field.placeholder ?? "Enter phone number"}
             maxLength={field.maxLength ?? 15}
             inputMode="tel"
+          />
+          {getFieldMessage(field.name)}
+        </div>
+      );
+    }
+
+    if (field.type === "date") {
+      return (
+        <div>
+          <DatePicker
+            name={field.name}
+            value={value}
+            onChange={(date) => {
+              setFormData((previous) => ({ ...previous, [field.name]: date }));
+              setIsDirty(true);
+              setFieldErrors((previous) => {
+                if (!previous[field.name]) return previous;
+                const next = { ...previous };
+                delete next[field.name];
+                return next;
+              });
+              if (errorMsg) setErrorMsg(null);
+            }}
+            onBlur={() => handleFieldBlur(field.name)}
+            className={inputClass}
+            futureOnly={/due|closing/i.test(`${field.name} ${field.label}`)}
           />
           {getFieldMessage(field.name)}
         </div>
