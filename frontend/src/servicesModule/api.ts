@@ -119,6 +119,8 @@ function mapService(item: any): ServiceRecord {
     deliveryTeam: asString(item.delivery_team),
     availableDaysMode: asString(item.available_days_mode),
     availableTimeMode: asString(item.available_time_mode),
+    customTimeStart: asString(item.custom_time_start || "09:00"),
+    customTimeEnd: asString(item.custom_time_end || "18:00"),
     businessHours: asString(item.business_hours),
     businessHoursName: asString(item.business_hours_name),
     businessHoursTimezone: asString(item.business_hours_timezone),
@@ -288,6 +290,8 @@ function buildServicePayload(values: ServiceFormData) {
     delivery_team: values.deliveryTeam,
     available_days_mode: values.availableDaysMode,
     available_time_mode: values.availableTimeMode,
+    custom_time_start: values.availableTimeMode === "custom" ? values.customTimeStart || "09:00" : undefined,
+    custom_time_end: values.availableTimeMode === "custom" ? values.customTimeEnd || "18:00" : undefined,
     business_hours: values.businessHoursId || undefined,
   };
 }
@@ -543,6 +547,10 @@ export async function updateDomainMapping(id: string, accountType: string, domai
       body: JSON.stringify({ account_type: accountType, domain }),
     })
   );
+}
+
+export async function deleteDomainMapping(id: string) {
+  await apiRequest<void>(`/settings/domain-mapping/${id}/`, { method: "DELETE" });
 }
 
 export async function verifyDomainMapping(id: string) {

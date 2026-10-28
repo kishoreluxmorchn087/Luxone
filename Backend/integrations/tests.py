@@ -38,8 +38,45 @@ class EmailProviderValidationTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["email_address"][0], "Enter a valid Gmail address")
+        self.assertEqual(response.data["email_address"][0], "Enter a valid email address.")
         self.assertFalse(EmailProviderIntegration.objects.exists())
+
+    def test_create_rejects_gmail_address_for_yahoo_provider(self):
+        response = self.client.post(
+            "/api/integrations/email/providers/",
+            {
+                "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                "email_address": "user@gmail.com",
+                "display_name": "CRM",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["email_address"][0], "Enter a valid Yahoo Mail address")
+        self.assertFalse(EmailProviderIntegration.objects.exists())
+
+    def test_create_accepts_yahoo_address_for_yahoo_provider(self):
+        response = self.client.post(
+            "/api/integrations/email/providers/",
+            {
+                "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                "email_address": "user@yahoo.com",
+                "display_name": "CRM",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["data"]["email_address"], "user@yahoo.com")
+        self.assertTrue(
+            EmailProviderIntegration.objects.filter(
+                provider_type=EmailProviderIntegration.ProviderType.YAHOO,
+                email_address="user@yahoo.com",
+            ).exists()
+        )
 
 
 class IntegrationLinkingTests(APITestCase):

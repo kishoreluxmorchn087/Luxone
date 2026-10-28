@@ -5,6 +5,7 @@ import DashboardLayout from "../../../components/layout/DashboardLayout";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
+import { formatDateTimeForDisplay } from "../../../lib/dateUtils";
 
 type FilterMap = Record<string, string>;
 
@@ -34,6 +35,7 @@ interface Meeting {
   end_date?: string;
   location?: string;
   organizer?: { id?: number; name?: string; email?: string };
+  lead_name?: string;
   contact_name?: string;
   account_name?: string;
   status?: string;
@@ -43,17 +45,7 @@ interface Meeting {
 
 function formatDate(value?: string) {
   if (!value) return "N/A";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString("en-US", { 
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true
-      });
+  return formatDateTimeForDisplay(value);
 }
 
 export default function MeetingDetailPage() {
@@ -190,7 +182,7 @@ export default function MeetingDetailPage() {
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    <div className="mt-6 grid gap-4 md:grid-cols-4">
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
                           Organizer
@@ -201,6 +193,14 @@ export default function MeetingDetailPage() {
                         {meeting.organizer?.email && (
                           <p className="text-xs text-slate-500">{meeting.organizer.email}</p>
                         )}
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+                          Lead
+                        </p>
+                        <p className="text-base font-medium text-slate-900">
+                          {meeting.lead_name || "None"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">

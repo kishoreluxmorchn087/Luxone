@@ -1,10 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { copyToClipboard } from "../../lib/clipboard";
 import { apiRequest } from "../../api/client";
 import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMPagination from "../../components/crm/CRMPagination";
 import CRMTable from "../../components/crm/CRMTable";
+import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import {
   ActivityDetailModal,
   AddTagsModal,
@@ -31,6 +34,7 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
     rows: T[];
@@ -77,6 +81,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   pageSize = 1000,
   showNotes = true,
   showActivity = false,
+  showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
   hideFilterSidebar = false,
@@ -90,13 +95,112 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
-  const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
+  const [density, setDensity] = useState<DensityMode>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_density_${config.module}`);
+      if (saved === "compact" || saved === "normal" || saved === "comfortable") {
+        return saved;
+      }
+    } catch {}
+    return "normal";
+  });
+
+  const [currentPageSize, setCurrentPageSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_pageSize_${config.module}`);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    } catch {}
+    return pageSize;
+  });
+
+  const [currentShowNotes, setCurrentShowNotes] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_showNotes_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
+    return showNotes;
+  });
+
+  const [currentShowActivity, setCurrentShowActivity] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_showActivity_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
+    return showActivity;
+  });
+
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_hiddenCols_${config.module}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const [pinnedColumn, setPinnedColumn] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem(`crm_pinnedCol_${config.module}`);
+      if (saved) return saved;
+    } catch {}
+    return null;
+  });
+
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
+  const isFilterOpen = filterOpen ?? !hideFilterSidebar;
+
+  const handleSetHiddenColumns = (hidden: string[]) => {
+    setHiddenColumns(hidden);
+    try {
+      localStorage.setItem(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
+    } catch {}
+  };
+
+  const handleSetPinnedColumn = (pinned: string | null) => {
+    setPinnedColumn(pinned);
+    try {
+      if (pinned) {
+        localStorage.setItem(`crm_pinnedCol_${config.module}`, pinned);
+      } else {
+        localStorage.removeItem(`crm_pinnedCol_${config.module}`);
+      }
+    } catch {}
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setCurrentPageSize(newSize);
+    setPage(1);
+    try {
+      localStorage.setItem(`crm_pageSize_${config.module}`, String(newSize));
+    } catch {}
+  };
+
+  const handleDensityChange = (newDensity: DensityMode) => {
+    setDensity(newDensity);
+    try {
+      localStorage.setItem(`crm_density_${config.module}`, newDensity);
+    } catch {}
+  };
+
+  const handleToggleShowNotes = (show: boolean) => {
+    setCurrentShowNotes(show);
+    try {
+      localStorage.setItem(`crm_showNotes_${config.module}`, String(show));
+    } catch {}
+  };
+
+  const handleToggleShowActivity = (show: boolean) => {
+    setCurrentShowActivity(show);
+    try {
+      localStorage.setItem(`crm_showActivity_${config.module}`, String(show));
+    } catch {}
+  };
 
   const visibleColumns = useMemo(
     () => config.columns.filter((column) => !hiddenColumns.includes(column.key)),
@@ -119,9 +223,9 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   }, [rows, visibleColumns, columnFilters, sidebarFilters, sortState]);
 
   const paginatedRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return processedRows.slice(start, start + pageSize);
-  }, [page, pageSize, processedRows]);
+    const start = (page - 1) * currentPageSize;
+    return processedRows.slice(start, start + currentPageSize);
+  }, [page, currentPageSize, processedRows]);
 
   const openModal = (modal: ModalState, row: T) => {
     setActiveRow(row);
@@ -133,11 +237,37 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     setActiveRow(null);
   };
 
+  const [copyToast, setCopyToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({
+    visible: false,
+    message: "",
+    type: "success",
+  });
+
   const handleRowAction = (actionKey: string, row: T) => {
     if (actionKey === "copy-url") {
-      void navigator.clipboard.writeText(
-        `${window.location.origin}${config.baseRoute}/${row.id}`
-      );
+      const url = `${window.location.origin}${config.baseRoute}/${row.id}`;
+      void copyToClipboard(url).then((success) => {
+        if (success) {
+          setCopyToast({
+            visible: true,
+            message: "URL copied to clipboard!",
+            type: "success",
+          });
+        } else {
+          setCopyToast({
+            visible: true,
+            message: "Failed to copy URL to clipboard.",
+            type: "error",
+          });
+        }
+        setTimeout(() => {
+          setCopyToast((prev) => ({ ...prev, visible: false }));
+        }, 2500);
+      });
       return;
     }
 
@@ -440,10 +570,10 @@ export default function CRMModuleListPage<T extends CRMRecord>({
           createButtonLabel={`Create ${config.title.slice(0, -1)}`}
           sortFields={config.sortFields}
           sortFieldKeyMap={config.sortFieldKeyMap}
-          isFilterOpen={filterOpen}
+          isFilterOpen={isFilterOpen}
           onToggleFilter={() => {
             if (!config.filterSections) return;
-            setFilterOpen((prev) => !prev);
+            setFilterOpen((prev) => !(prev ?? !hideFilterSidebar));
           }}
           onCreateClick={() => navigate(`${config.baseRoute}/create`)}
           onApplySort={
@@ -458,10 +588,25 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               : undefined
           }
           onMassAction={(action) => setActiveModal(action)}
+          columns={config.columns}
+          hiddenColumns={hiddenColumns}
+          onSetHiddenColumns={handleSetHiddenColumns}
+          pinnedColumn={pinnedColumn}
+          onSetPinnedColumn={handleSetPinnedColumn}
+          pageSize={currentPageSize}
+          onPageSizeChange={handlePageSizeChange}
+          density={density}
+          onDensityChange={handleDensityChange}
+          showNotes={currentShowNotes}
+          onToggleShowNotes={handleToggleShowNotes}
+          showActivity={currentShowActivity}
+          onToggleShowActivity={handleToggleShowActivity}
+          sortState={sortState}
+          moduleName={config.title}
         />
 
         <div className="flex gap-3">
-          {config.filterSections && filterOpen && !hideFilterSidebar && (
+          {config.filterSections && isFilterOpen && (
             <FilterSidebar
               title={`Filter ${config.title} by`}
               sections={config.filterSections}
@@ -495,15 +640,17 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 </div>
               </div>
             ) : <CRMTable
-          rows={paginatedRows}
+              rows={paginatedRows}
               columns={visibleColumns}
               rowActions={config.rowActions}
               selectedIds={selectedIds}
               hiddenColumns={hiddenColumns}
               pinnedColumn={pinnedColumn}
               columnFilters={columnFilters}
-              showNotes={showNotes}
-              showActivity={showActivity}
+              showNotes={currentShowNotes}
+              showActivity={currentShowActivity}
+              showActionsColumn={showActionsColumn}
+              density={density}
               onToggleAll={(checked) => {
                 if (!checked) {
                   setSelectedIds([]);
@@ -535,28 +682,27 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 setSortState({ key: columnKey, direction })
               }
               onToggleHideColumn={(columnKey) => {
-                setHiddenColumns((prev) =>
-                  prev.includes(columnKey)
-                    ? prev.filter((item) => item !== columnKey)
-                    : [...prev, columnKey]
-                );
+                const next = hiddenColumns.includes(columnKey)
+                  ? hiddenColumns.filter((item) => item !== columnKey)
+                  : [...hiddenColumns, columnKey];
+                handleSetHiddenColumns(next);
 
                 if (pinnedColumn === columnKey) {
-                  setPinnedColumn(null);
+                  handleSetPinnedColumn(null);
                 }
               }}
               onTogglePinColumn={(columnKey) =>
-                setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))
+                handleSetPinnedColumn(pinnedColumn === columnKey ? null : columnKey)
               }
               onFilterColumn={(columnKey, value) =>
                 setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))
               }
             />}
 
-            {!hideTable && !loading && processedRows.length > pageSize && (
+            {!hideTable && !loading && processedRows.length > currentPageSize && (
               <CRMPagination
                 page={page}
-                pageSize={pageSize}
+                pageSize={currentPageSize}
                 totalItems={processedRows.length}
                 onPageChange={setPage}
               />
@@ -645,6 +791,16 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         count={processedRows.length}
         onConfirm={handleMassConvert}
       />
+      {copyToast.visible && (
+        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl transition-all">
+          {copyToast.type === "success" ? (
+            <CheckCircle2 size={18} className="text-emerald-400" />
+          ) : (
+            <AlertCircle size={18} className="text-rose-400" />
+          )}
+          <span>{copyToast.message}</span>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

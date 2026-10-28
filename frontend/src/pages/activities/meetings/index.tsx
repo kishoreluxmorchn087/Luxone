@@ -6,6 +6,7 @@ import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
+import { formatDateTimeForDisplay } from "../../../lib/dateUtils";
 
 type FilterMap = Record<string, string>;
 
@@ -16,6 +17,7 @@ interface Meeting {
   end_date?: string;
   location?: string;
   organizer?: { name?: string; email?: string };
+  lead_name?: string;
   contact_name?: string;
   account_name?: string;
   status?: string;
@@ -103,12 +105,7 @@ export default function MeetingsPage() {
 
   function formatDate(dateString?: string) {
     if (!dateString) return "—";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US") + " " + date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return formatDateTimeForDisplay(dateString);
   }
 
   if (loading) {
@@ -260,7 +257,7 @@ export default function MeetingsPage() {
                           {meeting.location || "—"}
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-600">
-                          {meeting.account_name || "—"}
+                          {meeting.lead_name || meeting.account_name || "—"}
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-600">
                           {meeting.contact_name || "—"}

@@ -26,6 +26,8 @@ import InventoryLookupField from "./InventoryLookupField";
 import InventoryQuickVendorModal from "./InventoryQuickVendorModal";
 import InventoryReviewChangesModal from "./InventoryReviewChangesModal";
 import InventoryTotalsPanel from "./InventoryTotalsPanel";
+import DatePicker from "../../components/common/DatePicker";
+import { validateDatePickerInputs } from "../../lib/dateUtils";
 
 type Props = { moduleKey: InventoryModuleKey };
 
@@ -764,6 +766,8 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   }, [anyForm.purchaseOrder, anyForm.salesOrder, moduleKey]);
 
   const save = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (isVendorAssignment && !String(anyForm.vendorOwner || "").trim()) {
       setError("Select a user to assign this vendor.");
       return;
@@ -982,19 +986,19 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Deployment Model"><select className={inputClass} value={anyForm.deploymentModel || "cloud"} onChange={(e) => setForm({ ...anyForm, deploymentModel: e.target.value })}><option value="cloud">Cloud</option><option value="on_prem">On-premise</option><option value="hybrid">Hybrid</option></select></Field>
                   <Field label="Billing Cycle"><select className={inputClass} value={anyForm.billingCycle || "yearly"} onChange={(e) => setForm({ ...anyForm, billingCycle: e.target.value })}><option value="one_time">One-time</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option><option value="custom">Custom</option></select></Field>
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
-                  <Field label="Unit Price"><input type="number" min={0} step="any" className={inputClass} value={anyForm.unitPrice} onChange={(e) => setForm({ ...anyForm, unitPrice: nonNegativeNumber(e.target.value) })} /></Field>
-                  <Field label="Commission Rate"><input type="number" min={0} step="any" className={inputClass} value={anyForm.commissionRate} onChange={(e) => setForm({ ...anyForm, commissionRate: nonNegativeNumber(e.target.value) })} /></Field>
-                  <Field label="Tax"><input type="number" min={0} step="any" className={inputClass} value={anyForm.tax} onChange={(e) => setForm({ ...anyForm, tax: nonNegativeNumber(e.target.value) })} /></Field>
-                  <Field label="Quantity In Stock"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInStock} onChange={(e) => setForm({ ...anyForm, quantityInStock: nonNegativeNumber(e.target.value) })} /></Field>
-                  <Field label="Quantity In Demand"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInDemand} onChange={(e) => setForm({ ...anyForm, quantityInDemand: nonNegativeNumber(e.target.value) })} /></Field>
-                  <Field label="Reorder Level"><input type="number" min={0} step={1} className={inputClass} value={anyForm.reorderLevel} onChange={(e) => setForm({ ...anyForm, reorderLevel: nonNegativeNumber(e.target.value) })} /></Field>
+                  <Field label="Unit Price"><input type="number" min={0} step="any" className={inputClass} value={anyForm.unitPrice} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, unitPrice: "" }); }} onChange={(e) => setForm({ ...anyForm, unitPrice: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, unitPrice: 0 }); }} /></Field>
+                  <Field label="Commission Rate"><input type="number" min={0} step="any" className={inputClass} value={anyForm.commissionRate} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, commissionRate: "" }); }} onChange={(e) => setForm({ ...anyForm, commissionRate: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, commissionRate: 0 }); }} /></Field>
+                  <Field label="Tax"><input type="number" min={0} step="any" className={inputClass} value={anyForm.tax} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, tax: "" }); }} onChange={(e) => setForm({ ...anyForm, tax: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, tax: 0 }); }} /></Field>
+                  <Field label="Quantity In Stock"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInStock} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, quantityInStock: "" }); }} onChange={(e) => setForm({ ...anyForm, quantityInStock: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, quantityInStock: 0 }); }} /></Field>
+                  <Field label="Quantity In Demand"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInDemand} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, quantityInDemand: "" }); }} onChange={(e) => setForm({ ...anyForm, quantityInDemand: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, quantityInDemand: 0 }); }} /></Field>
+                  <Field label="Reorder Level"><input type="number" min={0} step={1} className={inputClass} value={anyForm.reorderLevel} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, reorderLevel: "" }); }} onChange={(e) => setForm({ ...anyForm, reorderLevel: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, reorderLevel: 0 }); }} /></Field>
                   <Field label="Usage Unit"><input className={inputClass} value={anyForm.usageUnit || ""} onChange={(e) => setForm({ ...anyForm, usageUnit: e.target.value })} /></Field>
                   <Field label="Default User Seats"><input type="number" min={1} step={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Subscription Term (Months)"><input type="number" min={1} step={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Renewal Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired ?? true)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} />Renewal Required</label></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Support Start Date"><input type="date" className={inputClass} value={anyForm.supportStartDate || ""} onChange={(e) => setForm({ ...anyForm, supportStartDate: e.target.value })} /></Field>
-                  <Field label="Support Expiry Date"><input type="date" className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(e) => setForm({ ...anyForm, supportExpiryDate: e.target.value })} /></Field>
+                  <Field label="Support Start Date"><DatePicker className={inputClass} value={anyForm.supportStartDate || ""} onChange={(supportStartDate) => setForm({ ...anyForm, supportStartDate })} /></Field>
+                  <Field label="Support Expiry Date"><DatePicker className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(supportExpiryDate) => setForm({ ...anyForm, supportExpiryDate })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
                 </>
               )}
@@ -1338,16 +1342,16 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                 {moduleKey === "sales-orders" && <Field label="Customer No"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.customerNo || ""} readOnly placeholder="Auto-filled from account" /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="Requisition Number"><input className={inputClass} value={anyForm.requisitionNumber || ""} onChange={(e) => setForm({ ...anyForm, requisitionNumber: e.target.value })} /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="PO Number"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.poNumber || ""} readOnly placeholder="Auto-generated on save" /></Field>}
-                {moduleKey === "invoices" && <Field label="Invoice Date"><input type="date" className={inputClass} value={anyForm.invoiceDate || ""} onChange={(e) => setForm({ ...anyForm, invoiceDate: e.target.value })} /></Field>}
+                {moduleKey === "invoices" && <Field label="Invoice Date"><DatePicker className={inputClass} value={anyForm.invoiceDate || ""} onChange={(invoiceDate) => setForm({ ...anyForm, invoiceDate })} /></Field>}
                 {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Status"><input className={inputClass} value={anyForm.status || ""} onChange={(e) => setForm({ ...anyForm, status: e.target.value })} /></Field>}
                 <Field label="Carrier"><input className={inputClass} value={anyForm.carrier || ""} onChange={(e) => setForm({ ...anyForm, carrier: e.target.value })} /></Field>
                 {moduleKey === "quotes" && (
                   <div>
-                    <Field label="Valid Until"><input type="date" className={inputClass} value={anyForm.validUntil || ""} onChange={(e) => updateInventoryForm({ ...anyForm, validUntil: e.target.value })} /></Field>
+                    <Field label="Valid Until"><DatePicker className={inputClass} value={anyForm.validUntil || ""} onChange={(validUntil) => updateInventoryForm({ ...anyForm, validUntil })} /></Field>
                     <p className="mt-1 text-xs text-slate-500">Set the last date the customer can accept this quote.</p>
                   </div>
                 )}
-                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><input type="date" className={inputClass} value={anyForm.dueDate || ""} onChange={(e) => setForm({ ...anyForm, dueDate: e.target.value })} /></Field>}
+                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><DatePicker futureOnly className={inputClass} value={anyForm.dueDate || ""} onChange={(dueDate) => setForm({ ...anyForm, dueDate })} /></Field>}
                 {moduleKey === "sales-orders" && <Field label="Quote Name"><InventoryLookupField lookup="quotes" value={anyForm.quote || ""} displayValue={anyForm.quoteLabel || ""} onChange={(option) => setForm({ ...anyForm, quote: option?.id || "", quoteLabel: option?.label || "" })} /></Field>}
                 {moduleKey !== "purchase-orders" && (
                   <div>
@@ -1380,9 +1384,9 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
                   <Field label="Licensed Users"><input type="number" min={1} className={inputClass} value={anyForm.licensedUsers ?? 1} onChange={(e) => setForm({ ...anyForm, licensedUsers: Number(e.target.value) })} /></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Subscription Start Date"><input type="date" className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionStartDate: e.target.value })} /></Field>
-                  <Field label="Subscription End Date"><input type="date" className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionEndDate: e.target.value })} /></Field>
-                  <Field label="Renewal Due Date"><input type="date" className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(e) => setForm({ ...anyForm, renewalDueDate: e.target.value })} /></Field>
+                  <Field label="Subscription Start Date"><DatePicker className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(subscriptionStartDate) => setForm({ ...anyForm, subscriptionStartDate })} /></Field>
+                  <Field label="Subscription End Date"><DatePicker className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(subscriptionEndDate) => setForm({ ...anyForm, subscriptionEndDate })} /></Field>
+                  <Field label="Renewal Due Date"><DatePicker futureOnly className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(renewalDueDate) => setForm({ ...anyForm, renewalDueDate })} /></Field>
                 </div>
               </div>
             )}

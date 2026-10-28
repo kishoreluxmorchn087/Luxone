@@ -2,12 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
+import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
+import DatePicker from "../common/DatePicker";
+import { formatDateForInput, parseDateInput, validateDatePickerInputs } from "../../lib/dateUtils";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
 
 export type CRMCreateFieldType =
   | "text"
+  | "date"
   | "email"
   | "number"
   | "phone"
@@ -26,12 +30,14 @@ export type CRMCreateField = {
   label: string;
   type: CRMCreateFieldType;
   required?: boolean;
+  requiredIndicator?: boolean;
   options?: string[];
   secondaryName?: string;
   secondaryRequired?: boolean;
   sanitizeValue?: (value: string) => string;
   validateValue?: (value: string, formData: Record<string, unknown>) => string | null;
   maxLength?: number;
+  min?: number;
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   helperText?: string;
   secondarySanitizeValue?: (value: string) => string;
@@ -178,12 +184,10 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     field,
     isSecondary,
     value,
-    sourceName,
   }: {
     field: CRMCreateField;
     isSecondary: boolean;
     value: string;
-    sourceName: string;
   }): string | null => {
     if (isSecondary) {
       if (field.secondaryValidateValue) {
@@ -198,14 +202,11 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
+    if (field.type === "date" && value && !parseDateInput(formatDateForInput(value))) {
+      return `${field.label} must be a valid date.`;
+    }
     if (field.required && !value.trim()) {
       return `${field.label} is required.`;
-    }
-    if (field.type === "name-composite" && sourceName === field.name && field.secondaryRequired) {
-      const secondaryValue = String(formData[field.secondaryName ?? ""] ?? "");
-      if (!secondaryValue.trim()) {
-        return `${field.label} is required.`;
-      }
     }
     return null;
   };
@@ -213,12 +214,20 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   const handleFieldBlur = (name: string) => {
     const { field, isSecondary } = findFieldByInputName(name);
     if (!field) return;
+
+    if (field.type === "currency") {
+      const raw = String(formData[name] ?? "");
+      if (raw.endsWith(".")) {
+        const cleaned = raw.slice(0, -1);
+        setFormData((prev) => ({ ...prev, [name]: cleaned }));
+      }
+    }
+
     const value = String(formData[name] ?? "");
     const message = validateFieldValue({
       field,
       isSecondary,
       value,
-      sourceName: name,
     });
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -265,10 +274,39 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     if (type !== "checkbox") {
       if (sanitizeValue) {
         nextValue = sanitizeValue(nextValue);
+      } else if (field?.type === "currency") {
+        nextValue = formatCurrencyInput(nextValue);
       }
       if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
       }
+      if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
+        const numericValue = Number(nextValue);
+        if (Number.isFinite(numericValue) && numericValue < field.min) {
+          nextValue = String(field.min);
+        }
+      }
+    }
+
+    if (field?.type === "currency" && e.target instanceof HTMLInputElement) {
+      const input = e.target;
+      const prevPos = input.selectionStart ?? value.length;
+      const digitsBefore = value.slice(0, prevPos).replace(/[^\d.]/g, "").length;
+
+      requestAnimationFrame(() => {
+        let count = 0;
+        let targetPos = nextValue.length;
+        for (let i = 0; i < nextValue.length; i++) {
+          if (/[\d.]/.test(nextValue[i])) {
+            count++;
+            if (count === digitsBefore) {
+              targetPos = i + 1;
+              break;
+            }
+          }
+        }
+        input.setSelectionRange(targetPos, targetPos);
+      });
     }
 
     setFormData((prev) => ({
@@ -295,6 +333,8 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   };
 
   const handleSave = async (goToNew = false) => {
+    if (!validateDatePickerInputs()) return;
+
     try {
       setSaving(true);
       setErrorMsg(null);
@@ -306,7 +346,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             field,
             isSecondary: false,
             value: String(formData[field.name] ?? ""),
-            sourceName: field.name,
           });
           if (primaryMessage) {
             validationErrors[field.name] = primaryMessage;
@@ -316,7 +355,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               field,
               isSecondary: true,
               value: String(formData[field.secondaryName] ?? ""),
-              sourceName: field.secondaryName,
             });
             if (secondaryMessage) {
               validationErrors[field.secondaryName] = secondaryMessage;
@@ -538,6 +576,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               inputMode={field.secondaryInputMode}
             />
           </div>
+          {getFieldMessage(field.name)}
           {getFieldMessage(field.secondaryName ?? "")}
         </div>
       );
@@ -552,9 +591,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             onChange={handleChange}
             onBlur={() => handleFieldBlur(field.name)}
             className={`${inputClass} pr-4 pl-11`}
-            placeholder={field.placeholder ?? ""}
+            placeholder={field.placeholder ?? "0.00"}
             maxLength={field.maxLength}
-            inputMode={field.inputMode}
+            inputMode={field.inputMode ?? "decimal"}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.
@@ -595,6 +634,32 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       );
     }
 
+    if (field.type === "date") {
+      return (
+        <div>
+          <DatePicker
+            name={field.name}
+            value={value}
+            onChange={(date) => {
+              setFormData((previous) => ({ ...previous, [field.name]: date }));
+              setIsDirty(true);
+              setFieldErrors((previous) => {
+                if (!previous[field.name]) return previous;
+                const next = { ...previous };
+                delete next[field.name];
+                return next;
+              });
+              if (errorMsg) setErrorMsg(null);
+            }}
+            onBlur={() => handleFieldBlur(field.name)}
+            className={inputClass}
+            futureOnly={/due|closing/i.test(`${field.name} ${field.label}`)}
+          />
+          {getFieldMessage(field.name)}
+        </div>
+      );
+    }
+
     return (
       <div>
         <input
@@ -607,9 +672,13 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           className={inputClass}
           readOnly={field.readOnly}
           maxLength={field.maxLength}
+          min={field.type === "number" ? field.min : undefined}
           inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}
+        {field.helperText && (
+          <p className="mt-1 text-[11px] leading-4 text-slate-500">{field.helperText}</p>
+        )}
       </div>
     );
   };
@@ -682,7 +751,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                           <div key={field.name} className="contents">
                             <label className={labelClass}>
                               {field.label}
-                              {(field.required || field.secondaryRequired) && (
+                              {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                 <span className="ml-1 text-red-600">*</span>
                               )}
                             </label>
@@ -700,7 +769,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>
@@ -716,7 +785,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired) && (
+                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>

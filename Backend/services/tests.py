@@ -96,6 +96,39 @@ class DomainMappingValidationTests(APITestCase):
         self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
         self.assertEqual(verify_response.data["verification_status"], ServiceDomainMapping.VerificationStatus.VERIFIED)
 
+    def test_domain_mapping_can_be_updated_and_removed_individually(self):
+        first_response = self.client.post(
+            "/api/settings/domain-mapping/",
+            {"account_type": "crm", "domain": "first.example.com"},
+            format="json",
+        )
+        second_response = self.client.post(
+            "/api/settings/domain-mapping/",
+            {"account_type": "sandbox", "domain": "second.example.com"},
+            format="json",
+        )
+        first_id = first_response.data["id"]
+        second_id = second_response.data["id"]
+
+        update_response = self.client.patch(
+            f"/api/settings/domain-mapping/{first_id}/",
+            {"account_type": "portals", "domain": "updated.example.com"},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.data["domain"], "updated.example.com")
+        self.assertEqual(update_response.data["account_type"], "portals")
+        self.assertEqual(ServiceDomainMapping.objects.get(pk=first_id).domain, "updated.example.com")
+
+        delete_response = self.client.delete(f"/api/settings/domain-mapping/{first_id}/")
+
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ServiceDomainMapping.objects.get(pk=first_id).is_active)
+        self.assertTrue(ServiceDomainMapping.objects.get(pk=second_id).is_active)
+        list_response = self.client.get("/api/settings/domain-mapping/")
+        self.assertEqual([item["id"] for item in list_response.data], [second_id])
+
 
 class ServiceDetailSerializerTests(ServicesTestMixin, TestCase):
     def test_members_only_include_active_assignments(self):
@@ -109,6 +142,18 @@ class ServiceDetailSerializerTests(ServicesTestMixin, TestCase):
 
         self.assertEqual(len(data["members"]), 1)
         self.assertEqual(data["members"][0]["member"], active_member.id)
+
+    def test_custom_time_fields_are_serialized(self):
+        service = self.create_service(
+            available_time_mode=CRMService.AvailabilityMode.CUSTOM,
+            custom_time_start=time(9, 0),
+            custom_time_end=time(17, 30),
+        )
+
+        data = ServiceDetailSerializer(service).data
+
+        self.assertEqual(data["custom_time_start"], "09:00:00")
+        self.assertEqual(data["custom_time_end"], "17:30:00")
 
 
 class AppointmentSerializerTests(ServicesTestMixin, TestCase):

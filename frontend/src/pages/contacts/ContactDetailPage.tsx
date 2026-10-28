@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Building2, ExternalLink, User } from "lucide-react";
 import { contactModuleConfig } from "../../components/modules/contacts/contactsMockData";
@@ -7,6 +7,7 @@ import { loadContactLinkedData } from "../../lib/api/linkedRecordsApi";
 import type { ContactRecord, Deal, Note } from "../../lib/shared/crmTypes";
 import CRMModuleDetailPage from "../crm/CRMModuleDetailPage";
 import { apiRequest } from "../../api/client";
+import DatePicker from "../../components/common/DatePicker";
 
 const DEAL_STAGES = ["Qualification", "Needs Analysis", "Value Proposition", "Identify Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"];
 
@@ -25,6 +26,7 @@ export default function ContactDetailPage() {
   const [convertForm, setConvertForm] = useState({ dealName: "", stage: "Qualification", amount: "", closingDate: "" });
   const [convertError, setConvertError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
+  const closingDateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +81,7 @@ export default function ContactDetailPage() {
 
   const handleConvertToDeal = async () => {
     if (!convertForm.dealName.trim()) { setConvertError("Deal name is required."); return; }
+    if (!closingDateInputRef.current?.reportValidity()) return;
     setConverting(true);
     setConvertError(null);
     try {
@@ -206,10 +209,11 @@ export default function ContactDetailPage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Closing Date</label>
-                <input
-                  type="date"
+                <DatePicker
+                  ref={closingDateInputRef}
+                  futureOnly
                   value={convertForm.closingDate}
-                  onChange={(e) => setConvertForm((f) => ({ ...f, closingDate: e.target.value }))}
+                  onChange={(closingDate) => setConvertForm((f) => ({ ...f, closingDate }))}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
               </div>

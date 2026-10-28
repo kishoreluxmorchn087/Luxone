@@ -23,6 +23,37 @@ type Paginated<T> = {
   results: T[];
 };
 
+type SupportCaseApiDetail = {
+  case_number?: unknown;
+  subject?: unknown;
+  status?: unknown;
+  priority?: unknown;
+  case_origin?: unknown;
+  case_reason?: unknown;
+  type?: unknown;
+  description?: unknown;
+  internal_comments?: unknown;
+  solution_text?: unknown;
+  reported_by?: unknown;
+  email?: unknown;
+  company?: unknown;
+  country?: unknown;
+  phone?: unknown;
+  lead?: unknown;
+  lead_name?: unknown;
+  lead_source?: unknown;
+  owner?: unknown;
+  owner_email?: unknown;
+  product?: unknown;
+  product_name?: unknown;
+  related_contact?: unknown;
+  related_contact_name?: unknown;
+  account?: unknown;
+  account_name?: unknown;
+  deal?: unknown;
+  deal_name?: unknown;
+};
+
 const modulePathMap: Record<SupportModuleKey, string> = {
   cases: "/support/cases",
   solutions: "/support/solutions",
@@ -222,9 +253,10 @@ export async function getSupportList(moduleKey: SupportModuleKey): Promise<CRMRe
 
 export async function getCaseDetail(id: string): Promise<CaseDetailData> {
   const detail = await apiRequest<any>(`${modulePathMap.cases}/${id}`);
-  const [integrationEmails, socialMessages] = await Promise.all([
+  const [integrationEmails, socialMessages, links] = await Promise.all([
     integrationsApi.listCaseRecordEmails(id).catch(() => []),
     integrationsApi.listSocialMessages({ support_case: id }).catch(() => []),
+    getSupportLinks("cases", id),
   ]);
   const relatedEmails = mergeEmails(
     (detail.emails || []).map((item: any) => mapEmail(id, item)),
@@ -305,7 +337,7 @@ export async function getCaseDetail(id: string): Promise<CaseDetailData> {
       connectedRecords: relatedConnectedRecords,
       openActivities,
       closedActivities,
-      links: [],
+      links,
     },
   };
 }
@@ -314,8 +346,44 @@ export async function getCaseSnapshot(id: string) {
   return apiRequest<any>(`${modulePathMap.cases}/${id}`);
 }
 
+export async function getCaseFormData(id: string): Promise<CaseFormData> {
+  const detail = await apiRequest<SupportCaseApiDetail>(`${modulePathMap.cases}/${id}`);
+  return {
+    caseNumber: asString(detail.case_number),
+    subject: asString(detail.subject),
+    status: asString(detail.status),
+    priority: asString(detail.priority),
+    caseOrigin: asString(detail.case_origin),
+    caseReason: asString(detail.case_reason),
+    type: asString(detail.type),
+    description: asString(detail.description),
+    internalComments: asString(detail.internal_comments),
+    solutionText: asString(detail.solution_text),
+    reportedBy: asString(detail.reported_by),
+    email: asString(detail.email),
+    company: asString(detail.company),
+    country: asString(detail.country),
+    phone: asString(detail.phone),
+    lead: asString(detail.lead),
+    leadLabel: asString(detail.lead_name),
+    leadName: asString(detail.lead_name),
+    leadSource: asString(detail.lead_source),
+    owner: asString(detail.owner),
+    ownerLabel: asString(detail.owner_email),
+    product: asString(detail.product),
+    productLabel: asString(detail.product_name),
+    relatedContact: asString(detail.related_contact),
+    relatedContactLabel: asString(detail.related_contact_name),
+    account: asString(detail.account),
+    accountLabel: asString(detail.account_name),
+    deal: asString(detail.deal),
+    dealLabel: asString(detail.deal_name),
+  };
+}
+
 export async function getSolutionDetail(id: string): Promise<SolutionDetailData> {
   const detail = await apiRequest<any>(`${modulePathMap.solutions}/${id}`);
+  const [links] = await Promise.all([getSupportLinks("solutions", id)]);
   const notes = (detail.notes || []).map((item: any) => mapNote(id, item));
   const attachments = (detail.attachments || []).map((item: any) => mapAttachment(id, item));
   return {
@@ -360,7 +428,7 @@ export async function getSolutionDetail(id: string): Promise<SolutionDetailData>
       connectedRecords: (detail.linked_records || []).map((item: any) => mapConnectedRecord(id, item)),
       openActivities: [],
       closedActivities: [],
-      links: [],
+      links,
     },
   };
 }
@@ -495,6 +563,36 @@ export async function addSupportNote(moduleKey: SupportModuleKey, id: string, no
   return apiRequest(`${modulePathMap[moduleKey]}/${id}/notes`, {
     method: "POST",
     body: JSON.stringify({ note }),
+  });
+}
+
+export type SupportURLLink = {
+  id: string;
+  label: string;
+  url: string;
+  createdAt?: string;
+};
+
+async function getSupportLinks(moduleKey: SupportModuleKey, id: string): Promise<SupportURLLink[]> {
+  const links = await apiRequest<Array<{ id: number | string; label?: string; url: string; created_at?: string }>>(
+    `${modulePathMap[moduleKey]}/${id}/links`
+  );
+  return links.map((link) => ({
+    id: asString(link.id),
+    label: asString(link.label) || link.url,
+    url: link.url,
+    createdAt: link.created_at ? asString(link.created_at) : undefined,
+  }));
+}
+
+export async function addSupportLink(
+  moduleKey: SupportModuleKey,
+  id: string,
+  link: { label: string; url: string }
+): Promise<void> {
+  await apiRequest(`${modulePathMap[moduleKey]}/${id}/links`, {
+    method: "POST",
+    body: JSON.stringify(link),
   });
 }
 

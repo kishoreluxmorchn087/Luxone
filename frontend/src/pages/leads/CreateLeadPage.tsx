@@ -10,6 +10,7 @@ import {
   RATING_OPTIONS,
   SALUTATION_OPTIONS,
 } from "../../config/crm/createOptions";
+import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
 
 const sanitizeAlphaSpace = (value: string) => value.replace(/[^A-Za-z ]+/g, "");
 const sanitizeDigits = (value: string) => value.replace(/\D+/g, "");
@@ -117,8 +118,10 @@ const sections: CRMCreateSection[] = [
         name: "lastName",
         label: "Last Name",
         type: "text",
+        required: true,
         sanitizeValue: sanitizeAlphaSpace,
         maxLength: 30,
+        validateValue: validateRequired("Last Name"),
       },
       {
         name: "title",
@@ -151,8 +154,8 @@ const sections: CRMCreateSection[] = [
         name: "annualRevenue",
         label: "Annual Revenue",
         type: "currency",
-        sanitizeValue: sanitizeDigits,
-        inputMode: "numeric",
+        sanitizeValue: formatCurrencyInput,
+        inputMode: "decimal",
       },
       { name: "emailOptOut", label: "Email Opt Out", type: "checkbox" },
 
@@ -243,7 +246,7 @@ export default function CreateLeadPage() {
           leadStatus: lead.leadStatus ?? "",
           industry: lead.industry ?? "",
           noOfEmployees: String(lead.noOfEmployees || ""),
-          annualRevenue: String(lead.annualRevenue || ""),
+          annualRevenue: lead.annualRevenue ? formatCurrencyInput(lead.annualRevenue) : "",
           rating: lead.rating ?? "",
           emailOptOut: false,
           skypeId: lead.skypeId ?? "",

@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CRMDetailHeader from "../../components/crm/CRMDetailHeader";
 import CRMRelatedList from "../../components/crm/CRMRelatedList";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import CRMTabs from "../../components/crm/CRMTabs";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { addSupportComment, findExistingSolutionByCase, getCaseDetail, getSolutionDetail } from "../api";
+import {
+  addSupportComment,
+  addSupportLink,
+  findExistingSolutionByCase,
+  getCaseDetail,
+  getSolutionDetail,
+} from "../api";
 import { supportModuleMeta } from "../config";
 import type { SupportModuleKey } from "../types";
 import CaseAttachmentsPanel from "./CaseAttachmentsPanel";
@@ -35,6 +41,10 @@ export default function SupportDetailPageCore({ moduleKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [savingLink, setSavingLink] = useState(false);
 
   const load = async () => {
     if (!id) return;
@@ -61,6 +71,27 @@ export default function SupportDetailPageCore({ moduleKey }: Props) {
       })),
     [meta.relatedListItems]
   );
+
+  const handleAddLink = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!id || !linkUrl.trim()) return;
+
+    try {
+      setSavingLink(true);
+      setLinkError(null);
+      await addSupportLink(moduleKey, id, {
+        label: linkLabel.trim(),
+        url: linkUrl.trim(),
+      });
+      setLinkLabel("");
+      setLinkUrl("");
+      await load();
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Unable to add link.");
+    } finally {
+      setSavingLink(false);
+    }
+  };
 
   if (loading) return <div className="p-6 text-sm text-slate-600">Loading {meta.singular.toLowerCase()}...</div>;
   if (error || !payload) return <div className="p-6 text-sm text-rose-600">{error || "Record not found."}</div>;
@@ -284,7 +315,47 @@ export default function SupportDetailPageCore({ moduleKey }: Props) {
                       </div>
                     </CRMSectionCard>
                   ) : null}
-                  {section.label === "Links" ? <CRMSectionCard title="Links"><div className="text-sm text-slate-500">No links available.</div></CRMSectionCard> : null}
+                  {section.label === "Links" ? (
+                    <CRMSectionCard title="Links">
+                      <form onSubmit={(event) => void handleAddLink(event)} className="mb-4 grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+                        <input
+                          value={linkLabel}
+                          onChange={(event) => setLinkLabel(event.target.value)}
+                          placeholder="Link name (optional)"
+                          aria-label="Link name"
+                          maxLength={255}
+                          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        />
+                        <input
+                          type="url"
+                          value={linkUrl}
+                          onChange={(event) => setLinkUrl(event.target.value)}
+                          placeholder="https://example.com"
+                          aria-label="Link URL"
+                          required
+                          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        />
+                        <button
+                          type="submit"
+                          disabled={savingLink}
+                          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                        >
+                          {savingLink ? "Adding..." : "Add Link"}
+                        </button>
+                      </form>
+                      {linkError ? <p role="alert" className="mb-3 text-sm text-rose-600">{linkError}</p> : null}
+                      <div className="space-y-2">
+                        {payload.related.links.length ? payload.related.links.map((link: any) => (
+                          <div key={link.id} className="rounded-md border border-slate-200 p-3 text-sm">
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 hover:underline">
+                              {link.label}
+                            </a>
+                            <p className="mt-1 break-all text-xs text-slate-500">{link.url}</p>
+                          </div>
+                        )) : <div className="text-sm text-slate-500">No links added yet.</div>}
+                      </div>
+                    </CRMSectionCard>
+                  ) : null}
                 </section>
               ))}
             </div>

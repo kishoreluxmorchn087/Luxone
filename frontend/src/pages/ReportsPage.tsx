@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -10,6 +9,8 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "../components/layout/DashboardLayout";
+import DatePicker from "../components/common/DatePicker";
+import { validateDatePickerInputs } from "../lib/dateUtils";
 import {
   DEV_REPORT_CATALOG,
   exportReport,
@@ -102,6 +103,7 @@ export default function ReportsPage() {
   );
 
   const handleGenerate = async (page = 1) => {
+    if (!validateDatePickerInputs()) return;
     if (!ensureReportSelected()) return;
     try {
       setRunningReport(true);
@@ -233,26 +235,22 @@ export default function ReportsPage() {
             <label className="text-sm font-medium text-[#5b21b6]">
               <span className="mb-2 block">Date From</span>
               <div className="relative">
-                <input
-                  type="date"
+                <DatePicker
                   value={filters.date_from}
-                  onChange={(event) => setFilters((current) => ({ ...current, date_from: event.target.value }))}
+                  onChange={(date_from) => setFilters((current) => ({ ...current, date_from }))}
                   className="w-full rounded-2xl border border-[#cdbaf8] bg-[#fcfbff] px-4 py-3 text-sm text-[#24143f] outline-none transition focus:border-[#7c3aed]"
                 />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a67a5]" />
               </div>
             </label>
 
             <label className="text-sm font-medium text-[#5b21b6]">
               <span className="mb-2 block">Date To</span>
               <div className="relative">
-                <input
-                  type="date"
+                <DatePicker
                   value={filters.date_to}
-                  onChange={(event) => setFilters((current) => ({ ...current, date_to: event.target.value }))}
+                  onChange={(date_to) => setFilters((current) => ({ ...current, date_to }))}
                   className="w-full rounded-2xl border border-[#cdbaf8] bg-[#fcfbff] px-4 py-3 text-sm text-[#24143f] outline-none transition focus:border-[#7c3aed]"
                 />
-                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a67a5]" />
               </div>
             </label>
 

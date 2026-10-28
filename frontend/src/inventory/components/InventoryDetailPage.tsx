@@ -14,6 +14,7 @@ import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 type InventoryDetailPageProps = {
   moduleKey: InventoryModuleKey;
@@ -70,6 +71,11 @@ function renderRelatedRecord(record: any, navigate: ReturnType<typeof useNavigat
       )}
     </div>
   );
+}
+
+function formatDetailValue(label: string, value: unknown) {
+  const text = String(value ?? "");
+  return /date/i.test(label) ? formatDateTimeForDisplay(text) : text;
 }
 
 export default function InventoryDetailPage({ moduleKey }: InventoryDetailPageProps) {
@@ -151,8 +157,8 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               return;
             }
 
-            if (action === "Send Email" && moduleKey === "vendors") {
-              setEmailOpen(true);
+            if (action === "Assign" && moduleKey === "vendors" && id) {
+              navigate(`${meta.baseRoute}/${id}/edit?assign=1`);
               return;
             }
 
@@ -286,7 +292,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(item.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {item.value || "-"}
+                        {formatDetailValue(item.label, item.value) || "-"}
                       </p>
                     </div>
                   ))}
@@ -303,7 +309,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(field.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {field.value || "-"}
+                        {formatDetailValue(field.label, field.value) || "-"}
                       </p>
                     </div>
                   ))}
@@ -424,21 +430,19 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           }}
         />
       )}
-      {moduleKey === "vendors" &&
-        createPortal(
-          <SendEmailModal
-            open={emailOpen}
-            onClose={() => setEmailOpen(false)}
-            toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
-            recordName={detail.name}
-            allowAttachments
-            onSend={async (email) => {
-              if (!id) throw new Error("Vendor record is unavailable.");
-              await sendVendorEmail(id, email);
-            }}
-          />,
-          document.body
-        )}
+      {moduleKey === "vendors" && (
+        <SendEmailModal
+          open={emailOpen}
+          onClose={() => setEmailOpen(false)}
+          toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
+          recordName={detail.name}
+          allowAttachments
+          onSend={async (email) => {
+            if (!id) throw new Error("Vendor record is unavailable.");
+            await sendVendorEmail(id, email);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

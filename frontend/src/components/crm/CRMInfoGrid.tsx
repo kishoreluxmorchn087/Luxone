@@ -22,6 +22,13 @@ export default function CRMInfoGrid<T extends CRMRecord>({
     if (value === null || value === undefined || value === "") {
       return fieldKey.toLowerCase().includes("owner") ? "Assigned to you" : "Not provided";
     }
+    if (fieldKey === "annualRevenue" || fieldKey.toLowerCase().includes("revenue")) {
+      const num = Number(String(value).replace(/,/g, ""));
+      if (Number.isFinite(num)) {
+        if (num === 0) return "Not provided";
+        return `Rs. ${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+      }
+    }
     return String(value);
   };
 
