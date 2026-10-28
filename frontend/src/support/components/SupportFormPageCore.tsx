@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getLoggedInUser, getLoggedInUserName } from "../../lib/auth/currentUser";
-import { createCase, createSolution, getCaseDetail, getCaseSnapshot, getSolutionDetail, updateCase, updateSolution } from "../api";
+import { createCase, createSolution, getCaseFormData, getCaseSnapshot, getSolutionDetail, updateCase, updateSolution } from "../api";
 import {
   caseOriginOptions,
   casePriorityOptions,
@@ -98,13 +98,16 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     const load = async () => {
       try {
         if (moduleKey === "cases") {
-          const detail = await getCaseDetail(id);
-          setCaseForm((prev) => ({ ...prev, caseNumber: detail.caseNumber, subject: detail.subject }));
+          const formData = await getCaseFormData(id);
+          if (cancelled) return;
+          setCaseForm(formData);
         } else {
           const detail = await getSolutionDetail(id);
+          if (cancelled) return;
           setSolutionForm((prev) => ({
             ...prev,
             solutionNumber: detail.solutionNumber,
@@ -115,10 +118,15 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
           }));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load record.");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load record.");
+        }
       }
     };
     void load();
+    return () => {
+      cancelled = true;
+    };
   }, [id, moduleKey]);
 
   useEffect(() => {
