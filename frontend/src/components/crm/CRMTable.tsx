@@ -94,13 +94,6 @@ export default function CRMTable<T extends CRMRecord>({
     );
   };
   const formatCellValue = (columnKey: string, value: unknown) => {
-    if (typeof value !== "string" || !/(date|_at|At$)/i.test(columnKey)) {
-      return String(value || "-");
-    }
-    return formatDateTimeForDisplay(value) || "-";
-  };
-
-  const formatCellValue = (columnKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") return "-";
     if (columnKey === "annualRevenue" || columnKey.toLowerCase().includes("revenue")) {
       const num = Number(String(value).replace(/,/g, ""));
@@ -108,6 +101,9 @@ export default function CRMTable<T extends CRMRecord>({
         if (num === 0) return "-";
         return `Rs. ${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
       }
+    }
+    if (typeof value === "string" && /(date|_at|At$)/i.test(columnKey)) {
+      return formatDateTimeForDisplay(value) || "-";
     }
     return String(value);
   };
