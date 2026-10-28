@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+  getPhoneValidationMessage,
+  sanitizePhoneValue,
+} from "../../lib/phoneValidation";
 import { quickCreateVendor } from "../api";
 
 type InventoryQuickVendorModalProps = {
@@ -33,7 +37,9 @@ export default function InventoryQuickVendorModal({
           />
           <input
             value={form.phone}
-            onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+            maxLength={20}
+            inputMode="numeric"
+            onChange={(event) => setForm((prev) => ({ ...prev, phone: sanitizePhoneValue(event.target.value, "phone") }))}
             placeholder="Phone"
             className="h-[38px] rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500"
           />
@@ -61,6 +67,11 @@ export default function InventoryQuickVendorModal({
               try {
                 setSaving(true);
                 setError(null);
+                const phoneError = getPhoneValidationMessage(form.phone, "phone");
+                if (phoneError) {
+                  setError(phoneError);
+                  return;
+                }
                 const vendor = await quickCreateVendor(form);
                 onSaved(vendor);
                 onClose();

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { submitCampaignForm, type PublicFormPayload } from "../../lib/api/campaignsApi";
+import {
+  getPhoneValidationMessage,
+  sanitizePhoneValue,
+} from "../../lib/phoneValidation";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 const inputClass =
@@ -39,10 +43,9 @@ export default function PublicCampaignFormPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name } = e.target;
-    const value =
-      name === "phone" && e.target instanceof HTMLInputElement
-        ? e.target.value.replace(/\D/g, "").slice(0, 10)
-        : e.target.value;
+    const value = name === "phone" && e.target instanceof HTMLInputElement
+      ? sanitizePhoneValue(e.target.value, "phone")
+      : e.target.value;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     setError(null);
@@ -67,8 +70,9 @@ const validate = () => {
 
   if (!form.phone.trim()) {
     errs.phone = "Phone number is required.";
-  } else if (!/^\d{10}$/.test(form.phone.trim())) {
-    errs.phone = "Phone number must be exactly 10 digits.";
+  } else {
+    const phoneError = getPhoneValidationMessage(form.phone.trim(), "phone", true, "Phone number");
+    if (phoneError) errs.phone = phoneError;
   }
 
   if (!form.company.trim()) {
@@ -214,10 +218,9 @@ const validate = () => {
               value={form.phone}
               onChange={handleChange}
               className={inputClass}
-              placeholder="Enter 10-digit phone number"
+              placeholder="Enter phone number"
               inputMode="numeric"
-              pattern="\d{10}"
-              maxLength={10}
+              maxLength={20}
             />
             {fieldErrors.phone && (
               <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>

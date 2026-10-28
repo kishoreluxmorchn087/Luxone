@@ -4,6 +4,10 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getLoggedInUser, getLoggedInUserName } from "../../lib/auth/currentUser";
+import {
+  getPhoneValidationMessage,
+  sanitizePhoneValue,
+} from "../../lib/phoneValidation";
 import { getInventoryRecordSnapshot, reviewInvoiceChanges, saveInventoryRecord } from "../api";
 import { getInventoryMeta } from "../config";
 import type {
@@ -782,6 +786,14 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   };
 
   const onSaveClick = async () => {
+    if (moduleKey === "vendors") {
+      const phoneError = getPhoneValidationMessage(String(anyForm.phone || ""), "phone");
+      if (phoneError) {
+        setError(phoneError);
+        return;
+      }
+    }
+
     const requireSelectedLookup = (idValue: string, labelValue: string, fieldLabel: string) => {
       if (String(labelValue || "").trim().length > 0 && String(idValue || "").trim().length === 0) {
         setError(`Select a valid ${fieldLabel.toLowerCase()} from the dropdown.`);
@@ -1028,7 +1040,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   )}
                   <Field label="Vendor Name"><input className={inputClass} value={anyForm.vendorName} onChange={(e) => setForm({ ...anyForm, vendorName: e.target.value })} /></Field>
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
-                  <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
+                  <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} maxLength={20} inputMode="numeric" onChange={(e) => updateInventoryForm({ ...anyForm, phone: sanitizePhoneValue(e.target.value, "phone") })} /></Field>
                   <Field label="Website"><input className={inputClass} value={anyForm.website || ""} onChange={(e) => setForm({ ...anyForm, website: e.target.value })} /></Field>
                   <Field label="Category"><input className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>

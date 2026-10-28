@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
+import {
+  getPhoneFieldKind,
+  getPhoneValidationMessage,
+  sanitizePhoneValue,
+} from "../../lib/phoneValidation";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
@@ -196,6 +201,11 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       return null;
     }
 
+    const phoneKind = getPhoneFieldKind(field.name, field.label);
+    if (phoneKind) {
+      return getPhoneValidationMessage(value, phoneKind, field.required, field.label);
+    }
+
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
@@ -267,7 +277,10 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       if (sanitizeValue) {
         nextValue = sanitizeValue(nextValue);
       }
-      if (typeof maxLength === "number") {
+      const phoneKind = field ? getPhoneFieldKind(name, field.label) : null;
+      if (phoneKind) {
+        nextValue = sanitizePhoneValue(nextValue, phoneKind);
+      } else if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
       }
       if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
@@ -363,6 +376,8 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
 
   const renderField = (field: CRMCreateField) => {
     const value = String(formData[field.name] ?? "");
+    const phoneKind = getPhoneFieldKind(field.name, field.label);
+    const phoneMaxLength = phoneKind === "mobile" ? 10 : phoneKind === "phone" ? 20 : undefined;
 
     if (field.type === "textarea") {
       return (
@@ -578,24 +593,12 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             type="tel"
             name={field.name}
             value={value}
-            onChange={(e) => {
-              // Strip anything that isn't a digit or a plus sign
-              const digitsAndPlus = e.target.value.replace(/[^\d+]/g, "");
-              setFormData((prev) => ({ ...prev, [field.name]: digitsAndPlus }));
-              setIsDirty(true);
-              setFieldErrors((prev) => {
-                if (!prev[field.name]) return prev;
-                const next = { ...prev };
-                delete next[field.name];
-                return next;
-              });
-              if (errorMsg) setErrorMsg(null);
-            }}
+            onChange={handleChange}
             onBlur={() => handleFieldBlur(field.name)}
             className={inputClass}
             placeholder={field.placeholder ?? "Enter phone number"}
-            maxLength={field.maxLength ?? 15}
-            inputMode="tel"
+            maxLength={phoneMaxLength ?? field.maxLength ?? 20}
+            inputMode="numeric"
           />
           {getFieldMessage(field.name)}
         </div>
@@ -613,7 +616,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           placeholder={field.placeholder ?? ""}
           className={inputClass}
           readOnly={field.readOnly}
-          maxLength={field.maxLength}
+          maxLength={phoneMaxLength ?? field.maxLength}
           min={field.type === "number" ? field.min : undefined}
           inputMode={field.inputMode}
         />

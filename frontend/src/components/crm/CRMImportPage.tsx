@@ -5,6 +5,7 @@ import DashboardLayout from "../layout/DashboardLayout";
 import { apiRequest } from "../../api/client";
 import { addLeadNote, getLeads } from "../../lib/api/leadsApi";
 import type { LeadRecord } from "../../lib/shared/crmTypes";
+import { getPhoneFieldKind, getPhoneValidationMessage } from "../../lib/phoneValidation";
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 type CRMImportPageProps = {
@@ -106,7 +107,7 @@ const similarity = (a: string, b: string) => {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
-const phonePattern = /^\+?[0-9\-().\s]{7,20}$/;
+const legacyNonPhonePattern = /^\+?[0-9\-().\s]{7,20}$/;
 
 const buildNotesConfig = (moduleKey: string): ModuleConfig | null => {
   if (moduleKey !== "leads") return null;
@@ -1222,8 +1223,15 @@ export default function CRMImportPage({
         });
         moduleConfig.phoneFields.forEach((field) => {
           const value = record[field];
-          if (value && !phonePattern.test(String(value))) {
-            invalids.push(`Row ${index + 2}: Invalid phone in ${field}`);
+          const kind = getPhoneFieldKind(field, field.replace(/[_-]/g, " "));
+          if (!value && kind !== "mobile") return;
+          const validationMessage = kind
+            ? getPhoneValidationMessage(String(value ?? ""), kind)
+            : legacyNonPhonePattern.test(String(value))
+              ? null
+              : "Invalid phone number.";
+          if (validationMessage) {
+            invalids.push(`Row ${index + 2}: ${validationMessage} (${field})`);
           }
         });
       });
