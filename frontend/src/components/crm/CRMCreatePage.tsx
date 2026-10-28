@@ -53,6 +53,7 @@ export type CRMCreateField = {
   secondaryMaxLength?: number;
   secondaryInputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   secondaryHelperText?: string;
+  digitsOnly?: boolean;
   placeholder?: string;
   rows?: number;
   readOnly?: boolean;
@@ -611,6 +612,13 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             className={`${inputClass} pr-4 pl-11`}
             placeholder={field.placeholder ?? "0.00"}
             maxLength={field.maxLength}
+            inputMode={field.inputMode ?? (field.digitsOnly ? "numeric" : undefined)}
+            onPaste={field.digitsOnly ? (event) => {
+              const pastedText = event.clipboardData.getData("text");
+              if (!/^\d*$/.test(pastedText)) {
+                event.preventDefault();
+              }
+            } : undefined}
             inputMode={field.inputMode ?? "decimal"}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
