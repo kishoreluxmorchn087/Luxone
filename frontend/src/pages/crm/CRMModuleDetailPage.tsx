@@ -122,24 +122,16 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
           if (found && !clickedRelatedItemRef.current) setActiveRelatedItem(found.item);
         }
       },
-      { rootMargin: "-25% 0px -60% 0px", threshold: [0.1, 0.3, 0.6] }
+      {
+        root: observed[0].element.closest("main"),
+        rootMargin: "-25% 0px -60% 0px",
+        threshold: [0.1, 0.3, 0.6],
+      }
     );
 
-    const resumeScrollTracking = () => {
-      clickedRelatedItemRef.current = null;
-    };
-
     observed.forEach((entry) => observer.observe(entry.element));
-    window.addEventListener("wheel", resumeScrollTracking, { passive: true });
-    window.addEventListener("touchstart", resumeScrollTracking, { passive: true });
-    window.addEventListener("pointerdown", resumeScrollTracking);
-    window.addEventListener("keydown", resumeScrollTracking);
     return () => {
       observer.disconnect();
-      window.removeEventListener("wheel", resumeScrollTracking);
-      window.removeEventListener("touchstart", resumeScrollTracking);
-      window.removeEventListener("pointerdown", resumeScrollTracking);
-      window.removeEventListener("keydown", resumeScrollTracking);
     };
   }, [activeTab, relatedListItems, sectionIdMap]);
 
