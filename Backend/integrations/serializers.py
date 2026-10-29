@@ -50,6 +50,14 @@ PROVIDER_EMAIL_ERRORS = {
 }
 
 
+def validate_social_handle(value):
+    if value and not value.startswith("@"):
+        raise serializers.ValidationError(
+            "Handle must start with @ (for example, @brandname)."
+        )
+    return value
+
+
 class EmailProviderIntegrationListSerializer(serializers.ModelSerializer):
     created_by_email = serializers.SerializerMethodField()
     email = serializers.EmailField(source="email_address", read_only=True)
@@ -746,6 +754,9 @@ class UnsubscribeLinkSerializer(serializers.ModelSerializer):
 
 
 class SocialAccountSerializer(serializers.ModelSerializer):
+    def validate_handle(self, value):
+        return validate_social_handle(value)
+
     class Meta:
         model = SocialAccount
         fields = [
@@ -827,6 +838,9 @@ class SocialConnectSerializer(serializers.Serializer):
     page_id = serializers.CharField(required=False, allow_blank=True)
     access_token = serializers.CharField(required=False, allow_blank=True)
     refresh_token = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_handle(self, value):
+        return validate_social_handle(value)
 
 
 class SocialMessageSerializer(serializers.ModelSerializer):

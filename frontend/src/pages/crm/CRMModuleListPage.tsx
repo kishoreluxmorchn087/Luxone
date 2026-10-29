@@ -518,17 +518,21 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     await convertLead(activeRow.id, payload);
   };
 
+  const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
+  const isSelection = selectedIds.length > 0;
+  const targetCount = targetIds.length;
+
   const handleMassDelete = async (): Promise<void> => {
+    if (targetIds.length === 0) return;
     if (config.module === "leads") {
-      const ids = processedRows.map((r) => r.id);
       await apiRequest(`${config.baseRoute}/bulk-delete/`, {
         method: "POST",
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ ids: targetIds }),
       });
     } else {
       await Promise.all(
-        processedRows.map((r) =>
-          apiRequest(`${config.baseRoute}/${r.id}/`, { method: "DELETE" })
+        targetIds.map((id) =>
+          apiRequest(`${config.baseRoute}/${id}/`, { method: "DELETE" })
         )
       );
     }
@@ -537,9 +541,10 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   };
 
   const handleMassUpdate = async (updates: Record<string, string>): Promise<void> => {
+    if (targetIds.length === 0) return;
     await Promise.all(
-      processedRows.map((r) =>
-        apiRequest(`${config.baseRoute}/${r.id}/`, {
+      targetIds.map((id) =>
+        apiRequest(`${config.baseRoute}/${id}/`, {
           method: "PATCH",
           body: JSON.stringify(updates),
         })
@@ -549,11 +554,11 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   };
 
   const handleMassConvert = async (): Promise<void> => {
-    if (config.module !== "leads") return;
+    if (config.module !== "leads" || targetIds.length === 0) return;
     const { convertLead } = await import("../../lib/api/leadsApi");
     await Promise.all(
-      processedRows.map((r) =>
-        convertLead(r.id, { create_deal: true })
+      targetIds.map((id) =>
+        convertLead(id, { create_deal: true })
       )
     );
     window.location.reload();
@@ -780,20 +785,21 @@ export default function CRMModuleListPage<T extends CRMRecord>({
       <MassDeleteModal
         open={activeModal === "mass-delete"}
         onClose={closeModal}
-        count={processedRows.length}
+        count={targetCount}
+        isSelection={isSelection}
         onConfirm={handleMassDelete}
       />
       <MassUpdateModal
         open={activeModal === "mass-update"}
         onClose={closeModal}
-        count={processedRows.length}
+        count={targetCount}
         module={config.module}
         onConfirm={handleMassUpdate}
       />
       <MassConvertModal
         open={activeModal === "mass-convert"}
         onClose={closeModal}
-        count={processedRows.length}
+        count={targetCount}
         onConfirm={handleMassConvert}
       />
       {copyToast.visible && (
