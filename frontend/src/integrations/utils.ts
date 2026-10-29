@@ -147,11 +147,7 @@ export function isValidEmailForProvider(value: string, provider: IntegrationProv
   }
 
   if (provider === "yahoo") {
-    return (
-      /^yahoo\.[a-z]{2,}(?:\.[a-z]{2})?$/.test(domain) ||
-      domain === "ymail.com" ||
-      domain === "rocketmail.com"
-    );
+    return domain === "yahoo.com";
   }
 
   return true;

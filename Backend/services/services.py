@@ -272,7 +272,8 @@ def get_first_product_for_document(sales_order: SalesOrder | None = None, invoic
 
 
 def build_service_operational_summary(queryset=None):
-    queryset = queryset or list_appointments()
+    if queryset is None:
+        queryset = list_appointments()
     today = timezone.localdate()
     total = queryset.count()
     active_pipeline_statuses = [

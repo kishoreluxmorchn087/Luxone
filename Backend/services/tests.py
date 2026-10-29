@@ -297,6 +297,40 @@ class ServiceMembersApiTests(ServicesTestMixin, APITestCase):
         self.assertFalse(self.service.member_assignments.filter(is_active=True).exists())
 
 
+class AppointmentSummaryApiTests(ServicesTestMixin, APITestCase):
+    def setUp(self):
+        self.user = self.create_user("summary-owner@example.com")
+        self.client.force_authenticate(self.user)
+        self.service = self.create_service(created_by=self.user)
+
+    def test_summary_endpoint_returns_empty_summary(self):
+        response = self.client.get("/api/services/appointments/summary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_appointments"], 0)
+        self.assertEqual(response.data["top_workload"], [])
+
+    def test_summary_endpoint_aggregates_appointments(self):
+        ServiceAppointment.objects.create(
+            service=self.service,
+            appointment_for_type=ServiceAppointment.AppointmentForType.OTHER,
+            appointment_for_label="Walk-in",
+            appointment_date=date(2026, 3, 19),
+            appointment_start_time=time(10, 0),
+            appointment_end_time=time(11, 0),
+            assigned_member=self.user,
+            coverage_type=ServiceAppointment.CoverageType.PAID,
+        )
+
+        response = self.client.get("/api/services/appointments/summary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_appointments"], 1)
+        self.assertEqual(response.data["by_status"][0]["count"], 1)
+        self.assertEqual(response.data["by_coverage"][0]["count"], 1)
+        self.assertEqual(response.data["top_workload"][0]["assigned_member__email"], self.user.email)
+
+
 class AppointmentRulesApiTests(ServicesTestMixin, APITestCase):
     def setUp(self):
         self.user = self.create_user("scheduler@example.com")

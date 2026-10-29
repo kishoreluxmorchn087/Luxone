@@ -66,15 +66,19 @@ export default function SupportListPageCore({ moduleKey }: Props) {
     () => meta.rowColumns.filter((column) => !hiddenColumns.includes(column.key)),
     [hiddenColumns, meta.rowColumns]
   );
+  const tableColumns = visibleColumns.map((column) => ({
+    ...column,
+    key: column.key as keyof CRMRecord & string,
+  }));
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
+    let output = filterRecords(rows, tableColumns, combined, globalSearch);
     if (sortState) {
-      output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
+      output = sortRecords(output, sortState.key as keyof CRMRecord & string, sortState.direction);
     }
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
+  }, [rows, tableColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
 
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * 10;
@@ -131,41 +135,87 @@ export default function SupportListPageCore({ moduleKey }: Props) {
             ) : null}
 
             <div className="min-w-0 flex-1 space-y-3">
-              <CRMTable
-                rows={paginatedRows as any}
-                columns={visibleColumns as any}
-                rowActions={rowActions}
-                selectedIds={selectedIds}
-                hiddenColumns={hiddenColumns}
-                pinnedColumn={pinnedColumn}
-                columnFilters={columnFilters}
-                showNotes={false}
-                showActivity={false}
-                onToggleAll={(checked) => {
-                  setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
-                }}
-                onToggleRow={(id, checked) => {
-                  setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
-                }}
-                onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
-                onRowAction={(actionKey, row) => {
-                  if (actionKey === "open") navigate(`${meta.baseRoute}/${row.id}`);
-                  if (actionKey === "edit") navigate(`${meta.baseRoute}/${row.id}/edit`);
-                }}
-                onSortColumn={(columnKey, direction) => setSortState({ key: columnKey, direction })}
-                onToggleHideColumn={(columnKey) => {
-                  setHiddenColumns((prev) =>
-                    prev.includes(columnKey) ? prev.filter((item) => item !== columnKey) : [...prev, columnKey]
-                  );
-                }}
-                onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
-                onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
-              />
+              {viewMode === "table" ? (
+                <CRMTable<CRMRecord>
+                  rows={paginatedRows}
+                  columns={tableColumns}
+                  rowActions={rowActions[moduleKey]}
+                  selectedIds={selectedIds}
+                  hiddenColumns={hiddenColumns}
+                  pinnedColumn={pinnedColumn}
+                  columnFilters={columnFilters}
+                  showNotes={false}
+                  showActivity={false}
+                  showActionsColumn={false}
+                  onToggleAll={(checked) => {
+                    setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
+                  }}
+                  onToggleRow={(id, checked) => {
+                    setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)));
+                  }}
+                  onOpenRow={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
+                  onRowAction={handleRowAction}
+                  onSortColumn={(columnKey, direction) => setSortState({ key: columnKey, direction })}
+                  onToggleHideColumn={(columnKey) => {
+                    setHiddenColumns((prev) =>
+                      prev.includes(columnKey) ? prev.filter((item) => item !== columnKey) : [...prev, columnKey]
+                    );
+                  }}
+                  onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
+                  onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
+                />
+              ) : (
+                <CRMRecordView
+                  mode={viewMode}
+                  rows={paginatedRows}
+                  columns={visibleColumns}
+                  onOpen={(row) => navigate(`${meta.baseRoute}/${row.id}`)}
+                />
+              )}
               <CRMPagination page={page} pageSize={10} totalItems={processedRows.length} onPageChange={setPage} />
             </div>
           </div>
         ) : null}
       </div>
+      {copyMessage ? (
+        <div role="status" aria-live="polite" className="fixed bottom-5 right-5 z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
+          {copyMessage}
+        </div>
+      ) : null}
+      <DeleteModal
+        open={deleteRow !== null}
+        onClose={() => setDeleteRow(null)}
+        recordName={
+          deleteRow
+            ? String((deleteRow as Record<string, unknown>).subject || (deleteRow as Record<string, unknown>).solutionTitle || meta.singular.toLowerCase())
+            : meta.singular.toLowerCase()
+        }
+        onConfirm={async () => {
+          if (!deleteRow) throw new Error("No record selected for deletion.");
+          await deleteSupportRecord(moduleKey, deleteRow.id);
+          setRows((current) => current.filter((row) => row.id !== deleteRow.id));
+          setSelectedIds((current) => current.filter((id) => id !== deleteRow.id));
+        }}
+      />
+      {moduleKey === "cases" ? (
+        <SendEmailModal
+          open={emailRow !== null}
+          onClose={() => setEmailRow(null)}
+          toEmail={emailRow ? String((emailRow as Record<string, unknown>).email || "") : ""}
+          recordName={emailRow ? String((emailRow as Record<string, unknown>).subject || "") : ""}
+          onSend={async (email) => {
+            await apiRequest("/send-email", {
+              method: "POST",
+              body: JSON.stringify({
+                to: email.to,
+                subject: email.subject,
+                body: email.body,
+                from_email: email.from_email,
+              }),
+            });
+          }}
+        />
+      ) : null}
     </DashboardLayout>
   );
 }

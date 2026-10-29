@@ -6,7 +6,8 @@ import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
+import type { CRMRowAction } from "../../lib/shared/crmTypes";
+import { copyToClipboard } from "../../lib/clipboard";
 import { deleteService, listServices } from "../api";
 import { servicesModuleMeta } from "../config";
 import type { ServiceRecord } from "../types";
@@ -52,13 +53,17 @@ export default function ServicesListPage() {
     () => meta.columns.filter((column) => !hiddenColumns.includes(column.key)),
     [hiddenColumns, meta.columns]
   );
+  const tableColumns = visibleColumns.map((column) => ({
+    ...column,
+    key: column.key as keyof ServiceRecord & string,
+  }));
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows as CRMRecord[], visibleColumns as any, combined) as ServiceRecord[];
-    if (sortState) output = sortRecords(output as any, sortState.key as never, sortState.direction) as ServiceRecord[];
+    let output = filterRecords(rows, tableColumns, combined);
+    if (sortState) output = sortRecords(output, sortState.key as keyof ServiceRecord & string, sortState.direction);
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
+  }, [rows, tableColumns, sidebarFilters, columnFilters, sortState]);
 
   const paginatedRows = useMemo(() => processedRows.slice((page - 1) * 10, page * 10), [page, processedRows]);
   const activeServicesCount = useMemo(() => rows.filter((row) => row.status.toLowerCase() === "active").length, [rows]);
@@ -135,14 +140,15 @@ export default function ServicesListPage() {
             ) : null}
 
             <div className="min-w-0 flex-1 space-y-3">
-              <CRMTable
-                rows={paginatedRows as any}
-                columns={visibleColumns as any}
+              {viewMode === "table" ? <CRMTable<ServiceRecord>
+                rows={paginatedRows}
+                columns={tableColumns}
                 rowActions={rowActions}
                 selectedIds={selectedIds}
                 hiddenColumns={hiddenColumns}
                 pinnedColumn={pinnedColumn}
                 columnFilters={columnFilters}
+                showActionsColumn={false}
                 onToggleAll={(checked) => setSelectedIds(checked ? paginatedRows.map((row) => row.id) : [])}
                 onToggleRow={(id, checked) => setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)))}
                 onOpenRow={(row) => navigate(`/services/catalog/${row.id}`)}

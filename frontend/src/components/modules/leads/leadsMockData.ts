@@ -177,6 +177,5 @@ export const leadModuleConfig: CRMModuleConfig<LeadRecord> = {
     "Phone": "phone",
     "Lead Source": "leadSource",
     "Lead Owner": "leadOwner",
-    "None": "",
   },
 };

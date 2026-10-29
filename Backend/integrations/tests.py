@@ -87,6 +87,27 @@ class EmailProviderValidationTests(APITestCase):
             ).exists()
         )
 
+    def test_create_rejects_non_yahoo_com_address_for_yahoo_provider(self):
+        for email_address in ("user@yahoo.co.uk", "user@ymail.com", "user@rocketmail.com"):
+            with self.subTest(email_address=email_address):
+                response = self.client.post(
+                    "/api/integrations/email/providers/",
+                    {
+                        "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                        "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                        "email_address": email_address,
+                        "display_name": "CRM",
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(
+                    response.data["email_address"][0],
+                    "Enter a valid Yahoo Mail address",
+                )
+        self.assertFalse(EmailProviderIntegration.objects.exists())
+
 
 class SocialAccountHandleValidationTests(APITestCase):
     def setUp(self):

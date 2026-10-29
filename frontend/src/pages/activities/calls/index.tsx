@@ -389,7 +389,7 @@ function CallFormModal({
 
   const handleSubmit = () => {
     if (!validateDatePickerInputs()) return;
-    onSubmit(buildPayload(formValues, status));
+    onSubmit(buildPayload(formValues));
   };
 
   return (

@@ -48,6 +48,7 @@ export default function LeadsPage() {
       loading={loading}
       showNotes={true}
       showActivity={true}
+      showActionsColumn={false}
       onDeleteRow={handleDeleteRow}
     />
   );

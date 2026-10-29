@@ -126,8 +126,6 @@ export default function EmailProviderForm({
 
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
-      } else if (!values.email_address.trim().toLowerCase().endsWith("@gmail.com")) {
-        nextErrors.email_address = "Email must end with @gmail.com";
       } else if (!isValidEmail(values.email_address)) {
         nextErrors.email_address = "Enter a valid email address";
       } else if (!isValidEmailForProvider(values.email_address, values.provider_type)) {
@@ -139,9 +137,7 @@ export default function EmailProviderForm({
       }
 
       const replyTo = values.reply_to_address.trim();
-      if (replyTo && !replyTo.toLowerCase().endsWith("@gmail.com")) {
-        nextErrors.reply_to_address = "Email must end with @gmail.com";
-      } else if (replyTo && !isValidEmail(replyTo)) {
+      if (replyTo && !isValidEmail(replyTo)) {
         nextErrors.reply_to_address = "Enter a valid email address";
       }
 

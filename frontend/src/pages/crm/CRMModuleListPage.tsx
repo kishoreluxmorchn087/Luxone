@@ -74,6 +74,41 @@ function getRecordEmail(row: CRMRecord): string {
   return String(r.email ?? "");
 }
 
+function readModuleSetting(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeModuleSetting(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    return;
+  }
+}
+
+function removeModuleSetting(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    return;
+  }
+}
+
+function parseHiddenColumns(value: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.every((column) => typeof column === "string")
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function CRMModuleListPage<T extends CRMRecord>({
   config,
   rows,
@@ -96,55 +131,43 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     direction: "asc" | "desc";
   } | null>(null);
   const [density, setDensity] = useState<DensityMode>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_density_${config.module}`);
-      if (saved === "compact" || saved === "normal" || saved === "comfortable") {
-        return saved;
-      }
-    } catch {}
+    const saved = readModuleSetting(`crm_density_${config.module}`);
+    if (saved === "compact" || saved === "normal" || saved === "comfortable") {
+      return saved;
+    }
     return "normal";
   });
 
   const [currentPageSize, setCurrentPageSize] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_pageSize_${config.module}`);
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
-    } catch {}
+    const saved = readModuleSetting(`crm_pageSize_${config.module}`);
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
     return pageSize;
   });
 
   const [currentShowNotes, setCurrentShowNotes] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_showNotes_${config.module}`);
-      if (saved !== null) return saved === "true";
-    } catch {}
+    const saved = readModuleSetting(`crm_showNotes_${config.module}`);
+    if (saved !== null) return saved === "true";
     return showNotes;
   });
 
   const [currentShowActivity, setCurrentShowActivity] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_showActivity_${config.module}`);
-      if (saved !== null) return saved === "true";
-    } catch {}
+    const saved = readModuleSetting(`crm_showActivity_${config.module}`);
+    if (saved !== null) return saved === "true";
     return showActivity;
   });
 
   const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_hiddenCols_${config.module}`);
-      if (saved) return JSON.parse(saved);
-    } catch {}
+    const saved = readModuleSetting(`crm_hiddenCols_${config.module}`);
+    if (saved) return parseHiddenColumns(saved);
     return [];
   });
 
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem(`crm_pinnedCol_${config.module}`);
-      if (saved) return saved;
-    } catch {}
+    const saved = readModuleSetting(`crm_pinnedCol_${config.module}`);
+    if (saved) return saved;
     return null;
   });
 
@@ -157,49 +180,37 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const handleSetHiddenColumns = (hidden: string[]) => {
     setHiddenColumns(hidden);
-    try {
-      localStorage.setItem(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
-    } catch {}
+    writeModuleSetting(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
   };
 
   const handleSetPinnedColumn = (pinned: string | null) => {
     setPinnedColumn(pinned);
-    try {
-      if (pinned) {
-        localStorage.setItem(`crm_pinnedCol_${config.module}`, pinned);
-      } else {
-        localStorage.removeItem(`crm_pinnedCol_${config.module}`);
-      }
-    } catch {}
+    if (pinned) {
+      writeModuleSetting(`crm_pinnedCol_${config.module}`, pinned);
+    } else {
+      removeModuleSetting(`crm_pinnedCol_${config.module}`);
+    }
   };
 
   const handlePageSizeChange = (newSize: number) => {
     setCurrentPageSize(newSize);
     setPage(1);
-    try {
-      localStorage.setItem(`crm_pageSize_${config.module}`, String(newSize));
-    } catch {}
+    writeModuleSetting(`crm_pageSize_${config.module}`, String(newSize));
   };
 
   const handleDensityChange = (newDensity: DensityMode) => {
     setDensity(newDensity);
-    try {
-      localStorage.setItem(`crm_density_${config.module}`, newDensity);
-    } catch {}
+    writeModuleSetting(`crm_density_${config.module}`, newDensity);
   };
 
   const handleToggleShowNotes = (show: boolean) => {
     setCurrentShowNotes(show);
-    try {
-      localStorage.setItem(`crm_showNotes_${config.module}`, String(show));
-    } catch {}
+    writeModuleSetting(`crm_showNotes_${config.module}`, String(show));
   };
 
   const handleToggleShowActivity = (show: boolean) => {
     setCurrentShowActivity(show);
-    try {
-      localStorage.setItem(`crm_showActivity_${config.module}`, String(show));
-    } catch {}
+    writeModuleSetting(`crm_showActivity_${config.module}`, String(show));
   };
 
   const visibleColumns = useMemo(
@@ -209,7 +220,13 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const processedRows = useMemo(() => {
     const combined = { ...columnFilters, ...sidebarFilters };
-    let output = filterRecords(rows, visibleColumns, combined);
+    const stringFilters = Object.fromEntries(
+      Object.entries(combined).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value.join("\u001f") : value,
+      ])
+    );
+    let output = filterRecords(rows, visibleColumns, stringFilters);
 
     if (sortState) {
       output = sortRecords(

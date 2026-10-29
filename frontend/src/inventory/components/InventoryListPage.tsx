@@ -21,6 +21,15 @@ type InventoryListPageProps = {
 };
 
 const INVENTORY_CHART_COLORS = ["#ec4899", "#f97316", "#facc15", "#14b8a6", "#6366f1", "#8b5cf6"];
+const HIDE_ROW_ACTIONS_MODULES = new Set<InventoryModuleKey>([
+  "products",
+  "price-books",
+  "quotes",
+  "sales-orders",
+  "purchase-orders",
+  "invoices",
+  "vendors",
+]);
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
@@ -430,6 +439,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   columnFilters={columnFilters}
                   showNotes={moduleKey === "vendors"}
                   showActivity={moduleKey === "vendors"}
+                  showActionsColumn={!HIDE_ROW_ACTIONS_MODULES.has(moduleKey)}
                   onToggleAll={(checked) => {
                     setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                   }}
