@@ -209,6 +209,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           showImportActions={Boolean(meta.importRoute)}

@@ -573,6 +573,11 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         <ModuleToolbar
           viewName={config.subtitle}
           createButtonLabel={`Create ${config.title.slice(0, -1)}`}
+          massDeleteLabel={
+            ["accounts", "leads", "deals", "contacts"].includes(config.module)
+              ? "Delete"
+              : undefined
+          }
           sortFields={config.sortFields}
           sortFieldKeyMap={config.sortFieldKeyMap}
           isFilterOpen={isFilterOpen}
