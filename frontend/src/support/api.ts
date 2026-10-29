@@ -513,6 +513,10 @@ export async function updateSolution(id: string, values: SolutionFormData) {
   return { id: asString(data.id) };
 }
 
+export async function deleteSupportRecord(moduleKey: SupportModuleKey, id: string) {
+  await apiRequest(`${modulePathMap[moduleKey]}/${id}`, { method: "DELETE" });
+}
+
 export async function fetchSupportLookup(lookup: SupportLookupName, query: string): Promise<SupportLookupOption[]> {
   const data = await apiRequest<any[]>(`/support/lookups/${lookup}`, {
     query: { q: query },
