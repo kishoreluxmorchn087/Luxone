@@ -5,7 +5,6 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
-import CRMRecordView from "../../components/crm/CRMRecordView";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
 import { copyToClipboard } from "../../lib/clipboard";
@@ -14,10 +13,9 @@ import { servicesModuleMeta } from "../config";
 import type { ServiceRecord } from "../types";
 
 const rowActions: CRMRowAction[] = [
+  { key: "open", label: "Open" },
   { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete", destructive: true },
-  { key: "copy-url", label: "Copy URL" },
-  { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
+  { key: "delete", label: "Delete" },
 ];
 
 export default function ServicesListPage() {
@@ -27,7 +25,6 @@ export default function ServicesListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
@@ -35,7 +32,6 @@ export default function ServicesListPage() {
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [filterOpen, setFilterOpen] = useState(true);
-  const [copyMessage, setCopyMessage] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -90,8 +86,6 @@ export default function ServicesListPage() {
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate("/services/catalog/create")}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
         />
 
         {!loading && !error ? (
@@ -165,31 +159,14 @@ export default function ServicesListPage() {
                     await deleteService(row.id);
                     await load();
                   }
-                  if (actionKey === "copy-url") {
-                    const copied = await copyToClipboard(`${window.location.origin}/services/catalog/${row.id}`);
-                    setCopyMessage(copied ? "URL copied to clipboard." : "Unable to copy URL.");
-                    window.setTimeout(() => setCopyMessage(""), 2500);
-                  }
                 }}
                 onSortColumn={(columnKey, direction) => setSortState({ key: columnKey, direction })}
                 onToggleHideColumn={(columnKey) => setHiddenColumns((prev) => (prev.includes(columnKey) ? prev.filter((item) => item !== columnKey) : [...prev, columnKey]))}
                 onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
                 onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
-              /> : (
-                <CRMRecordView
-                  mode={viewMode}
-                  rows={paginatedRows}
-                  columns={visibleColumns}
-                  onOpen={(row) => navigate(`/services/catalog/${row.id}`)}
-                />
-              )}
+              />
               <CRMPagination page={page} pageSize={10} totalItems={processedRows.length} onPageChange={setPage} />
             </div>
-          </div>
-        ) : null}
-        {copyMessage ? (
-          <div role="status" aria-live="polite" className="fixed bottom-5 right-5 z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
-            {copyMessage}
           </div>
         ) : null}
       </div>

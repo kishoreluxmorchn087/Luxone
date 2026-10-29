@@ -226,44 +226,9 @@ export function AddTagsModal({
   open,
   onClose,
   recordName = "",
-  existingTags = [],
-  onAddTag,
-}: BaseModalProps & {
-  recordName?: string;
-  existingTags?: string[];
-  onAddTag?: (tag: string) => Promise<void>;
-}) {
+}: BaseModalProps & { recordName?: string }) {
   const [value, setValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const tags = ["Hot Lead", "Follow-Up", "Priority", "Enterprise", "Decision Maker"].filter(
-    (tag) => !existingTags.includes(tag)
-  );
-  useEffect(() => {
-    if (open) {
-      setValue("");
-      setError(null);
-    }
-  }, [open]);
-  const handleAdd = async () => {
-    if (!value.trim()) return;
-    if (!onAddTag) {
-      setError("Adding tags is not configured for this record.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-      await onAddTag(value.trim());
-      setValue("");
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to add tag.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const tags = ["Hot Lead", "Follow-Up", "Priority", "Enterprise", "Decision Maker"];
 
   return (
     <CRMModalBase
@@ -272,13 +237,15 @@ export function AddTagsModal({
       maxWidthClassName="max-w-lg"
       footer={
         <>
-          <button onClick={onClose} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
+          <button onClick={onClose} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Cancel</button>
           <button
-            onClick={() => void handleAdd()}
-            disabled={saving || !value.trim()}
-            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+            onClick={() => {
+              if (!value.trim()) return;
+              onClose();
+            }}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white"
           >
-            {saving ? "Adding..." : "Add"}
+            Add
           </button>
         </>
       }
@@ -292,7 +259,6 @@ export function AddTagsModal({
           <button key={tag} type="button" onClick={() => setValue(tag)} className={`rounded-full border px-3 py-1 text-xs transition ${value === tag ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}>{tag}</button>
         ))}
       </div>
-      {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
     </CRMModalBase>
   );
 }

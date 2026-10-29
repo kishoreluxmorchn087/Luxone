@@ -5,32 +5,16 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
-import CRMRecordView from "../../components/crm/CRMRecordView";
-import { DeleteModal, SendEmailModal } from "../../components/crm/CRMActionModals";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
-import { copyToClipboard } from "../../lib/clipboard";
-import { apiRequest } from "../../api/client";
-import { deleteSupportRecord, findExistingSolutionByCase, getSupportList } from "../api";
+import { getSupportList } from "../api";
 import { supportModuleMeta } from "../config";
 import type { SupportModuleKey } from "../types";
 
-const rowActions: Record<SupportModuleKey, CRMRowAction[]> = {
-  cases: [
-    { key: "edit", label: "Edit" },
-    { key: "send-email", label: "Send Email" },
-    { key: "convert", label: "Convert" },
-    { key: "delete", label: "Delete", destructive: true },
-    { key: "copy-url", label: "Copy URL" },
-    { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
-  ],
-  solutions: [
-    { key: "edit", label: "Edit" },
-    { key: "delete", label: "Delete", destructive: true },
-    { key: "copy-url", label: "Copy URL" },
-    { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
-  ],
-};
+const rowActions: CRMRowAction[] = [
+  { key: "open", label: "Open" },
+  { key: "edit", label: "Edit" },
+];
 
 type Props = {
   moduleKey: SupportModuleKey;
@@ -43,7 +27,6 @@ export default function SupportListPageCore({ moduleKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
@@ -52,40 +35,6 @@ export default function SupportListPageCore({ moduleKey }: Props) {
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [filterOpen, setFilterOpen] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [deleteRow, setDeleteRow] = useState<CRMRecord | null>(null);
-  const [emailRow, setEmailRow] = useState<CRMRecord | null>(null);
-  const [copyMessage, setCopyMessage] = useState("");
-
-  const handleRowAction = async (actionKey: string, row: CRMRecord) => {
-    if (actionKey === "open") {
-      navigate(`${meta.baseRoute}/${row.id}`);
-    } else if (actionKey === "edit") {
-      navigate(`${meta.baseRoute}/${row.id}/edit`);
-    } else if (actionKey === "delete") {
-      setDeleteRow(row);
-    } else if (actionKey === "copy-url") {
-      const copied = await copyToClipboard(`${window.location.origin}${meta.baseRoute}/${row.id}`);
-      setCopyMessage(copied ? "URL copied to clipboard." : "Unable to copy URL.");
-      window.setTimeout(() => setCopyMessage(""), 2500);
-    } else if (actionKey === "send-email" && moduleKey === "cases") {
-      setEmailRow(row);
-    } else if (actionKey === "convert" && moduleKey === "cases") {
-      try {
-        const existing = await findExistingSolutionByCase(row.id);
-        if (existing) {
-          navigate(`/support/solutions/${existing.id}`);
-          return;
-        }
-        const query = new URLSearchParams({
-          caseId: row.id,
-          caseNumber: String((row as Record<string, unknown>).caseNumber || ""),
-        });
-        navigate(`/support/solutions/create?${query.toString()}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to convert case to a solution.");
-      }
-    }
-  };
 
   useEffect(() => {
     const handleSearch = (event: Event) => {
@@ -148,8 +97,6 @@ export default function SupportListPageCore({ moduleKey }: Props) {
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
         />
 
         {loading ? <div className="p-6 text-sm text-slate-600">Loading {meta.title.toLowerCase()}...</div> : null}
@@ -272,3 +219,4 @@ export default function SupportListPageCore({ moduleKey }: Props) {
     </DashboardLayout>
   );
 }
+

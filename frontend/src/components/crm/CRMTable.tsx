@@ -45,7 +45,6 @@ type CRMTableProps<T extends CRMRecord> = {
   showNotes?: boolean;
   showActivity?: boolean;
   showActionsColumn?: boolean;
-  showRowActionsMenu?: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (id: string, checked: boolean) => void;
   onOpenRow: (row: T) => void;
@@ -72,7 +71,6 @@ export default function CRMTable<T extends CRMRecord>({
   showNotes = true,
   showActivity = true,
   showActionsColumn = true,
-  showRowActionsMenu = true,
   onToggleAll,
   onToggleRow,
   onOpenRow,
@@ -154,7 +152,6 @@ export default function CRMTable<T extends CRMRecord>({
       : "py-3 px-4 text-xs";
 
   const allChecked = rows.every((row) => selectedIds.includes(row.id));
-  const pinnedColumnLeft = (showRowActionsMenu ? 40 : 0) + (showNotes && showActivity ? 132 : 92);
 
   return (
     <div className="overflow-visible rounded-xl border border-slate-200 bg-white pb-1">
@@ -162,9 +159,7 @@ export default function CRMTable<T extends CRMRecord>({
       <table className={`w-full min-w-[1180px] text-left ${variant === "bordered" ? "border-collapse border border-slate-300" : "divide-y divide-slate-200"}`}>
         <thead className="bg-slate-50">
           <tr>
-            {showRowActionsMenu ? (
-              <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} />
-            ) : null}
+            <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} />
             {showNotes ? <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} /> : null}
             {showActivity ? <th className={`w-10 px-2 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`} /> : null}
             <th className={`w-12 px-3 py-3 ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}>
@@ -182,7 +177,7 @@ export default function CRMTable<T extends CRMRecord>({
                 className={`${headerPaddingClass} font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
                   pinnedColumn === column.key ? "sticky z-30 bg-slate-50" : ""
                 } ${variant === "bordered" ? "border border-slate-300 bg-slate-50" : ""}`}
-                style={pinnedColumn === column.key ? { left: pinnedColumnLeft } : undefined}
+                style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
               >
                 <div ref={openHeaderMenu === column.key ? menuRef : null}>
                   <CRMTableHeaderMenu
@@ -224,23 +219,21 @@ export default function CRMTable<T extends CRMRecord>({
         <tbody className={variant === "default" ? "divide-y divide-slate-100" : ""}>
           {rows.map((row) => (
             <tr key={row.id} className="group transition-colors duration-200 hover:bg-blue-50/30">
-              {showRowActionsMenu ? (
-                <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : "relative"}`} onClick={(event) => event.stopPropagation()}>
-                  {variant === "default" && (
-                    <div className="absolute left-0 top-0 h-full w-[3px] scale-y-50 bg-gradient-to-b from-blue-400 to-blue-600 opacity-0 transition-all duration-300 group-hover:scale-y-100 group-hover:opacity-100"></div>
-                  )}
-                  <CRMRowMoreOptionsMenu
-                    actions={rowActions}
-                    onClickAction={(actionKey) => {
-                      console.log("1. MENU ACTION:", actionKey, row.id);
+              <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : "relative"}`} onClick={(event) => event.stopPropagation()}>
+                {variant === "default" && (
+                  <div className="absolute left-0 top-0 h-full w-[3px] scale-y-50 bg-gradient-to-b from-blue-400 to-blue-600 opacity-0 transition-all duration-300 group-hover:scale-y-100 group-hover:opacity-100"></div>
+                )}
+                <CRMRowMoreOptionsMenu
+                  actions={rowActions}
+                  onClickAction={(actionKey) => {
+                    console.log("1. MENU ACTION:", actionKey, row.id);
 
-                      onRowAction(actionKey, row);
+                    onRowAction(actionKey, row);
 
-                      console.log("2. onRowAction CALLED");
-                    }}
-                  />
-                </td>
-              ) : null}
+                    console.log("2. onRowAction CALLED");
+                  }}
+                />
+              </td>
 
               {showNotes ? (
                 <td className={`px-2 py-2 ${variant === "bordered" ? "border border-slate-300" : ""}`} onClick={(event) => event.stopPropagation()}>
@@ -277,7 +270,7 @@ export default function CRMTable<T extends CRMRecord>({
                 <td
                   key={column.key}
                   className={`${cellPaddingClass} text-slate-700 ${pinnedColumn === column.key ? "sticky z-20 bg-white" : ""} ${variant === "bordered" ? "border border-slate-300" : ""}`}
-                  style={pinnedColumn === column.key ? { left: pinnedColumnLeft } : undefined}
+                  style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
                 >
                   <button
                     type="button"

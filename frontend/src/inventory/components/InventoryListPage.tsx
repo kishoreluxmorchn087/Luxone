@@ -11,12 +11,10 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta, getInventorySortConfig } from "../config";
 import { formatMoney } from "../utils";
-import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal, SendEmailModal } from "../../components/crm/CRMActionModals";
+import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
-import { copyToClipboard } from "../../lib/clipboard";
-import { sendVendorEmail } from "../api";
 
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
@@ -116,8 +114,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [recordToDelete, setRecordToDelete] = useState<CRMRecord | null>(null);
   const [activeVendorName, setActiveVendorName] = useState("");
   const [activeNoteVendor, setActiveNoteVendor] = useState<CRMRecord | null>(null);
-  const [activeEmailVendor, setActiveEmailVendor] = useState<CRMRecord | null>(null);
-  const [copyMessage, setCopyMessage] = useState("");
   const [activityModal, setActivityModal] = useState<"schedule-call" | "meeting" | "task" | "log-call" | null>(null);
   const supportsDocumentPreview = moduleKey === "invoices" || moduleKey === "purchase-orders";
 
@@ -165,23 +161,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     }
     return output;
   }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
-
-  const kanbanGroups = useMemo(() => {
-    const groups = new Map<string, CRMRecord[]>();
-    processedRows.forEach((record) => {
-      const row = record as Record<string, unknown>;
-      const stage =
-        typeof row.status === "string" && row.status.trim()
-          ? row.status.trim()
-          : typeof row.active === "boolean"
-            ? row.active
-              ? "Active"
-              : "Inactive"
-            : "Uncategorized";
-      groups.set(stage, [...(groups.get(stage) ?? []), record]);
-    });
-    return [...groups.entries()];
-  }, [processedRows]);
 
   const chartDistribution = useMemo(() => {
     const categoryFields: Partial<Record<InventoryModuleKey, string[]>> = {
@@ -538,22 +517,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                       setActivityModal("log-call");
                       return;
                     }
-                    if (actionKey === "open") {
+                    if (actionKey === "open" || actionKey === "edit") {
                       navigate(`${meta.baseRoute}/${row.id}`);
-                      return;
-                    }
-                    if (actionKey === "edit") {
-                      navigate(`${meta.baseRoute}/${row.id}/edit`);
-                      return;
-                    }
-                    if (actionKey === "send-email" && moduleKey === "vendors") {
-                      setActiveEmailVendor(row);
-                      return;
-                    }
-                    if (actionKey === "copy-url") {
-                      const copied = await copyToClipboard(`${window.location.origin}${meta.baseRoute}/${row.id}`);
-                      setCopyMessage(copied ? "URL copied to clipboard." : "Unable to copy URL.");
-                      window.setTimeout(() => setCopyMessage(""), 2500);
                       return;
                     }
                     if (actionKey === "preview") {
@@ -676,11 +641,13 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
               {viewMode === "kanban" && (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {kanbanGroups.length === 0 ? (
-                    <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-                      No records match the current filters.
-                    </div>
-                  ) : kanbanGroups.map(([stage, stageRows]) => (
+                  {["Draft", "Active", "Inactive"].map((stage) => {
+                    const stageRows = processedRows.filter((r) => {
+                      const row = r as Record<string, unknown>;
+                      const val = String(row.status || row.active || "Active").toLowerCase();
+                      return val === stage.toLowerCase();
+                    });
+                    return (
                       <div key={stage} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <div className="mb-3 flex items-center justify-between">
                           <span className="font-semibold text-slate-700">{stage}</span>
@@ -689,7 +656,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                           </span>
                         </div>
                         <div className="space-y-3">
-                          {stageRows.map((row) => {
+                          {stageRows.slice(0, 10).map((row) => {
                             const r = row as Record<string, unknown>;
                             const title = String(r.productName || r.name || r.subject || `Record #${row.id}`);
                             const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
@@ -712,7 +679,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                           })}
                         </div>
                       </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -869,31 +837,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           }}
         />
       )}
-
-      {moduleKey === "vendors" && (
-        <SendEmailModal
-          open={activeEmailVendor !== null}
-          onClose={() => setActiveEmailVendor(null)}
-          toEmail={activeEmailVendor ? String((activeEmailVendor as Record<string, unknown>).email || "") : ""}
-          recordName={
-            activeEmailVendor
-              ? String((activeEmailVendor as Record<string, unknown>).vendorName || (activeEmailVendor as Record<string, unknown>).name || "")
-              : ""
-          }
-          allowAttachments
-          errorHelpLink={{ href: "/integrations/email", label: "Open Email Provider Settings" }}
-          onSend={async (email) => {
-            if (!activeEmailVendor) throw new Error("Vendor record is unavailable.");
-            await sendVendorEmail(activeEmailVendor.id, email);
-          }}
-        />
-      )}
-
-      {copyMessage ? (
-        <div role="status" aria-live="polite" className="fixed bottom-5 right-5 z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
-          {copyMessage}
-        </div>
-      ) : null}
 
       <ScheduleCallModal
         open={activityModal === "schedule-call"}

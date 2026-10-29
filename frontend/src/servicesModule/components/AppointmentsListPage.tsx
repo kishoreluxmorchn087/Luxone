@@ -4,7 +4,6 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
-import CRMRecordView from "../../components/crm/CRMRecordView";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
@@ -14,10 +13,9 @@ import { servicesModuleMeta } from "../config";
 import type { AppointmentRecord, AppointmentSummary } from "../types";
 
 const rowActions: CRMRowAction[] = [
+  { key: "open", label: "Open" },
   { key: "edit", label: "Edit" },
   { key: "cancel", label: "Cancel" },
-  { key: "copy-url", label: "Copy URL" },
-  { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
 ];
 
 export default function AppointmentsListPage() {
@@ -28,7 +26,6 @@ export default function AppointmentsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
@@ -36,7 +33,6 @@ export default function AppointmentsListPage() {
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [filterOpen, setFilterOpen] = useState(true);
-  const [copyMessage, setCopyMessage] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -99,8 +95,6 @@ export default function AppointmentsListPage() {
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate("/services/appointments/create")}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
         />
 
         {loading ? (
@@ -164,11 +158,6 @@ export default function AppointmentsListPage() {
                       await cancelAppointment(row.id);
                       await load();
                     }
-                    if (actionKey === "copy-url") {
-                      const copied = await copyToClipboard(`${window.location.origin}/services/appointments/${row.id}`);
-                      setCopyMessage(copied ? "URL copied to clipboard." : "Unable to copy URL.");
-                      window.setTimeout(() => setCopyMessage(""), 2500);
-                    }
                   }}
                   onSortColumn={(columnKey, direction) => setSortState({ key: columnKey, direction })}
                   onToggleHideColumn={(columnKey) =>
@@ -178,19 +167,7 @@ export default function AppointmentsListPage() {
                   }
                   onTogglePinColumn={(columnKey) => setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))}
                   onFilterColumn={(columnKey, value) => setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))}
-                /> : (
-                  <CRMRecordView
-                    mode={viewMode}
-                    rows={paginatedRows}
-                    columns={visibleColumns}
-                    onOpen={(row) => navigate(`/services/appointments/${row.id}`)}
-                  />
-                )}
-                {copyMessage ? (
-                  <div role="status" aria-live="polite" className="fixed bottom-5 right-5 z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
-                    {copyMessage}
-                  </div>
-                ) : null}
+                />
                 <CRMPagination page={page} pageSize={10} totalItems={processedRows.length} onPageChange={setPage} />
               </div>
             </div>
