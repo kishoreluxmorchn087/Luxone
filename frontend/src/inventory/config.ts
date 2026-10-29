@@ -33,24 +33,39 @@ export type InventoryModuleMeta<T extends CRMRecord> = {
 };
 
 const defaultRowActions: CRMRowAction[] = [
-  { key: "open", label: "Open" },
   { key: "edit", label: "Edit" },
   { key: "delete", label: "Delete", destructive: true },
+  { key: "copy-url", label: "Copy URL" },
+  { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
 ];
 
 const vendorRowActions: CRMRowAction[] = [
-  { key: "open", label: "Open" },
   { key: "edit", label: "Edit" },
+  { key: "send-email", label: "Send Email" },
   { key: "create-task", label: "Create Task" },
-  { key: "create-meeting", label: "Create Meeting" },
+  { key: "delete", label: "Delete", destructive: true },
+  { key: "copy-url", label: "Copy URL" },
   {
-    key: "create-call",
-    label: "Create Call",
+    key: "more",
+    label: "More",
     children: [
-      { key: "schedule-call", label: "Schedule a call" },
-      { key: "log-call", label: "Log a call" },
+      { key: "open", label: "Open" },
+      { key: "create-meeting", label: "Create Meeting" },
+      {
+        key: "create-call",
+        label: "Create Call",
+        children: [
+          { key: "schedule-call", label: "Schedule a call" },
+          { key: "log-call", label: "Log a call" },
+        ],
+      },
     ],
   },
+];
+
+const configuratorRowActions: CRMRowAction[] = [
+  { key: "open", label: "Open" },
+  { key: "edit", label: "Edit" },
   { key: "delete", label: "Delete", destructive: true },
 ];
 
@@ -202,8 +217,11 @@ export const inventoryModules = {
       "Links",
     ],
     rowActions: [
-      ...defaultRowActions,
+      { key: "edit", label: "Edit" },
       { key: "convert-to-sales-order", label: "Convert to Sales Order" },
+      { key: "delete", label: "Delete", destructive: true },
+      { key: "copy-url", label: "Copy URL" },
+      { key: "more", label: "More", children: [{ key: "open", label: "Open" }] },
     ],
   } satisfies InventoryModuleMeta<QuoteRecord>,
   "sales-orders": {
@@ -240,10 +258,19 @@ export const inventoryModules = {
       "Links",
     ],
     rowActions: [
-      ...defaultRowActions,
+      { key: "edit", label: "Edit" },
       { key: "convert-to-invoice", label: "Convert to Invoice" },
-      { key: "create-service-appointment", label: "Schedule Service" },
-      { key: "create-project", label: "Create Project" },
+      { key: "delete", label: "Delete", destructive: true },
+      { key: "copy-url", label: "Copy URL" },
+      {
+        key: "more",
+        label: "More",
+        children: [
+          { key: "open", label: "Open" },
+          { key: "create-service-appointment", label: "Schedule Service" },
+          { key: "create-project", label: "Create Project" },
+        ],
+      },
     ],
   } satisfies InventoryModuleMeta<SalesOrderRecord>,
   "purchase-orders": {
@@ -279,11 +306,18 @@ export const inventoryModules = {
       "Links",
     ],
     rowActions: [
-      { key: "open", label: "Open" },
-      { key: "preview", label: "Preview" },
-      { key: "duplicate", label: "Duplicate" },
       { key: "edit", label: "Edit" },
       { key: "delete", label: "Delete", destructive: true },
+      { key: "copy-url", label: "Copy URL" },
+      {
+        key: "more",
+        label: "More",
+        children: [
+          { key: "open", label: "Open" },
+          { key: "preview", label: "Preview" },
+          { key: "duplicate", label: "Duplicate" },
+        ],
+      },
     ],
   } satisfies InventoryModuleMeta<PurchaseOrderRecord>,
   invoices: {
@@ -319,13 +353,20 @@ export const inventoryModules = {
       "Links",
     ],
     rowActions: [
-      { key: "open", label: "Open" },
-      { key: "preview", label: "Preview" },
-      { key: "duplicate", label: "Duplicate" },
       { key: "edit", label: "Edit" },
       { key: "delete", label: "Delete", destructive: true },
-      { key: "create-service-appointment", label: "Schedule Service" },
-      { key: "create-project", label: "Create Project" },
+      { key: "copy-url", label: "Copy URL" },
+      {
+        key: "more",
+        label: "More",
+        children: [
+          { key: "open", label: "Open" },
+          { key: "preview", label: "Preview" },
+          { key: "duplicate", label: "Duplicate" },
+          { key: "create-service-appointment", label: "Schedule Service" },
+          { key: "create-project", label: "Create Project" },
+        ],
+      },
     ],
   } satisfies InventoryModuleMeta<InventoryInvoiceRecord>,
   configurator: {
@@ -348,7 +389,7 @@ export const inventoryModules = {
       { title: "Configurator Filters", items: [{ label: "Name", key: "name" }, { label: "Target Module", key: "target_module" }] },
     ],
     relatedListItems: ["Links"],
-    rowActions: defaultRowActions,
+    rowActions: configuratorRowActions,
   } satisfies InventoryModuleMeta<ConfiguratorRecord>,
 } as const;
 
