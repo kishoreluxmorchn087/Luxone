@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
+import smtplib
 
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
@@ -89,6 +91,8 @@ from .services import (
     sales_order_service,
     vendor_service,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class InventoryRelatedMixin:
@@ -395,20 +399,30 @@ class VendorViewSet(InventoryRelatedMixin, viewsets.ModelViewSet):
             }
             for attachment in email_data.get("attachments", [])
         ]
-        create_outgoing_crm_email(
-            provider_integration=provider,
-            subject=email_data["subject"],
-            body=email_data.get("body", ""),
-            to_emails=[recipient_email],
-            attachments=attachments,
-            send_live=True,
-            owner=request.user,
-            thread_id=f"vendor-{vendor.pk}",
-            metadata={
-                "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                "vendor_name": vendor.vendor_name,
-            },
-        )
+        try:
+            create_outgoing_crm_email(
+                provider_integration=provider,
+                subject=email_data["subject"],
+                body=email_data.get("body", ""),
+                to_emails=[recipient_email],
+                attachments=attachments,
+                send_live=True,
+                owner=request.user,
+                thread_id=f"vendor-{vendor.pk}",
+                metadata={
+                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
+                    "vendor_name": vendor.vendor_name,
+                },
+            )
+        except ValueError as exc:
+            logger.warning("Vendor email could not be sent for vendor %s.", vendor.pk)
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except (smtplib.SMTPException, OSError):
+            logger.exception("Vendor email delivery failed for vendor %s", vendor.pk)
+            return Response(
+                {"detail": "Email could not be sent. Check the configured email provider and try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         InventoryEmailLog.objects.create(
             vendor=vendor,
             sent_by=request.user,
