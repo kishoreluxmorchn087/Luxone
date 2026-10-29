@@ -10,7 +10,6 @@ import {
   LayoutGrid,
   Table,
   ChartPie,
-  MapPin,
   Search,
   Check,
 } from "lucide-react";
@@ -441,21 +440,6 @@ export default function ModuleToolbar({
                 </span>
               </button>
 
-              <button type="button" aria-label="Map View" className={`group ${toolbarIconButtonClass}`}>
-                <MapPin size={16} />
-                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
-                  Map View
-                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
-                </span>
-              </button>
-
-              <button type="button" aria-label="More Views" className={`group ${toolbarIconButtonClass}`}>
-                <ChevronDown size={16} />
-                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
-                  More Views
-                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
-                </span>
-              </button>
             </>
           )}
         </div>
