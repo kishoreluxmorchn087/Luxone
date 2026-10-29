@@ -7,6 +7,7 @@ import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta, getInventorySortConfig } from "../config";
 import { formatMoney } from "../utils";
@@ -18,6 +19,8 @@ import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
 };
+
+const INVENTORY_CHART_COLORS = ["#ec4899", "#f97316", "#facc15", "#14b8a6", "#6366f1", "#8b5cf6"];
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
@@ -149,6 +152,55 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     }
     return output;
   }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
+
+  const chartDistribution = useMemo(() => {
+    const categoryFields: Partial<Record<InventoryModuleKey, string[]>> = {
+      products: ["productCategory", "productType", "billingCycle", "deploymentModel"],
+      vendors: ["category", "status"],
+      "price-books": ["pricingModel", "active"],
+      quotes: ["quoteStage", "status"],
+      "sales-orders": ["status"],
+      "purchase-orders": ["status"],
+      invoices: ["status"],
+      configurator: ["targetModule", "active"],
+    };
+    const fields = [
+      ...(categoryFields[moduleKey] ?? []),
+      "status",
+      "category",
+      "type",
+    ];
+    const getValue = (row: CRMRecord, field: string) => {
+      const value = (row as Record<string, unknown>)[field];
+      if (typeof value === "boolean") return value ? "Active" : "Inactive";
+      if (typeof value === "string" || typeof value === "number") {
+        return String(value).trim();
+      }
+      return "";
+    };
+    const groupField = fields.find((field) => processedRows.some((row) => getValue(row, field)));
+    const counts = new Map<string, number>();
+
+    processedRows.forEach((row) => {
+      const category = groupField ? getValue(row, groupField) || "Uncategorized" : "All Records";
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    });
+
+    const sorted = [...counts.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 5);
+    const remaining = [...counts.entries()].sort((left, right) => right[1] - left[1]).slice(5);
+    const remainingCount = remaining.reduce((total, [, count]) => total + count, 0);
+
+    if (remainingCount > 0) sorted.push(["Other", remainingCount]);
+
+    return {
+      groupLabel: groupField
+        ? groupField.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())
+        : "Records",
+      data: sorted.map(([name, count]) => ({ name, count })),
+    };
+  }, [moduleKey, processedRows]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
@@ -624,26 +676,79 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
               {viewMode === "chart" && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-semibold text-slate-900">{meta.title} Summary</h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl bg-blue-50 p-4">
-                      <div className="text-xs font-semibold uppercase text-blue-600">Total Items</div>
-                      <div className="mt-1 text-2xl font-bold text-blue-900">{rows.length}</div>
+                  <div className="mb-5">
+                    <h3 className="text-lg font-semibold text-slate-900">{meta.title} Distribution</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Records grouped by {chartDistribution.groupLabel.toLowerCase()}
+                    </p>
+                  </div>
+                  {chartDistribution.data.length === 0 ? (
+                    <div className="flex min-h-64 items-center justify-center text-sm text-slate-500">
+                      No records match the current filters.
                     </div>
-                    <div className="rounded-xl bg-emerald-50 p-4">
-                      <div className="text-xs font-semibold uppercase text-emerald-600">Active Records</div>
-                      <div className="mt-1 text-2xl font-bold text-emerald-900">
-                        {rows.filter((r) => {
-                          const row = r as Record<string, unknown>;
-                          return String(row.status || row.active || "").toLowerCase().includes("active");
-                        }).length || rows.length}
+                  ) : (
+                    <div className="grid items-center gap-6 md:grid-cols-[minmax(280px,360px)_1fr]">
+                      <div className="relative h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={chartDistribution.data}
+                              dataKey="count"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={70}
+                              outerRadius={118}
+                              paddingAngle={3}
+                              stroke="#ffffff"
+                              strokeWidth={3}
+                            >
+                              {chartDistribution.data.map((entry, index) => (
+                                <Cell
+                                  key={entry.name}
+                                  fill={INVENTORY_CHART_COLORS[index % INVENTORY_CHART_COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => [`${value} records`, "Count"]} />
+                            <text x="50%" y="47%" textAnchor="middle" className="fill-slate-800 text-2xl font-bold">
+                              {processedRows.length}
+                            </text>
+                            <text x="50%" y="56%" textAnchor="middle" className="fill-slate-500 text-[11px]">
+                              TOTAL RECORDS
+                            </text>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-3">
+                        {chartDistribution.data.map((entry, index) => {
+                          const percentage = processedRows.length
+                            ? Math.round((entry.count / processedRows.length) * 100)
+                            : 0;
+                          return (
+                            <div
+                              key={entry.name}
+                              className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span
+                                  className="h-3 w-3 shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      INVENTORY_CHART_COLORS[index % INVENTORY_CHART_COLORS.length],
+                                  }}
+                                />
+                                <span className="truncate text-sm font-medium text-slate-700">{entry.name}</span>
+                              </div>
+                              <span className="shrink-0 text-sm font-semibold text-slate-900">
+                                {entry.count} <span className="font-normal text-slate-500">({percentage}%)</span>
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-purple-50 p-4">
-                      <div className="text-xs font-semibold uppercase text-purple-600">Filtered Records</div>
-                      <div className="mt-1 text-2xl font-bold text-purple-900">{processedRows.length}</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
