@@ -7,7 +7,6 @@ import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
-import { copyToClipboard } from "../../lib/clipboard";
 import { deleteService, listServices } from "../api";
 import { servicesModuleMeta } from "../config";
 import type { ServiceRecord } from "../types";
@@ -140,7 +139,7 @@ export default function ServicesListPage() {
             ) : null}
 
             <div className="min-w-0 flex-1 space-y-3">
-              {viewMode === "table" ? <CRMTable<ServiceRecord>
+              <CRMTable<ServiceRecord>
                 rows={paginatedRows}
                 columns={tableColumns}
                 rowActions={rowActions}

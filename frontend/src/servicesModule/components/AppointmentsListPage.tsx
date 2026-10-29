@@ -7,7 +7,6 @@ import CRMPagination from "../../components/crm/CRMPagination";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMRowAction } from "../../lib/shared/crmTypes";
-import { copyToClipboard } from "../../lib/clipboard";
 import { cancelAppointment, getAppointmentsSummary, listAppointments } from "../api";
 import { servicesModuleMeta } from "../config";
 import type { AppointmentRecord, AppointmentSummary } from "../types";
@@ -137,7 +136,7 @@ export default function AppointmentsListPage() {
                 />
               ) : null}
               <div className="min-w-0 flex-1 space-y-3">
-                {viewMode === "table" ? <CRMTable<AppointmentRecord>
+                 <CRMTable<AppointmentRecord>
                   rows={paginatedRows}
                   columns={tableColumns}
                   rowActions={rowActions}
