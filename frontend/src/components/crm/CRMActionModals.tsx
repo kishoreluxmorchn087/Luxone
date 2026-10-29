@@ -1017,8 +1017,9 @@ export function MassDeleteModal({
   open,
   onClose,
   count,
+  isSelection = false,
   onConfirm,
-}: BaseModalProps & { count: number; onConfirm: () => Promise<void> }) {
+}: BaseModalProps & { count: number; isSelection?: boolean; onConfirm: () => Promise<void> }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1064,7 +1065,8 @@ export function MassDeleteModal({
       }
     >
       <p className="text-sm text-slate-700">
-        Are you sure you want to delete all <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
+        Are you sure you want to delete {isSelection ? "the selected" : "all"}{" "}
+        <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
       </p>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </CRMModalBase>

@@ -619,7 +619,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                 event.preventDefault();
               }
             } : undefined}
-            inputMode={field.inputMode ?? "decimal"}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.

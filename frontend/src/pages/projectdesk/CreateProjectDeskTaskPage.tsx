@@ -24,17 +24,6 @@ type AssignableUser = {
 const TASK_PRIORITIES: ProjectPriority[] = ["Low", "Medium", "High"];
 const TASK_STATUSES: ProjectTaskStatus[] = ["Not Started", "In Progress", "On Hold", "Completed"];
 
-function getCurrentUserEmail() {
-  try {
-    const raw = localStorage.getItem("loggedInUser");
-    if (!raw) return "";
-    const user = JSON.parse(raw) as { email?: string };
-    return user.email ?? "";
-  } catch {
-    return "";
-  }
-}
-
 function getCurrentUserRole() {
   try {
     const raw = localStorage.getItem("loggedInUser");
@@ -97,7 +86,7 @@ export default function CreateProjectDeskTaskPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialProject]);
 
   useEffect(() => {
     let active = true;
@@ -154,7 +143,7 @@ export default function CreateProjectDeskTaskPage() {
       return users.filter((user) => user.role === "employee");
     }
     return [];
-  }, [form.assignee_role, users]);
+  }, [currentUserRole, form.assignee_role, users]);
 
   const inputCls =
     "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
