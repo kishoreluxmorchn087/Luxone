@@ -35,7 +35,6 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   showNotes?: boolean;
   showActivity?: boolean;
   showActionsColumn?: boolean;
-  showRowActionsMenu?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
     rows: T[];
@@ -83,7 +82,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   showNotes = true,
   showActivity = false,
   showActionsColumn = true,
-  showRowActionsMenu = true,
   onDeleteRow,
   renderTopContent,
   hideFilterSidebar = false,
@@ -374,17 +372,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     throw new Error(`Send Email is not wired for the ${config.module} module yet.`);
   };
 
-  const handleAddTag = async (tag: string): Promise<void> => {
-    if (!activeRow) throw new Error("No record selected.");
-    if (config.module !== "leads") {
-      throw new Error(`Adding tags is not supported for the ${config.module} module.`);
-    }
-    await apiRequest(`/leads/${activeRow.id}/add-tags/`, {
-      method: "POST",
-      body: JSON.stringify({ tags: [tag] }),
-    });
-  };
-
   const handleCreateTask = async (payload: {
     subject: string;
     description?: string;
@@ -673,7 +660,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               showNotes={currentShowNotes}
               showActivity={currentShowActivity}
               showActionsColumn={showActionsColumn}
-              showRowActionsMenu={showRowActionsMenu}
               density={density}
               onToggleAll={(checked) => {
                 if (!checked) {
@@ -746,7 +732,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         open={activeModal === "add-tags"}
         onClose={closeModal}
         recordName={recordName}
-        onAddTag={handleAddTag}
       />
       <TaskModal
         open={activeModal === "task"}

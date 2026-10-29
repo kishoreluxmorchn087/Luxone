@@ -47,23 +47,9 @@ const dealRowActions: CRMRowAction[] = [
   { key: "edit", label: "Edit" },
   { key: "send-email", label: "Send Email" },
   { key: "create-task", label: "Create Task" },
+  { key: "add-tags", label: "Add Tags" },
   { key: "delete", label: "Delete", destructive: true },
   { key: "copy-url", label: "Copy URL" },
-  {
-    key: "more",
-    label: "More",
-    children: [
-      { key: "create-meeting", label: "Create Meeting" },
-      {
-        key: "create-call",
-        label: "Create Call",
-        children: [
-          { key: "schedule-call", label: "Schedule a call" },
-          { key: "log-call", label: "Log a call" },
-        ],
-      },
-    ],
-  },
 ];
 
 const dealSummaryFields: CRMSummaryField<Deal>[] = [
