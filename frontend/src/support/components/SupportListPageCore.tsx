@@ -141,6 +141,7 @@ export default function SupportListPageCore({ moduleKey }: Props) {
                 columnFilters={columnFilters}
                 showNotes={false}
                 showActivity={false}
+                showActionsColumn={false}
                 onToggleAll={(checked) => {
                   setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                 }}
@@ -169,4 +170,3 @@ export default function SupportListPageCore({ moduleKey }: Props) {
     </DashboardLayout>
   );
 }
-

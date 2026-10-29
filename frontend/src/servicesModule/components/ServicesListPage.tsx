@@ -143,6 +143,7 @@ export default function ServicesListPage() {
                 hiddenColumns={hiddenColumns}
                 pinnedColumn={pinnedColumn}
                 columnFilters={columnFilters}
+                showActionsColumn={false}
                 onToggleAll={(checked) => setSelectedIds(checked ? paginatedRows.map((row) => row.id) : [])}
                 onToggleRow={(id, checked) => setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)))}
                 onOpenRow={(row) => navigate(`/services/catalog/${row.id}`)}
