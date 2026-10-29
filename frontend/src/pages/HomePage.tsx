@@ -265,7 +265,6 @@ export default function HomePage() {
               <button
                 key={segment.name}
                 type="button"
-                onClick={() => navigate("/accounts")}
                 className={`flex h-full min-h-[168px] flex-col rounded-2xl border px-4 py-4 text-left transition hover:-translate-y-0.5 ${segment.tone}`}
               >
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{segment.name}</div>
