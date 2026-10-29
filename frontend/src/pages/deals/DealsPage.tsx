@@ -58,8 +58,6 @@ export default function DealsPage() {
       loading={loading}
       showNotes={false}
       showActivity={false}
-      showActionsColumn={false}
-      showRowActionsMenu={true}
       onDeleteRow={handleDeleteRow}
       hideFilterSidebar={viewMode === "pipeline"}
       hideTable={viewMode === "pipeline"}
