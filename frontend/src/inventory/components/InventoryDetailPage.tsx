@@ -157,6 +157,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           actions={headerActions}
           onBack={() => navigate(meta.baseRoute)}
           onAction={async (action) => {
+            if (action === "Send Email" && moduleKey === "vendors") {
+              setEmailOpen(true);
+              return;
+            }
+
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
               return;
@@ -442,6 +447,10 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
           recordName={detail.name}
           allowAttachments
+          errorHelpLink={{
+            href: "/integrations/email",
+            label: "Open Email Provider Settings",
+          }}
           onSend={async (email) => {
             if (!id) throw new Error("Vendor record is unavailable.");
             await sendVendorEmail(id, email);

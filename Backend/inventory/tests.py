@@ -105,6 +105,33 @@ class VendorCategoryTests(APITestCase):
         self.assertEqual(vendor.email_logs.count(), 1)
         self.assertEqual(vendor.email_logs.first().to_email, vendor.email)
 
+    @patch("inventory.views.create_outgoing_crm_email", side_effect=ValueError("This provider is missing live sending credentials."))
+    @patch("inventory.views.get_user_default_email_provider")
+    def test_vendor_send_email_returns_readable_error_when_provider_cannot_send(self, get_provider, send_email):
+        vendor = Vendor.objects.create(
+            vendor_name="Email Supplier",
+            email="supplier@example.com",
+            vendor_owner=self.user,
+        )
+        get_provider.return_value = SimpleNamespace(display_name="LuxOne CRM")
+
+        response = self.client.post(
+            f"/api/inventory/vendors/{vendor.pk}/send-email/",
+            {
+                "to_email": vendor.email,
+                "subject": "Order update",
+                "body": "Your order has shipped.",
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "This provider is missing live sending credentials.",
+        )
+        self.assertFalse(vendor.email_logs.exists())
+
 
 class InventoryLinkingTests(APITestCase):
     def setUp(self):

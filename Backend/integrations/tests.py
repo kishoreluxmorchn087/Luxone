@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -20,7 +21,7 @@ from .models import (
     VisitorTrackingPortal,
     VisitorTrackingSetting,
 )
-from .services import create_synced_email_message, run_provider_sync
+from .services import create_synced_email_message, run_provider_sync, send_provider_email_live
 from .utils import build_portal_tracking_key
 
 
@@ -150,6 +151,45 @@ class SocialAccountHandleValidationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         account.refresh_from_db()
         self.assertEqual(account.handle, "@brandname")
+
+
+class SocialEmailOAuthErrorTests(APITestCase):
+    def test_smtp_oauth_error_does_not_expose_provider_response(self):
+        provider = SimpleNamespace(
+            is_active=True,
+            display_name="LuxOne",
+            email_address="sender@example.com",
+            protocol_type=EmailProviderIntegration.ProtocolType.IMAP_OAUTH,
+            access_token="private-access-token",
+            reply_to_address="",
+        )
+        smtp_response = b"Authentication failed: private-access-token"
+
+        with (
+            patch(
+                "integrations.services._resolved_provider_config",
+                return_value={
+                    "smtp_host": "smtp.example.com",
+                    "smtp_port": 587,
+                    "smtp_use_ssl": False,
+                    "smtp_use_tls": False,
+                },
+            ),
+            patch("integrations.services.smtplib.SMTP") as smtp_class,
+        ):
+            smtp_class.return_value.docmd.return_value = (535, smtp_response)
+
+            with self.assertRaises(ValueError) as error:
+                send_provider_email_live(
+                    provider_integration=provider,
+                    subject="Test",
+                    body="Test",
+                    to_emails=["recipient@example.com"],
+                )
+
+        self.assertIn("Reconnect the email provider", str(error.exception))
+        self.assertNotIn("private-access-token", str(error.exception))
+        self.assertNotIn(smtp_response.decode(), str(error.exception))
 
 
 class IntegrationLinkingTests(APITestCase):

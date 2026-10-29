@@ -1,5 +1,6 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import CRMModalBase from "./CRMModalBase";
 import DatePicker from "../common/DatePicker";
 import { formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
@@ -72,11 +73,13 @@ export function SendEmailModal({
   toEmail = "",
   recordName = "",
   allowAttachments = false,
+  errorHelpLink,
   onSend,
 }: BaseModalProps & {
   toEmail?: string;
   recordName?: string;
   allowAttachments?: boolean;
+  errorHelpLink?: { href: string; label: string };
   onSend?: (payload: { to: string; subject: string; body: string; from_email?: string; attachments?: File[] }) => Promise<void>;
 }) {
   const [from, setFrom] = useState("");
@@ -202,7 +205,19 @@ export function SendEmailModal({
           )}
         </>
       )}
-      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      {error && (
+        <div className="mt-2">
+          <p className="text-sm text-rose-600">{error}</p>
+          {errorHelpLink && /oauth|provider|smtp|sending credentials|email could not be sent/i.test(error) && (
+            <Link
+              to={errorHelpLink.href}
+              className="mt-1 inline-block text-sm font-medium text-blue-700 underline hover:text-blue-800"
+            >
+              {errorHelpLink.label}
+            </Link>
+          )}
+        </div>
+      )}
     </CRMModalBase>
   );
 }

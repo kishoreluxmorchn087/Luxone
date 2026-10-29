@@ -1221,7 +1221,9 @@ def send_provider_email_live(
             auth_string = _smtp_oauth2_string(provider_integration.email_address, provider_integration.access_token)
             code, response = smtp.docmd("AUTH", "XOAUTH2 " + auth_string)
             if code not in (235, 250):
-                raise ValueError(f"SMTP OAuth authentication failed: {response!r}")
+                raise ValueError(
+                    "SMTP OAuth authentication failed. Reconnect the email provider and try again."
+                )
         else:
             smtp.login(provider_integration.email_address, live_secret)
         smtp.sendmail(provider_integration.email_address, recipients, mime_message.as_bytes())
