@@ -340,7 +340,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
             <X size={18} />
           </button>
         </div>
-        <div className="space-y-4 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );
@@ -608,7 +608,7 @@ function CallDetailModal({
           </button>
         </div>
 
-        <div className="space-y-4 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-0.5">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Date</p>
