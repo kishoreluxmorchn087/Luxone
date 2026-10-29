@@ -281,6 +281,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 onApply={(filters) => {
                   setSidebarFilters(filters);
                   setPage(1);
+                  if (moduleKey === "vendors") setFilterOpen(false);
                 }}
                 onClear={() => {
                   setSidebarFilters({});
