@@ -45,7 +45,7 @@ function FullCallModalShell({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-6 py-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">{children}</div>
       </div>
     </div>
   );
