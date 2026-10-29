@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, storeAuthSession } from "../lib/api/authApi";
 import { getResolvedApiBaseUrl } from "../api/config";
@@ -90,12 +90,27 @@ export default function LoginPage() {
   const [fpError, setFpError] = useState("");
   const [fpLoading, setFpLoading] = useState(false);
   const [fpSuccess, setFpSuccess] = useState("");
+  const [fpResendCountdown, setFpResendCountdown] = useState(0);
+  const fpResendCooldownRef = useRef(false);
 
   useEffect(() => {
     if (showPassword || revealedPasswordIndex === null) return;
     const timeoutId = window.setTimeout(() => setRevealedPasswordIndex(null), 800);
     return () => window.clearTimeout(timeoutId);
   }, [password, revealedPasswordIndex, showPassword]);
+
+  useEffect(() => {
+    if (fpResendCountdown === 0) {
+      fpResendCooldownRef.current = false;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (fpResendCountdown === 1) fpResendCooldownRef.current = false;
+      setFpResendCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [fpResendCountdown]);
 
   const rawRedirect =
     typeof window.history.state === "object" &&
@@ -192,6 +207,14 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendOtp = () => {
+    if (fpResendCooldownRef.current || fpLoading) return;
+    fpResendCooldownRef.current = true;
+    setFpResendCountdown(30);
+    setFpError("");
+    void handleSendOtp({ preventDefault: () => {} });
+  };
+
   // ── Forgot: verify OTP ─────────────────────────────────────────────────────
   const handleVerifyOtp = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -203,6 +226,8 @@ export default function LoginPage() {
         email: fpEmail.trim(),
         otp: fpOtp.trim(),
       });
+      fpResendCooldownRef.current = false;
+      setFpResendCountdown(0);
       setStep("forgot-reset");
     } catch (err) {
       setFpError(err instanceof Error ? err.message : "Invalid or expired OTP.");
@@ -239,6 +264,8 @@ export default function LoginPage() {
     setStep("login");
     setFpEmail(""); setFpOtp(""); setFpNewPwd(""); setFpConfirmPwd("");
     setFpError(""); setFpLoading(false);
+    fpResendCooldownRef.current = false;
+    setFpResendCountdown(0);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -433,9 +460,10 @@ export default function LoginPage() {
                 </button>
 
                 <div className="flex items-center justify-between text-sm">
-                  <button type="button" onClick={() => { setFpError(""); void handleSendOtp({ preventDefault: () => {} }); }}
-                    className="text-[#359de9] hover:underline">
-                    Resend OTP
+                  <button type="button" onClick={handleResendOtp}
+                    disabled={fpLoading || fpResendCountdown > 0}
+                    className="text-[#359de9] hover:underline disabled:cursor-not-allowed disabled:opacity-60">
+                    Resend OTP{fpResendCountdown > 0 ? ` (${fpResendCountdown}s)` : ""}
                   </button>
                   <button type="button" onClick={resetForgot} className="text-slate-500 hover:text-slate-700">
                     Back to Sign in
