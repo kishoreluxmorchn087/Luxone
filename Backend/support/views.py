@@ -13,7 +13,7 @@ from integrations.models import SyncedEmailMessage
 from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
 
 from .filters import SupportCaseFilter, SupportSolutionFilter
-from .models import SupportImportJob, SupportURLLink
+from .models import SupportImportJob
 from .serializers import (
     SupportActivitySerializer,
     SupportAttachmentSerializer,
@@ -34,7 +34,6 @@ from .serializers import (
     SupportSolutionListSerializer,
     SupportSolutionWriteSerializer,
     SupportTimelineSerializer,
-    SupportURLLinkSerializer,
 )
 from .services import (
     add_activity,
@@ -211,16 +210,9 @@ class SupportCaseViewSet(SupportBaseMixin, viewsets.ModelViewSet):
         linked = add_linked_record("case", case, serializer.validated_data, request.user)
         return Response(SupportLinkedRecordSerializer(linked).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["get", "post"], url_path="links")
+    @action(detail=True, methods=["get"], url_path="links")
     def links(self, request, pk=None):
-        case = self.get_object()
-        if request.method == "GET":
-            links = SupportURLLink.objects.filter(case=case, is_active=True)
-            return Response(SupportURLLinkSerializer(links, many=True).data)
-        serializer = SupportURLLinkSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        link = serializer.save(case=case, created_by=request.user)
-        return Response(SupportURLLinkSerializer(link).data, status=status.HTTP_201_CREATED)
+        return self.related_records(request, pk)
 
     @action(detail=True, methods=["get", "post"], url_path="activities")
     def activities(self, request, pk=None):
@@ -456,16 +448,9 @@ class SupportSolutionViewSet(SupportBaseMixin, viewsets.ModelViewSet):
         linked = add_linked_record("solution", solution, serializer.validated_data, request.user)
         return Response(SupportLinkedRecordSerializer(linked).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["get", "post"], url_path="links")
+    @action(detail=True, methods=["get"], url_path="links")
     def links(self, request, pk=None):
-        solution = self.get_object()
-        if request.method == "GET":
-            links = SupportURLLink.objects.filter(solution=solution, is_active=True)
-            return Response(SupportURLLinkSerializer(links, many=True).data)
-        serializer = SupportURLLinkSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        link = serializer.save(solution=solution, created_by=request.user)
-        return Response(SupportURLLinkSerializer(link).data, status=status.HTTP_201_CREATED)
+        return self.related_records(request, pk)
 
     @action(detail=True, methods=["get", "post"], url_path="emails")
     def emails(self, request, pk=None):

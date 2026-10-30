@@ -77,7 +77,6 @@ export default function FilterSidebar({
 
   const handleApply = () => {
     const filters: Record<string, string> = {};
-    const valuesByKey: Record<string, string[]> = {};
 
     sections.forEach((section) => {
       section.items.forEach((item) => {
@@ -88,14 +87,10 @@ export default function FilterSidebar({
         if (key && checked[label]) {
           const value = fixedValue ?? (fieldValues[label] ?? "").trim();
           if (value) {
-            (valuesByKey[key] ??= []).push(value);
+            filters[key] = value;
           }
         }
       });
-    });
-
-    Object.entries(valuesByKey).forEach(([key, values]) => {
-      filters[key] = values.join("\u001f");
     });
 
     onApply?.(filters);

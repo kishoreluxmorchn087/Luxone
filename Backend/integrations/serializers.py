@@ -1,5 +1,6 @@
 from __future__ import annotations
 import html
+import re
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -42,19 +43,11 @@ from .services import validate_relay_configuration
 from .utils import normalize_email, record_display_name
 
 User = get_user_model()
-VALID_EMAIL_ERROR = "Enter a valid email address"
-PROVIDER_EMAIL_ERRORS = {
-    EmailProviderIntegration.ProviderType.GMAIL: "Enter a valid Gmail address",
-    EmailProviderIntegration.ProviderType.YAHOO: "Enter a valid Yahoo Mail address",
-}
-
-
-def validate_social_handle(value):
-    if value and not value.startswith("@"):
-        raise serializers.ValidationError(
-            "Handle must start with @ (for example, @brandname)."
-        )
-    return value
+VALID_EMAIL_ERROR = "Enter a valid Gmail address"
+STRICT_EMAIL_PATTERN = re.compile(
+    r"^[^\s@]+@gmail\.com$",
+    re.IGNORECASE,
+)
 
 
 class EmailProviderIntegrationListSerializer(serializers.ModelSerializer):
@@ -176,7 +169,7 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
 
     def validate_email_address(self, value):
         value = normalize_email(value)
-        if ".." in value:
+        if not STRICT_EMAIL_PATTERN.fullmatch(value) or ".." in value:
             raise serializers.ValidationError(VALID_EMAIL_ERROR)
         try:
             validate_email(value)
@@ -188,7 +181,7 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
         if value in ("", None):
             return None
         value = normalize_email(value)
-        if ".." in value:
+        if not STRICT_EMAIL_PATTERN.fullmatch(value) or ".." in value:
             raise serializers.ValidationError(VALID_EMAIL_ERROR)
         try:
             validate_email(value)
@@ -197,24 +190,6 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        provider_type = data.get("provider_type")
-        if provider_type is None and self.instance:
-            provider_type = self.instance.provider_type
-
-        email = data.get("email_address")
-        if not email and self.instance:
-            email = self.instance.email_address
-
-        provider_error = PROVIDER_EMAIL_ERRORS.get(provider_type)
-        if email and provider_error:
-            domain = email.rsplit("@", 1)[-1]
-            if provider_type == EmailProviderIntegration.ProviderType.GMAIL:
-                domain_matches = domain == "gmail.com"
-            else:
-                domain_matches = domain == "yahoo.com"
-            if not domain_matches:
-                raise serializers.ValidationError({"email_address": provider_error})
-
         reply_to = data.get("reply_to_address")
 
         if reply_to:
@@ -222,6 +197,10 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
                 validate_email(reply_to)
             except DjangoValidationError as exc:
                 raise serializers.ValidationError({"reply_to_address": VALID_EMAIL_ERROR}) from exc
+
+        email = data.get("email_address")
+        if not email and self.instance:
+            email = self.instance.email_address
 
         if not email:
             raise serializers.ValidationError({"email": "This field is required."})
@@ -750,9 +729,6 @@ class UnsubscribeLinkSerializer(serializers.ModelSerializer):
 
 
 class SocialAccountSerializer(serializers.ModelSerializer):
-    def validate_handle(self, value):
-        return validate_social_handle(value)
-
     class Meta:
         model = SocialAccount
         fields = [
@@ -834,9 +810,6 @@ class SocialConnectSerializer(serializers.Serializer):
     page_id = serializers.CharField(required=False, allow_blank=True)
     access_token = serializers.CharField(required=False, allow_blank=True)
     refresh_token = serializers.CharField(required=False, allow_blank=True)
-
-    def validate_handle(self, value):
-        return validate_social_handle(value)
 
 
 class SocialMessageSerializer(serializers.ModelSerializer):

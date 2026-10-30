@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, storeAuthSession } from "../lib/api/authApi";
 import { getResolvedApiBaseUrl } from "../api/config";
@@ -75,7 +75,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [revealedPasswordIndex, setRevealedPasswordIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loginErrors, setLoginErrors] = useState<LoginFieldErrors>({});
   const [loading, setLoading] = useState(false);
@@ -90,27 +89,6 @@ export default function LoginPage() {
   const [fpError, setFpError] = useState("");
   const [fpLoading, setFpLoading] = useState(false);
   const [fpSuccess, setFpSuccess] = useState("");
-  const [fpResendCountdown, setFpResendCountdown] = useState(0);
-  const fpResendCooldownRef = useRef(false);
-
-  useEffect(() => {
-    if (showPassword || revealedPasswordIndex === null) return;
-    const timeoutId = window.setTimeout(() => setRevealedPasswordIndex(null), 800);
-    return () => window.clearTimeout(timeoutId);
-  }, [password, revealedPasswordIndex, showPassword]);
-
-  useEffect(() => {
-    if (fpResendCountdown === 0) {
-      fpResendCooldownRef.current = false;
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      if (fpResendCountdown === 1) fpResendCooldownRef.current = false;
-      setFpResendCountdown((current) => Math.max(0, current - 1));
-    }, 1000);
-    return () => window.clearTimeout(timeoutId);
-  }, [fpResendCountdown]);
 
   const rawRedirect =
     typeof window.history.state === "object" &&
@@ -207,14 +185,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleResendOtp = () => {
-    if (fpResendCooldownRef.current || fpLoading) return;
-    fpResendCooldownRef.current = true;
-    setFpResendCountdown(30);
-    setFpError("");
-    void handleSendOtp({ preventDefault: () => {} });
-  };
-
   // ── Forgot: verify OTP ─────────────────────────────────────────────────────
   const handleVerifyOtp = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -226,8 +196,6 @@ export default function LoginPage() {
         email: fpEmail.trim(),
         otp: fpOtp.trim(),
       });
-      fpResendCooldownRef.current = false;
-      setFpResendCountdown(0);
       setStep("forgot-reset");
     } catch (err) {
       setFpError(err instanceof Error ? err.message : "Invalid or expired OTP.");
@@ -264,8 +232,6 @@ export default function LoginPage() {
     setStep("login");
     setFpEmail(""); setFpOtp(""); setFpNewPwd(""); setFpConfirmPwd("");
     setFpError(""); setFpLoading(false);
-    fpResendCooldownRef.current = false;
-    setFpResendCountdown(0);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -347,36 +313,16 @@ export default function LoginPage() {
                       maxLength={PASSWORD_MAX_LENGTH}
                       value={password}
                       onChange={(e) => {
-                        const nextPassword = e.target.value.slice(0, PASSWORD_MAX_LENGTH);
-                        setPassword(nextPassword);
-                        setRevealedPasswordIndex(
-                          nextPassword.length >= password.length && nextPassword !== password && nextPassword.length > 0
-                            ? Math.min(nextPassword.length - 1, (e.currentTarget.selectionStart ?? nextPassword.length) - 1)
-                            : null
-                        );
+                        setPassword(e.target.value.slice(0, PASSWORD_MAX_LENGTH));
                         setLoginErrors((current) => ({ ...current, password: undefined }));
                         if (error) setError("");
                       }}
                       placeholder="Enter your password"
                       className={inputCls + " pr-10"}
-                      style={showPassword ? undefined : { color: "transparent", caretColor: "#1e293b" }}
                     />
-                    {!showPassword && (
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-y-0 left-3.5 right-10 flex items-center overflow-hidden whitespace-pre text-sm text-slate-800"
-                      >
-                        {Array.from(password, (character, index) =>
-                          index === revealedPasswordIndex ? character : "•"
-                        ).join("")}
-                      </span>
-                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowPassword((v) => !v);
-                        setRevealedPasswordIndex(null);
-                      }}
+                      onClick={() => setShowPassword((v) => !v)}
                       className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -460,10 +406,9 @@ export default function LoginPage() {
                 </button>
 
                 <div className="flex items-center justify-between text-sm">
-                  <button type="button" onClick={handleResendOtp}
-                    disabled={fpLoading || fpResendCountdown > 0}
-                    className="text-[#359de9] hover:underline disabled:cursor-not-allowed disabled:opacity-60">
-                    Resend OTP{fpResendCountdown > 0 ? ` (${fpResendCountdown}s)` : ""}
+                  <button type="button" onClick={() => { setFpError(""); void handleSendOtp({ preventDefault: () => {} }); }}
+                    className="text-[#359de9] hover:underline">
+                    Resend OTP
                   </button>
                   <button type="button" onClick={resetForgot} className="text-slate-500 hover:text-slate-700">
                     Back to Sign in

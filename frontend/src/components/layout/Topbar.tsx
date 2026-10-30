@@ -18,7 +18,6 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../hooks/useAuth";
-import { formatDateForDisplay, formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 type TopbarProps = {
   sidebarOpen: boolean;
@@ -171,7 +170,14 @@ function isSameDay(value?: string | null) {
 
 function formatNotificationDate(value?: string | null) {
   if (!value) return "Today";
-  return formatDateTimeForDisplay(value);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getAttendanceSummary(meeting: ProjectDeskMeeting) {
@@ -736,7 +742,14 @@ export default function Topbar({
                           </p>
                           <p className="mt-0.5 truncate text-xs text-slate-500">{email.from_email}</p>
                           <p className="mt-0.5 text-[11px] text-slate-400">
-                            {formatDateTimeForDisplay(email.received_at)}
+                            {email.received_at
+                              ? new Date(email.received_at).toLocaleString("en-GB", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                              : ""}
                           </p>
                         </div>
                       </button>
@@ -859,7 +872,7 @@ export default function Topbar({
                         : []),
                       { icon: <Building2 size={14} />, label: "Organization", value: ORGANIZATION_LABEL },
                       ...(fullUser?.manager_email ? [{ icon: <UserCog size={14} />, label: "Manager", value: fullUser.manager_email }] : []),
-                      { icon: <Clock size={14} />, label: "Member Since", value: formatDateForDisplay(fullUser?.created_at) || "-" },
+                      { icon: <Clock size={14} />, label: "Member Since", value: fullUser?.created_at ? new Date(fullUser.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-" },
                     ].map(({ icon, label, value }) => (
                       <div key={label} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                         <span className="mt-0.5 text-slate-400">{icon}</span>

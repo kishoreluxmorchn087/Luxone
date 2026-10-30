@@ -86,8 +86,6 @@ export type ServiceRecord = CRMRecord & {
   deliveryTeam: string;
   availableDaysMode: string;
   availableTimeMode: string;
-  customTimeStart?: string;
-  customTimeEnd?: string;
   businessHours: string;
   businessHoursName: string;
   businessHoursTimezone?: string;
@@ -111,8 +109,6 @@ export type ServiceFormData = {
   deliveryTeam: string;
   availableDaysMode: string;
   availableTimeMode: string;
-  customTimeStart: string;
-  customTimeEnd: string;
   businessHoursId: string;
   memberIds: string[];
   primaryMemberId: string;

@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Filter, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
-import DatePicker from "../../../components/common/DatePicker";
-import { formatDateForDisplay, validateDatePickerInputs } from "../../../lib/dateUtils";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
 import { keepEmployeeOwnedRows, keepEmployeeVisibleRows } from "../../../lib/shared/recordVisibility";
 
@@ -77,7 +75,6 @@ interface CallFormValues {
   relatedToId: number | null;
   relatedToLabel: string;
   callType: CallType;
-  status: CallStatus;
   startDate: string;
   startTime: string;
   subject: string;
@@ -115,7 +112,8 @@ function getCurrentTime() {
 }
 
 function formatDisplayDate(dateStr: string) {
-  return formatDateForDisplay(dateStr);
+  const [year, month, day] = dateStr.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function formatDisplayTime(timeStr: string) {
@@ -134,7 +132,6 @@ function emptyFormValues(variant: "schedule" | "log"): CallFormValues {
     relatedToId: null,
     relatedToLabel: "",
     callType: "Outbound",
-    status: variant === "schedule" ? "Scheduled" : "Completed",
     startDate: getTodayDate(),
     startTime: variant === "schedule" ? "13:00" : getCurrentTime(),
     subject: "",
@@ -155,7 +152,6 @@ function callToFormValues(call: CallRecord): CallFormValues {
     relatedToId: call.relatedToId,
     relatedToLabel: call.relatedTo === "-" ? "" : call.relatedTo,
     callType: call.callType,
-    status: call.status,
     startDate: call.startDate,
     startTime: call.startTime,
     subject: call.subject,
@@ -191,11 +187,11 @@ function toApiRecord(call: ApiCall): CallRecord {
   };
 }
 
-function buildPayload(values: CallFormValues) {
+function buildPayload(values: CallFormValues, status: CallStatus) {
   return {
     subject: values.subject || `${values.callType} call with ${values.callForLabel || "Unknown"}`,
     call_type: values.callType,
-    call_status: values.status,
+    call_status: status,
     call_start_time: `${values.startDate}T${values.startTime}:00`,
     duration_minutes: Number(values.durationMinutes) || 0,
     duration_seconds: Number(values.durationSeconds) || 0,
@@ -340,7 +336,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
             <X size={18} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="space-y-4 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );
@@ -362,7 +358,7 @@ function CallFormModal({
   onClose,
   onSubmit,
   saving,
-  allowStatusEdit = false,
+  status,
 }: {
   title: string;
   submitLabel: string;
@@ -370,7 +366,7 @@ function CallFormModal({
   onClose: () => void;
   onSubmit: (payload: Record<string, unknown>) => void;
   saving?: boolean;
-  allowStatusEdit?: boolean;
+  status: CallStatus;
 }) {
   const { contacts, leads, accounts, deals } = useLookupData();
   const [formValues, setFormValues] = useState<CallFormValues>(initialValues);
@@ -388,8 +384,7 @@ function CallFormModal({
         : [];
 
   const handleSubmit = () => {
-    if (!validateDatePickerInputs()) return;
-    onSubmit(buildPayload(formValues));
+    onSubmit(buildPayload(formValues, status));
   };
 
   return (
@@ -460,30 +455,12 @@ function CallFormModal({
         </select>
       </FormRow>
 
-      {allowStatusEdit && (
-        <FormRow label="Status">
-          <select
-            value={formValues.status}
-            onChange={(event) =>
-              setFormValues((current) => ({
-                ...current,
-                status: event.target.value as CallStatus,
-              }))
-            }
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
-          >
-            <option value="Scheduled">Scheduled</option>
-            <option value="Completed">Completed</option>
-          </select>
-        </FormRow>
-      )}
-
       <FormRow label="Call Start Time">
         <div className="flex gap-2">
-          <DatePicker
-            required
+          <input
+            type="date"
             value={formValues.startDate}
-            onChange={(startDate) => setFormValues((current) => ({ ...current, startDate }))}
+            onChange={(event) => setFormValues((current) => ({ ...current, startDate: event.target.value }))}
             className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"
           />
           <input
@@ -608,7 +585,7 @@ function CallDetailModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+        <div className="space-y-4 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-0.5">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Date</p>
@@ -669,7 +646,7 @@ export default function CallsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterMap>({});
+  const [, setFilters] = useState<FilterMap>({});
   const [showSchedule, setShowSchedule] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -694,26 +671,6 @@ export default function CallsPage() {
   useEffect(() => {
     void loadCalls();
   }, [loadCalls]);
-
-  const filteredCalls = useMemo(() => {
-    const filterFields: Record<keyof FilterMap, (call: CallRecord) => string> = {
-      callType: (call) => call.callType,
-      status: (call) => call.status,
-      owner: (call) => call.owner,
-      callFor: (call) => call.callFor,
-      relatedTo: (call) => call.relatedTo,
-    };
-
-    return calls.filter((call) =>
-      Object.entries(filters).every(([key, value]) => {
-        const getFieldValue = filterFields[key as keyof FilterMap];
-        return (
-          !getFieldValue ||
-          getFieldValue(call).toLowerCase().includes(value.toLowerCase())
-        );
-      })
-    );
-  }, [calls, filters]);
 
   const createCall = async (payload: Record<string, unknown>) => {
     try {
@@ -759,7 +716,7 @@ export default function CallsPage() {
   };
 
   const toggleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? new Set(filteredCalls.map((c) => c.id)) : new Set());
+    setSelectedIds(checked ? new Set(calls.map((c) => c.id)) : new Set());
   };
 
   const handleDeleteSingle = async (id: number) => {
@@ -863,11 +820,9 @@ export default function CallsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
                 <p className="text-sm text-rose-600">{error}</p>
               </div>
-            ) : filteredCalls.length === 0 ? (
+            ) : calls.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-                <p className="text-sm font-medium text-slate-500">
-                  {calls.length ? "No calls match the selected filters." : "No calls found."}
-                </p>
+                <p className="text-sm font-medium text-slate-500">No calls found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -877,24 +832,15 @@ export default function CallsPage() {
                       <th className="w-10 px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={filteredCalls.every((call) => selectedIds.has(call.id))}
-                          ref={(el) => {
-                            if (el) {
-                              const selectedVisibleCount = filteredCalls.filter((call) =>
-                                selectedIds.has(call.id)
-                              ).length;
-                              el.indeterminate =
-                                selectedVisibleCount > 0 &&
-                                selectedVisibleCount < filteredCalls.length;
-                            }
-                          }}
+                          checked={selectedIds.size === calls.length && calls.length > 0}
+                          ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < calls.length; }}
                           onChange={(e) => toggleSelectAll(e.target.checked)}
                           className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-600"
                         />
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Subject</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Type</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Start Date & Time</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call Start Time</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Duration</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Call For</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Related To</th>
@@ -903,7 +849,7 @@ export default function CallsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCalls.map((call) => (
+                    {calls.map((call) => (
                       <tr
                         key={call.id}
                         className={`cursor-pointer border-b transition hover:bg-slate-50 ${selectedIds.has(call.id) ? "bg-blue-50" : ""}`}
@@ -975,6 +921,7 @@ export default function CallsPage() {
           onClose={() => setShowSchedule(false)}
           onSubmit={createCall}
           saving={saving}
+          status="Scheduled"
         />
       )}
 
@@ -986,6 +933,7 @@ export default function CallsPage() {
           onClose={() => setShowLog(false)}
           onSubmit={createCall}
           saving={saving}
+          status="Completed"
         />
       )}
 
@@ -997,7 +945,7 @@ export default function CallsPage() {
           onClose={() => setEditingCall(null)}
           onSubmit={updateCall}
           saving={saving}
-          allowStatusEdit
+          status={editingCall.status}
         />
       )}
 

@@ -10,7 +10,6 @@ import {
   type MyRequestsDashboardResponse,
 } from "../lib/api/dashboardApi";
 import { readDashboardCache, writeDashboardCache } from "../lib/dashboardCache";
-import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
 const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v2";
 const MY_REQUESTS_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -33,7 +32,15 @@ function toDate(value?: string | null) {
 }
 
 function formatDateTime(value?: string | null) {
-  return formatDateTimeForDisplay(value) || "N/A";
+  const parsed = toDate(value);
+  if (!parsed) return "N/A";
+  return parsed.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatUpdatedAt(value?: string | null) {

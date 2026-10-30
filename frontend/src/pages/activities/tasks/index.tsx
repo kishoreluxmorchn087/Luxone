@@ -71,7 +71,6 @@ export default function TasksPage() {
         <ModuleToolbar
           viewName="All Tasks"
           createButtonLabel="Create Task"
-          massDeleteLabel="Delete"
           showImportActions={false}
           sortFields={TASK_SORT_FIELDS}
           sortFieldKeyMap={TASK_SORT_FIELD_KEYS}

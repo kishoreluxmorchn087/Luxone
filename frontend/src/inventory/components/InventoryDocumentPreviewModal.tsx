@@ -3,7 +3,6 @@ import { Printer, X } from "lucide-react";
 import luxmorLogo from "../../assets/1.jpg";
 import type { InventoryDetailResponse } from "../types";
 import { formatMoney } from "../utils";
-import { formatDateForDisplay } from "../../lib/dateUtils";
 
 type Props = {
   open: boolean;
@@ -13,7 +12,11 @@ type Props = {
 };
 
 function displayDate(value?: string) {
-  return formatDateForDisplay(value) || "-";
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function address(detail: InventoryDetailResponse, kind: "billing" | "shipping") {

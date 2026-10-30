@@ -5,7 +5,6 @@ import DashboardLayout from "../../../components/layout/DashboardLayout";
 import FilterSidebar from "../../../components/crm/FilterSidebar";
 import { apiRequest } from "../../../api/client";
 import type { FilterSection } from "../../../lib/shared/crmTypes";
-import { formatDateTimeForDisplay } from "../../../lib/dateUtils";
 
 type FilterMap = Record<string, string>;
 
@@ -49,7 +48,10 @@ type TaskDetail = {
 
 function formatDate(value?: string | null) {
   if (!value) return "N/A";
-  return formatDateTimeForDisplay(value);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("en-GB", { hour12: true });
 }
 
 export default function TaskDetailPage() {

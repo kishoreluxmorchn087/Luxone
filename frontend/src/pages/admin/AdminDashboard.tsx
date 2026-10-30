@@ -28,6 +28,7 @@ type GroupedOrg = {
 };
 
 const ADMIN_DASHBOARD_CACHE_KEY = "admin-dashboard-cache-v1";
+const MANAGER_DASHBOARD_CACHE_KEY = "manager-dashboard-cache-v1";
 const ADMIN_DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
 const TEAM_UPDATED_EVENT = "team:updated";
 
@@ -335,11 +336,13 @@ export default function AdminDashboard() {
     const shouldFetch = refreshKey > 0 || !initialCache?.state;
 
     if (!shouldFetch) {
+      setLoading(false);
       return () => {
         active = false;
       };
     }
 
+    setLoading(true);
     apiRequest<OrgUser[]>("/auth/manage-users/")
       .then((data) => {
         if (!active) return;
@@ -355,7 +358,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const refresh = () => {
       removeDashboardCache(ADMIN_DASHBOARD_CACHE_KEY);
-      setLoading(true);
       setRefreshKey((k) => k + 1);
     };
 
@@ -382,7 +384,6 @@ export default function AdminDashboard() {
   const goToProfile = (u: OrgUser) => navigate(`/team/user/${u.id}`);
   const refresh = () => {
     removeDashboardCache(ADMIN_DASHBOARD_CACHE_KEY);
-    setLoading(true);
     setRefreshKey((k) => k + 1);
   };
 
