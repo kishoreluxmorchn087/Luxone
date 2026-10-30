@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
-import { validateDatePickerInputs } from "../../lib/dateUtils";
 import type { CreateProjectPayload, Project } from "./types";
 
 const emptyForm: CreateProjectPayload = {
@@ -111,7 +109,6 @@ export default function CreateProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateDatePickerInputs()) return;
     if (!formData.project_code || !formData.name) {
       setError("Project name is required");
       return;
@@ -252,20 +249,21 @@ export default function CreateProjectPage() {
               </FormField>
 
               <FormField label="Start Date">
-                <DatePicker
+                <input
+                  type="date"
                   name="start_date"
                   value={formData.start_date}
-                  onChange={(start_date) => setFormData((previous) => ({ ...previous, start_date }))}
+                  onChange={handleChange}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 />
               </FormField>
 
               <FormField label="Due Date">
-                <DatePicker
+                <input
+                  type="date"
                   name="due_date"
                   value={formData.due_date}
-                  futureOnly
-                  onChange={(due_date) => setFormData((previous) => ({ ...previous, due_date }))}
+                  onChange={handleChange}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 />
               </FormField>

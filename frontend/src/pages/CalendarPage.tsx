@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, CheckSquare, Clock3 } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
-import DatePicker from "../components/common/DatePicker";
-import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
 
 type ApiList<T> = T[] | { results?: T[]; data?: T[] };
 
@@ -69,7 +67,15 @@ function isSameDay(value: string | null | undefined, selectedDate: string) {
 
 function formatDateTime(value?: string | null) {
   if (!value) return "N/A";
-  return formatDateTimeForDisplay(value);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function buildMonthDays(viewDate: Date) {
@@ -174,11 +180,12 @@ export default function CalendarPage() {
           </div>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-slate-600">Selected Date</label>
-            <DatePicker
+            <input
+              type="date"
               value={selectedDate}
-              onChange={(date) => {
-                setSelectedDate(date);
-                setViewDate(new Date(`${date}T00:00:00`));
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setViewDate(new Date(`${e.target.value}T00:00:00`));
               }}
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
@@ -250,7 +257,12 @@ export default function CalendarPage() {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">
-                {formatDateForDisplay(selectedDate)}
+                {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-GB", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
               </h2>
               <p className="mt-1 text-sm text-slate-500">{totalItems} item(s) scheduled</p>
             </div>
@@ -343,3 +355,4 @@ function EventCard({ title, subtitle, meta }: { title: string; subtitle: string;
     </div>
   );
 }
+

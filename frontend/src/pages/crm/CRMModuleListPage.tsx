@@ -1,13 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, AlertCircle } from "lucide-react";
-import { copyToClipboard } from "../../lib/clipboard";
 import { apiRequest } from "../../api/client";
 import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMPagination from "../../components/crm/CRMPagination";
 import CRMTable from "../../components/crm/CRMTable";
-import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import {
   ActivityDetailModal,
   AddTagsModal,
@@ -34,7 +31,6 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
-  showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
     rows: T[];
@@ -74,41 +70,6 @@ function getRecordEmail(row: CRMRecord): string {
   return String(r.email ?? "");
 }
 
-function readModuleSetting(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writeModuleSetting(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    return;
-  }
-}
-
-function removeModuleSetting(key: string): void {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    return;
-  }
-}
-
-function parseHiddenColumns(value: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.every((column) => typeof column === "string")
-      ? parsed
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function CRMModuleListPage<T extends CRMRecord>({
   config,
   rows,
@@ -116,7 +77,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   pageSize = 1000,
   showNotes = true,
   showActivity = false,
-  showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
   hideFilterSidebar = false,
@@ -130,88 +90,13 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
-  const [density, setDensity] = useState<DensityMode>(() => {
-    const saved = readModuleSetting(`crm_density_${config.module}`);
-    if (saved === "compact" || saved === "normal" || saved === "comfortable") {
-      return saved;
-    }
-    return "normal";
-  });
-
-  const [currentPageSize, setCurrentPageSize] = useState<number>(() => {
-    const saved = readModuleSetting(`crm_pageSize_${config.module}`);
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!isNaN(parsed) && parsed > 0) return parsed;
-    }
-    return pageSize;
-  });
-
-  const [currentShowNotes, setCurrentShowNotes] = useState<boolean>(() => {
-    const saved = readModuleSetting(`crm_showNotes_${config.module}`);
-    if (saved !== null) return saved === "true";
-    return showNotes;
-  });
-
-  const [currentShowActivity, setCurrentShowActivity] = useState<boolean>(() => {
-    const saved = readModuleSetting(`crm_showActivity_${config.module}`);
-    if (saved !== null) return saved === "true";
-    return showActivity;
-  });
-
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
-    const saved = readModuleSetting(`crm_hiddenCols_${config.module}`);
-    if (saved) return parseHiddenColumns(saved);
-    return [];
-  });
-
-  const [pinnedColumn, setPinnedColumn] = useState<string | null>(() => {
-    const saved = readModuleSetting(`crm_pinnedCol_${config.module}`);
-    if (saved) return saved;
-    return null;
-  });
-
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+  const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
-  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
+  const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [filterOpen, setFilterOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
-  const isFilterOpen = filterOpen ?? !hideFilterSidebar;
-
-  const handleSetHiddenColumns = (hidden: string[]) => {
-    setHiddenColumns(hidden);
-    writeModuleSetting(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
-  };
-
-  const handleSetPinnedColumn = (pinned: string | null) => {
-    setPinnedColumn(pinned);
-    if (pinned) {
-      writeModuleSetting(`crm_pinnedCol_${config.module}`, pinned);
-    } else {
-      removeModuleSetting(`crm_pinnedCol_${config.module}`);
-    }
-  };
-
-  const handlePageSizeChange = (newSize: number) => {
-    setCurrentPageSize(newSize);
-    setPage(1);
-    writeModuleSetting(`crm_pageSize_${config.module}`, String(newSize));
-  };
-
-  const handleDensityChange = (newDensity: DensityMode) => {
-    setDensity(newDensity);
-    writeModuleSetting(`crm_density_${config.module}`, newDensity);
-  };
-
-  const handleToggleShowNotes = (show: boolean) => {
-    setCurrentShowNotes(show);
-    writeModuleSetting(`crm_showNotes_${config.module}`, String(show));
-  };
-
-  const handleToggleShowActivity = (show: boolean) => {
-    setCurrentShowActivity(show);
-    writeModuleSetting(`crm_showActivity_${config.module}`, String(show));
-  };
 
   const visibleColumns = useMemo(
     () => config.columns.filter((column) => !hiddenColumns.includes(column.key)),
@@ -220,13 +105,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const processedRows = useMemo(() => {
     const combined = { ...columnFilters, ...sidebarFilters };
-    const stringFilters = Object.fromEntries(
-      Object.entries(combined).map(([key, value]) => [
-        key,
-        Array.isArray(value) ? value.join("\u001f") : value,
-      ])
-    );
-    let output = filterRecords(rows, visibleColumns, stringFilters);
+    let output = filterRecords(rows, visibleColumns, combined);
 
     if (sortState) {
       output = sortRecords(
@@ -240,9 +119,9 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   }, [rows, visibleColumns, columnFilters, sidebarFilters, sortState]);
 
   const paginatedRows = useMemo(() => {
-    const start = (page - 1) * currentPageSize;
-    return processedRows.slice(start, start + currentPageSize);
-  }, [page, currentPageSize, processedRows]);
+    const start = (page - 1) * pageSize;
+    return processedRows.slice(start, start + pageSize);
+  }, [page, pageSize, processedRows]);
 
   const openModal = (modal: ModalState, row: T) => {
     setActiveRow(row);
@@ -254,37 +133,11 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     setActiveRow(null);
   };
 
-  const [copyToast, setCopyToast] = useState<{
-    visible: boolean;
-    message: string;
-    type: "success" | "error";
-  }>({
-    visible: false,
-    message: "",
-    type: "success",
-  });
-
   const handleRowAction = (actionKey: string, row: T) => {
     if (actionKey === "copy-url") {
-      const url = `${window.location.origin}${config.baseRoute}/${row.id}`;
-      void copyToClipboard(url).then((success) => {
-        if (success) {
-          setCopyToast({
-            visible: true,
-            message: "URL copied to clipboard!",
-            type: "success",
-          });
-        } else {
-          setCopyToast({
-            visible: true,
-            message: "Failed to copy URL to clipboard.",
-            type: "error",
-          });
-        }
-        setTimeout(() => {
-          setCopyToast((prev) => ({ ...prev, visible: false }));
-        }, 2500);
-      });
+      void navigator.clipboard.writeText(
+        `${window.location.origin}${config.baseRoute}/${row.id}`
+      );
       return;
     }
 
@@ -478,12 +331,6 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     if (!activeRow) {
       throw new Error("No record selected.");
     }
-    console.log("Call action debug:", {
-      module: config.module,
-      activeRow,
-      activeModal,
-      payload,
-    });
 
     const isLog = activeModal === "log-call";
     const callStartTime = payload.call_start_time ?? new Date().toISOString();
@@ -535,21 +382,17 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     await convertLead(activeRow.id, payload);
   };
 
-  const targetIds = selectedIds.length > 0 ? selectedIds : processedRows.map((r) => r.id);
-  const isSelection = selectedIds.length > 0;
-  const targetCount = targetIds.length;
-
   const handleMassDelete = async (): Promise<void> => {
-    if (targetIds.length === 0) return;
     if (config.module === "leads") {
+      const ids = processedRows.map((r) => r.id);
       await apiRequest(`${config.baseRoute}/bulk-delete/`, {
         method: "POST",
-        body: JSON.stringify({ ids: targetIds }),
+        body: JSON.stringify({ ids }),
       });
     } else {
       await Promise.all(
-        targetIds.map((id) =>
-          apiRequest(`${config.baseRoute}/${id}/`, { method: "DELETE" })
+        processedRows.map((r) =>
+          apiRequest(`${config.baseRoute}/${r.id}/`, { method: "DELETE" })
         )
       );
     }
@@ -558,10 +401,9 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   };
 
   const handleMassUpdate = async (updates: Record<string, string>): Promise<void> => {
-    if (targetIds.length === 0) return;
     await Promise.all(
-      targetIds.map((id) =>
-        apiRequest(`${config.baseRoute}/${id}/`, {
+      processedRows.map((r) =>
+        apiRequest(`${config.baseRoute}/${r.id}/`, {
           method: "PATCH",
           body: JSON.stringify(updates),
         })
@@ -571,11 +413,11 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   };
 
   const handleMassConvert = async (): Promise<void> => {
-    if (config.module !== "leads" || targetIds.length === 0) return;
+    if (config.module !== "leads") return;
     const { convertLead } = await import("../../lib/api/leadsApi");
     await Promise.all(
-      targetIds.map((id) =>
-        convertLead(id, { create_deal: true })
+      processedRows.map((r) =>
+        convertLead(r.id, { create_deal: true })
       )
     );
     window.location.reload();
@@ -590,17 +432,12 @@ export default function CRMModuleListPage<T extends CRMRecord>({
         <ModuleToolbar
           viewName={config.subtitle}
           createButtonLabel={`Create ${config.title.slice(0, -1)}`}
-          massDeleteLabel={
-            ["accounts", "leads", "deals", "contacts"].includes(config.module)
-              ? "Delete"
-              : undefined
-          }
           sortFields={config.sortFields}
           sortFieldKeyMap={config.sortFieldKeyMap}
-          isFilterOpen={isFilterOpen}
+          isFilterOpen={filterOpen}
           onToggleFilter={() => {
             if (!config.filterSections) return;
-            setFilterOpen((prev) => !(prev ?? !hideFilterSidebar));
+            setFilterOpen((prev) => !prev);
           }}
           onCreateClick={() => navigate(`${config.baseRoute}/create`)}
           onApplySort={
@@ -615,25 +452,10 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               : undefined
           }
           onMassAction={(action) => setActiveModal(action)}
-          columns={config.columns}
-          hiddenColumns={hiddenColumns}
-          onSetHiddenColumns={handleSetHiddenColumns}
-          pinnedColumn={pinnedColumn}
-          onSetPinnedColumn={handleSetPinnedColumn}
-          pageSize={currentPageSize}
-          onPageSizeChange={handlePageSizeChange}
-          density={density}
-          onDensityChange={handleDensityChange}
-          showNotes={currentShowNotes}
-          onToggleShowNotes={handleToggleShowNotes}
-          showActivity={currentShowActivity}
-          onToggleShowActivity={handleToggleShowActivity}
-          sortState={sortState}
-          moduleName={config.title}
         />
 
         <div className="flex gap-3">
-          {config.filterSections && isFilterOpen && (
+          {config.filterSections && filterOpen && !hideFilterSidebar && (
             <FilterSidebar
               title={`Filter ${config.title} by`}
               sections={config.filterSections}
@@ -667,17 +489,15 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 </div>
               </div>
             ) : <CRMTable
-              rows={paginatedRows}
+          rows={paginatedRows}
               columns={visibleColumns}
               rowActions={config.rowActions}
               selectedIds={selectedIds}
               hiddenColumns={hiddenColumns}
               pinnedColumn={pinnedColumn}
               columnFilters={columnFilters}
-              showNotes={currentShowNotes}
-              showActivity={currentShowActivity}
-              showActionsColumn={showActionsColumn}
-              density={density}
+              showNotes={showNotes}
+              showActivity={showActivity}
               onToggleAll={(checked) => {
                 if (!checked) {
                   setSelectedIds([]);
@@ -709,27 +529,28 @@ export default function CRMModuleListPage<T extends CRMRecord>({
                 setSortState({ key: columnKey, direction })
               }
               onToggleHideColumn={(columnKey) => {
-                const next = hiddenColumns.includes(columnKey)
-                  ? hiddenColumns.filter((item) => item !== columnKey)
-                  : [...hiddenColumns, columnKey];
-                handleSetHiddenColumns(next);
+                setHiddenColumns((prev) =>
+                  prev.includes(columnKey)
+                    ? prev.filter((item) => item !== columnKey)
+                    : [...prev, columnKey]
+                );
 
                 if (pinnedColumn === columnKey) {
-                  handleSetPinnedColumn(null);
+                  setPinnedColumn(null);
                 }
               }}
               onTogglePinColumn={(columnKey) =>
-                handleSetPinnedColumn(pinnedColumn === columnKey ? null : columnKey)
+                setPinnedColumn((prev) => (prev === columnKey ? null : columnKey))
               }
               onFilterColumn={(columnKey, value) =>
                 setColumnFilters((prev) => ({ ...prev, [columnKey]: value }))
               }
             />}
 
-            {!hideTable && !loading && processedRows.length > currentPageSize && (
+            {!hideTable && !loading && processedRows.length > pageSize && (
               <CRMPagination
                 page={page}
-                pageSize={currentPageSize}
+                pageSize={pageSize}
                 totalItems={processedRows.length}
                 onPageChange={setPage}
               />
@@ -802,33 +623,22 @@ export default function CRMModuleListPage<T extends CRMRecord>({
       <MassDeleteModal
         open={activeModal === "mass-delete"}
         onClose={closeModal}
-        count={targetCount}
-        isSelection={isSelection}
+        count={processedRows.length}
         onConfirm={handleMassDelete}
       />
       <MassUpdateModal
         open={activeModal === "mass-update"}
         onClose={closeModal}
-        count={targetCount}
+        count={processedRows.length}
         module={config.module}
         onConfirm={handleMassUpdate}
       />
       <MassConvertModal
         open={activeModal === "mass-convert"}
         onClose={closeModal}
-        count={targetCount}
+        count={processedRows.length}
         onConfirm={handleMassConvert}
       />
-      {copyToast.visible && (
-        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl transition-all">
-          {copyToast.type === "success" ? (
-            <CheckCircle2 size={18} className="text-emerald-400" />
-          ) : (
-            <AlertCircle size={18} className="text-rose-400" />
-          )}
-          <span>{copyToast.message}</span>
-        </div>
-      )}
     </DashboardLayout>
   );
 }

@@ -2,27 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { ChevronDown } from "lucide-react";
-import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
-import {
-  isValidMobileNumber,
-  isValidPhoneNumber,
-  MOBILE_NUMBER_LENGTH,
-  PHONE_NUMBER_MAX_LENGTH,
-  sanitizePhoneNumber,
-} from "../../lib/shared/phoneNumber";
-import DatePicker from "../common/DatePicker";
-import { formatDateForInput, parseDateInput, validateDatePickerInputs } from "../../lib/dateUtils";
 
 type CountryModule = Awaited<typeof import("country-state-city/lib/country")>;
 type StateModule = Awaited<typeof import("country-state-city/lib/state")>;
 
 export type CRMCreateFieldType =
   | "text"
-  | "date"
   | "email"
   | "number"
   | "phone"
-  | "mobile"
   | "textarea"
   | "checkbox"
   | "select"
@@ -38,14 +26,12 @@ export type CRMCreateField = {
   label: string;
   type: CRMCreateFieldType;
   required?: boolean;
-  requiredIndicator?: boolean;
   options?: string[];
   secondaryName?: string;
   secondaryRequired?: boolean;
   sanitizeValue?: (value: string) => string;
   validateValue?: (value: string, formData: Record<string, unknown>) => string | null;
   maxLength?: number;
-  min?: number;
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   helperText?: string;
   secondarySanitizeValue?: (value: string) => string;
@@ -53,7 +39,6 @@ export type CRMCreateField = {
   secondaryMaxLength?: number;
   secondaryInputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   secondaryHelperText?: string;
-  digitsOnly?: boolean;
   placeholder?: string;
   rows?: number;
   readOnly?: boolean;
@@ -193,10 +178,12 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     field,
     isSecondary,
     value,
+    sourceName,
   }: {
     field: CRMCreateField;
     isSecondary: boolean;
     value: string;
+    sourceName: string;
   }): string | null => {
     if (isSecondary) {
       if (field.secondaryValidateValue) {
@@ -208,20 +195,17 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       return null;
     }
 
-    if (field.type === "mobile" && !isValidMobileNumber(value)) {
-      return "Mobile number must be exactly 10 digits.";
-    }
-    if (field.type === "phone" && !isValidPhoneNumber(value)) {
-      return "Phone number must contain digits only and be no more than 20 digits.";
-    }
     if (field.validateValue) {
       return field.validateValue(value, formData);
     }
-    if (field.type === "date" && value && !parseDateInput(formatDateForInput(value))) {
-      return `${field.label} must be a valid date.`;
-    }
     if (field.required && !value.trim()) {
       return `${field.label} is required.`;
+    }
+    if (field.type === "name-composite" && sourceName === field.name && field.secondaryRequired) {
+      const secondaryValue = String(formData[field.secondaryName ?? ""] ?? "");
+      if (!secondaryValue.trim()) {
+        return `${field.label} is required.`;
+      }
     }
     return null;
   };
@@ -229,20 +213,12 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   const handleFieldBlur = (name: string) => {
     const { field, isSecondary } = findFieldByInputName(name);
     if (!field) return;
-
-    if (field.type === "currency") {
-      const raw = String(formData[name] ?? "");
-      if (raw.endsWith(".")) {
-        const cleaned = raw.slice(0, -1);
-        setFormData((prev) => ({ ...prev, [name]: cleaned }));
-      }
-    }
-
     const value = String(formData[name] ?? "");
     const message = validateFieldValue({
       field,
       isSecondary,
       value,
+      sourceName: name,
     });
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -287,45 +263,12 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     let nextValue = value;
 
     if (type !== "checkbox") {
-      if (field?.type === "mobile") {
-        nextValue = sanitizePhoneNumber(value, MOBILE_NUMBER_LENGTH);
-      } else if (field?.type === "phone") {
-        nextValue = sanitizePhoneNumber(value, PHONE_NUMBER_MAX_LENGTH);
-      } else if (sanitizeValue) {
+      if (sanitizeValue) {
         nextValue = sanitizeValue(nextValue);
-      } else if (field?.type === "currency") {
-        nextValue = formatCurrencyInput(nextValue);
       }
       if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
       }
-      if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
-        const numericValue = Number(nextValue);
-        if (Number.isFinite(numericValue) && numericValue < field.min) {
-          nextValue = String(field.min);
-        }
-      }
-    }
-
-    if (field?.type === "currency" && e.target instanceof HTMLInputElement) {
-      const input = e.target;
-      const prevPos = input.selectionStart ?? value.length;
-      const digitsBefore = value.slice(0, prevPos).replace(/[^\d.]/g, "").length;
-
-      requestAnimationFrame(() => {
-        let count = 0;
-        let targetPos = nextValue.length;
-        for (let i = 0; i < nextValue.length; i++) {
-          if (/[\d.]/.test(nextValue[i])) {
-            count++;
-            if (count === digitsBefore) {
-              targetPos = i + 1;
-              break;
-            }
-          }
-        }
-        input.setSelectionRange(targetPos, targetPos);
-      });
     }
 
     setFormData((prev) => ({
@@ -352,8 +295,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
   };
 
   const handleSave = async (goToNew = false) => {
-    if (!validateDatePickerInputs()) return;
-
     try {
       setSaving(true);
       setErrorMsg(null);
@@ -365,6 +306,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             field,
             isSecondary: false,
             value: String(formData[field.name] ?? ""),
+            sourceName: field.name,
           });
           if (primaryMessage) {
             validationErrors[field.name] = primaryMessage;
@@ -374,6 +316,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               field,
               isSecondary: true,
               value: String(formData[field.secondaryName] ?? ""),
+              sourceName: field.secondaryName,
             });
             if (secondaryMessage) {
               validationErrors[field.secondaryName] = secondaryMessage;
@@ -595,7 +538,6 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
               inputMode={field.secondaryInputMode}
             />
           </div>
-          {getFieldMessage(field.name)}
           {getFieldMessage(field.secondaryName ?? "")}
         </div>
       );
@@ -610,15 +552,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             onChange={handleChange}
             onBlur={() => handleFieldBlur(field.name)}
             className={`${inputClass} pr-4 pl-11`}
-            placeholder={field.placeholder ?? "0.00"}
+            placeholder={field.placeholder ?? ""}
             maxLength={field.maxLength}
-            inputMode={field.inputMode ?? (field.digitsOnly ? "numeric" : undefined)}
-            onPaste={field.digitsOnly ? (event) => {
-              const pastedText = event.clipboardData.getData("text");
-              if (!/^\d*$/.test(pastedText)) {
-                event.preventDefault();
-              }
-            } : undefined}
+            inputMode={field.inputMode}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.
@@ -628,18 +564,21 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       );
     }
 
-    if (field.type === "date") {
+    if (field.type === "phone") {
       return (
-        <div>
-          <DatePicker
+        <div className="relative">
+          <input
+            type="tel"
             name={field.name}
             value={value}
-            onChange={(date) => {
-              setFormData((previous) => ({ ...previous, [field.name]: date }));
+            onChange={(e) => {
+              // Strip anything that isn't a digit or a plus sign
+              const digitsAndPlus = e.target.value.replace(/[^\d+]/g, "");
+              setFormData((prev) => ({ ...prev, [field.name]: digitsAndPlus }));
               setIsDirty(true);
-              setFieldErrors((previous) => {
-                if (!previous[field.name]) return previous;
-                const next = { ...previous };
+              setFieldErrors((prev) => {
+                if (!prev[field.name]) return prev;
+                const next = { ...prev };
                 delete next[field.name];
                 return next;
               });
@@ -647,7 +586,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
             }}
             onBlur={() => handleFieldBlur(field.name)}
             className={inputClass}
-            futureOnly={/due|closing/i.test(`${field.name} ${field.label}`)}
+            placeholder={field.placeholder ?? "Enter phone number"}
+            maxLength={field.maxLength ?? 15}
+            inputMode="tel"
           />
           {getFieldMessage(field.name)}
         </div>
@@ -657,15 +598,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
     return (
       <div>
         <input
-          type={
-            field.type === "email"
-              ? "email"
-              : field.type === "number"
-                ? "number"
-                : field.type === "phone" || field.type === "mobile"
-                  ? "tel"
-                  : "text"
-          }
+          type={field.type === "email" ? "email" : field.type === "number" ? "number" : "text"}
           name={field.name}
           value={value}
           onChange={handleChange}
@@ -673,24 +606,10 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
           placeholder={field.placeholder ?? ""}
           className={inputClass}
           readOnly={field.readOnly}
-          maxLength={
-            field.maxLength ??
-            (field.type === "mobile"
-              ? MOBILE_NUMBER_LENGTH
-              : field.type === "phone"
-                ? PHONE_NUMBER_MAX_LENGTH
-                : undefined)
-          }
-          min={field.type === "number" ? field.min : undefined}
-          inputMode={
-            field.inputMode ??
-            (field.type === "phone" || field.type === "mobile" ? "numeric" : undefined)
-          }
+          maxLength={field.maxLength}
+          inputMode={field.inputMode}
         />
         {getFieldMessage(field.name)}
-        {field.helperText && (
-          <p className="mt-1 text-[11px] leading-4 text-slate-500">{field.helperText}</p>
-        )}
       </div>
     );
   };
@@ -763,7 +682,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                           <div key={field.name} className="contents">
                             <label className={labelClass}>
                               {field.label}
-                              {(field.required || field.secondaryRequired || field.requiredIndicator) && (
+                              {(field.required || field.secondaryRequired) && (
                                 <span className="ml-1 text-red-600">*</span>
                               )}
                             </label>
@@ -781,7 +700,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
+                                {(field.required || field.secondaryRequired) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>
@@ -797,7 +716,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                             <div key={field.name} className="contents">
                               <label className={labelClass}>
                                 {field.label}
-                                {(field.required || field.secondaryRequired || field.requiredIndicator) && (
+                                {(field.required || field.secondaryRequired) && (
                                   <span className="ml-1 text-red-600">*</span>
                                 )}
                               </label>

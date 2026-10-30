@@ -142,8 +142,6 @@ class CRMService(BaseModel):
         choices=AvailabilityMode.choices,
         default=AvailabilityMode.BUSINESS_HOURS,
     )
-    custom_time_start = models.TimeField(blank=True, null=True)
-    custom_time_end = models.TimeField(blank=True, null=True)
     business_hours = models.ForeignKey(
         "services.BusinessHours",
         on_delete=models.SET_NULL,

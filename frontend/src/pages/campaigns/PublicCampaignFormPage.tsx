@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { submitCampaignForm, type PublicFormPayload } from "../../lib/api/campaignsApi";
-import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 const inputClass =
@@ -42,7 +41,7 @@ export default function PublicCampaignFormPage() {
     const { name } = e.target;
     const value =
       name === "phone" && e.target instanceof HTMLInputElement
-        ? sanitizePhoneNumber(e.target.value)
+        ? e.target.value.replace(/\D/g, "").slice(0, 10)
         : e.target.value;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: "" }));
@@ -68,8 +67,8 @@ const validate = () => {
 
   if (!form.phone.trim()) {
     errs.phone = "Phone number is required.";
-  } else if (!isValidPhoneNumber(form.phone)) {
-    errs.phone = "Phone number must contain digits only and be no more than 20 digits.";
+  } else if (!/^\d{10}$/.test(form.phone.trim())) {
+    errs.phone = "Phone number must be exactly 10 digits.";
   }
 
   if (!form.company.trim()) {
@@ -215,9 +214,10 @@ const validate = () => {
               value={form.phone}
               onChange={handleChange}
               className={inputClass}
-              placeholder="Enter phone number"
+              placeholder="Enter 10-digit phone number"
               inputMode="numeric"
-              maxLength={PHONE_NUMBER_MAX_LENGTH}
+              pattern="\d{10}"
+              maxLength={10}
             />
             {fieldErrors.phone && (
               <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { apiRequest } from "../../../api/client";
-import DatePicker from "../../../components/common/DatePicker";
-import { formatDateForDisplay, validateDatePickerInputs } from "../../../lib/dateUtils";
 import {
   ChevronDown,
   ChevronLeft,
@@ -180,7 +178,8 @@ function getCurrentTimeInput() {
 }
 
 function formatDisplayDate(dateStr: string) {
-  return formatDateForDisplay(dateStr);
+  const [year, month, day] = dateStr.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function formatDisplayTime(timeStr: string) {
@@ -332,8 +331,6 @@ export default function CallsPage() {
   };
 
   const handleCreateScheduledCall = async (form: CallFormState) => {
-    if (!validateDatePickerInputs()) return;
-
     try {
       await apiRequest("/calls/", {
         method: "POST",
@@ -357,8 +354,6 @@ export default function CallsPage() {
   };
 
   const handleCreateLoggedCall = async (form: CallFormState) => {
-    if (!validateDatePickerInputs()) return;
-
     try {
       await apiRequest("/calls/", {
         method: "POST",
@@ -863,9 +858,10 @@ function ScheduleCallModal({
 
             <ModalRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <DatePicker
+                <input
+                  type="date"
                   value={form.startDate}
-                  onChange={(startDate) => updateField("startDate", startDate)}
+                  onChange={(e) => updateField("startDate", e.target.value)}
                   className="border-r border-slate-300 px-3 py-3 text-sm outline-none"
                 />
                 <input
@@ -1066,9 +1062,10 @@ function LogCallModal({
 
             <ModalRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <DatePicker
+                <input
+                  type="date"
                   value={form.startDate}
-                  onChange={(startDate) => updateField("startDate", startDate)}
+                  onChange={(e) => updateField("startDate", e.target.value)}
                   className="border-r border-slate-300 px-3 py-3 text-sm outline-none"
                 />
                 <input

@@ -1,4 +1,4 @@
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
 
 type CRMDetailHeaderProps = {
@@ -8,8 +8,6 @@ type CRMDetailHeaderProps = {
   onAction?: (action: string) => void;
   onBack: () => void;
   onActionClick?: (action: string) => void;
-  tags?: string[];
-  onRemoveTag?: (tag: string) => void;
 };
 
 export default function CRMDetailHeader({
@@ -19,8 +17,6 @@ export default function CRMDetailHeader({
   onAction,
   onBack,
   onActionClick,
-  tags = [],
-  onRemoveTag,
 }: CRMDetailHeaderProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -46,31 +42,6 @@ export default function CRMDetailHeader({
           </button>
           <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
           <p className="break-all text-sm text-slate-500">{subtitle}</p>
-          {tags && tags.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700"
-                >
-                  <span>{tag}</span>
-                  {onRemoveTag && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveTag(tag);
-                      }}
-                      className="text-blue-500 hover:text-blue-800"
-                      title={`Remove tag ${tag}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

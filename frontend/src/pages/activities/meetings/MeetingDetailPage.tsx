@@ -1,9 +1,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Filter } from "lucide-react";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import FilterSidebar from "../../../components/crm/FilterSidebar";
 import { apiRequest } from "../../../api/client";
-import { formatDateTimeForDisplay } from "../../../lib/dateUtils";
+import type { FilterSection } from "../../../lib/shared/crmTypes";
+
+type FilterMap = Record<string, string>;
+
+const MEETING_FILTER_SECTIONS: FilterSection[] = [
+  {
+    title: "Status",
+    items: [{ label: "Status contains", key: "status" }],
+  },
+  {
+    title: "Organizer",
+    items: [{ label: "Organizer name", key: "organizer" }],
+  },
+  {
+    title: "Related",
+    items: [
+      { label: "Related contact/account", key: "related" },
+      { label: "Company / Account", key: "company" },
+    ],
+  },
+];
 
 interface Meeting {
   id: string | number;
@@ -13,7 +34,6 @@ interface Meeting {
   end_date?: string;
   location?: string;
   organizer?: { id?: number; name?: string; email?: string };
-  lead_name?: string;
   contact_name?: string;
   account_name?: string;
   status?: string;
@@ -23,7 +43,17 @@ interface Meeting {
 
 function formatDate(value?: string) {
   if (!value) return "N/A";
-  return formatDateTimeForDisplay(value);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("en-US", { 
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+      });
 }
 
 export default function MeetingDetailPage() {
@@ -32,6 +62,8 @@ export default function MeetingDetailPage() {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [, setFilters] = useState<FilterMap>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -87,10 +119,31 @@ export default function MeetingDetailPage() {
                 Edit Meeting
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setFilterOpen((prev) => !prev)}
+              className={`flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-50 ${
+                filterOpen ? "bg-slate-100 shadow-sm" : "bg-white"
+              }`}
+            >
+              <Filter size={16} />
+              <span>Filters</span>
+            </button>
           </div>
         </div>
 
-        {loading ? (
+        <div className="flex gap-4">
+          {filterOpen && (
+            <FilterSidebar
+              title="Filter Meetings by"
+              sections={MEETING_FILTER_SECTIONS}
+              onApply={(activeFilters) => setFilters(activeFilters)}
+              onClear={() => setFilters({})}
+            />
+          )}
+
+          <div className="flex-1">
+            {loading ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-slate-200 bg-white">
                 <div className="flex items-center gap-3 text-slate-600">
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -137,7 +190,7 @@ export default function MeetingDetailPage() {
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-4">
+                    <div className="mt-6 grid gap-4 md:grid-cols-3">
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
                           Organizer
@@ -148,14 +201,6 @@ export default function MeetingDetailPage() {
                         {meeting.organizer?.email && (
                           <p className="text-xs text-slate-500">{meeting.organizer.email}</p>
                         )}
-                      </div>
-                      <div>
-                        <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
-                          Lead
-                        </p>
-                        <p className="text-base font-medium text-slate-900">
-                          {meeting.lead_name || "None"}
-                        </p>
                       </div>
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
@@ -191,6 +236,8 @@ export default function MeetingDetailPage() {
                 </div>
               )
             )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

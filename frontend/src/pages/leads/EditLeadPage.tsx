@@ -9,7 +9,6 @@ import {
   RATING_OPTIONS,
   SALUTATION_OPTIONS,
 } from "../../config/crm/createOptions";
-import { formatCurrencyInput } from "../../lib/shared/currencyFormatters";
 
 const sanitizeAlphaSpace = (value: string) => value.replace(/[^A-Za-z ]+/g, "");
 const sanitizeDigits = (value: string) => value.replace(/\D+/g, "");
@@ -27,6 +26,12 @@ const validateRequiredEmail = (value: string) => {
   
   return null;
 };
+const validateRequiredPhone = (value: string) => {
+  if (!value.trim()) return "Phone number is required.";
+  if (value.length !== 10) return "Phone number must be exactly 10 digits.";
+  return null;
+};
+
 type LeadEditValues = {
   leadOwner: string;
   salutation: string;
@@ -78,10 +83,8 @@ const sections: CRMCreateSection[] = [
         name: "lastName",
         label: "Last Name",
         type: "text",
-        required: true,
         sanitizeValue: sanitizeAlphaSpace,
         maxLength: 30,
-        validateValue: validateRequired("Last Name"),
       },
       {
         name: "title",
@@ -92,13 +95,20 @@ const sections: CRMCreateSection[] = [
       {
         name: "phone",
         label: "Phone",
-        type: "phone",
+        type: "text",
         required: true,
+        sanitizeValue: sanitizeDigits,
+        inputMode: "numeric",
+        maxLength: 10,
+        validateValue: validateRequiredPhone,
       },
       {
         name: "mobile",
         label: "Mobile",
-        type: "mobile",
+        type: "text",
+        sanitizeValue: sanitizeDigits,
+        inputMode: "numeric",
+        maxLength: 10,
       },
       { name: "salutation", label: "Salutation", type: "select", options: SALUTATION_OPTIONS },
       { name: "leadSource", label: "Lead Source", type: "select", options: LEAD_SOURCE_OPTIONS },
@@ -107,8 +117,8 @@ const sections: CRMCreateSection[] = [
         name: "annualRevenue",
         label: "Annual Revenue",
         type: "currency",
-        sanitizeValue: formatCurrencyInput,
-        inputMode: "decimal",
+        sanitizeValue: sanitizeDigits,
+        inputMode: "numeric",
       },
       { name: "emailOptOut", label: "Email Opt Out", type: "checkbox" },
 
@@ -187,7 +197,7 @@ export default function EditLeadPage() {
           leadStatus: lead.leadStatus,
           industry: lead.industry,
           noOfEmployees: lead.noOfEmployees ? String(lead.noOfEmployees) : "",
-          annualRevenue: lead.annualRevenue ? formatCurrencyInput(lead.annualRevenue) : "",
+          annualRevenue: lead.annualRevenue ? String(lead.annualRevenue) : "",
           rating: lead.rating,
           emailOptOut: false,
           skypeId: "",

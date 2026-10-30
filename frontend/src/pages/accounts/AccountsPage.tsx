@@ -55,7 +55,6 @@ export default function AccountsPage() {
       loading={loading}
       showNotes={true}
       showActivity={false}
-      showActionsColumn={false}
       onDeleteRow={handleDeleteRow}
     />
   );

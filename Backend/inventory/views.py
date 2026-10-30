@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import logging
-import mimetypes
-import smtplib
-
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
@@ -15,7 +11,6 @@ from rest_framework.views import APIView
 from accounts.models import Account
 from contacts.models import Contact
 from deals.models import Deal
-from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
 from support.models import SupportCase, SupportSolution
 from support.serializers import SupportCaseListSerializer, SupportSolutionListSerializer
 
@@ -78,7 +73,6 @@ from .serializers import (
     VendorDetailSerializer,
     VendorListSerializer,
     VendorLookupSerializer,
-    VendorSendEmailSerializer,
     VendorWriteSerializer,
 )
 from .services import (
@@ -91,8 +85,6 @@ from .services import (
     sales_order_service,
     vendor_service,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class InventoryRelatedMixin:
@@ -376,61 +368,6 @@ class VendorViewSet(InventoryRelatedMixin, viewsets.ModelViewSet):
         if term:
             queryset = queryset.filter(Q(vendor_name__icontains=term) | Q(email__icontains=term))
         return Response(VendorLookupSerializer(queryset[:25], many=True).data)
-
-    @action(detail=True, methods=["post"], url_path="send-email")
-    def send_email(self, request, pk=None):
-        vendor = self.get_object()
-        serializer = VendorSendEmailSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        provider = get_user_default_email_provider(request.user)
-        if not provider:
-            return Response(
-                {"detail": "No active CRM-synced email provider is configured for this user."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        email_data = serializer.validated_data
-        recipient_email = email_data["to_email"].strip()
-        attachments = [
-            {
-                "file_name": attachment.name,
-                "file_type": mimetypes.guess_type(attachment.name)[0] or "application/octet-stream",
-                "content": attachment.read(),
-            }
-            for attachment in email_data.get("attachments", [])
-        ]
-        try:
-            create_outgoing_crm_email(
-                provider_integration=provider,
-                subject=email_data["subject"],
-                body=email_data.get("body", ""),
-                to_emails=[recipient_email],
-                attachments=attachments,
-                send_live=True,
-                owner=request.user,
-                thread_id=f"vendor-{vendor.pk}",
-                metadata={
-                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                    "vendor_name": vendor.vendor_name,
-                },
-            )
-        except ValueError as exc:
-            logger.warning("Vendor email could not be sent for vendor %s.", vendor.pk)
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except (smtplib.SMTPException, OSError):
-            logger.exception("Vendor email delivery failed for vendor %s", vendor.pk)
-            return Response(
-                {"detail": "Email could not be sent. Check the configured email provider and try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-        InventoryEmailLog.objects.create(
-            vendor=vendor,
-            sent_by=request.user,
-            to_email=recipient_email,
-            subject=email_data["subject"],
-            body=email_data.get("body", ""),
-        )
-        return Response({"message": "Email sent and synced successfully"}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"], url_path="products")
     def products(self, request, pk=None):

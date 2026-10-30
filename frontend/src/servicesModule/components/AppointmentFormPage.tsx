@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
@@ -19,7 +19,6 @@ import {
 } from "../api";
 import type { AppointmentFormData, Holiday, LookupOption, ServiceRecord, TeamMember } from "../types";
 import ServicesLookupModal from "./ServicesLookupModal";
-import DatePicker from "../../components/common/DatePicker";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[110px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
@@ -81,7 +80,6 @@ export default function AppointmentFormPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
-  const appointmentDateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -292,7 +290,6 @@ export default function AppointmentFormPage() {
   }, [form.appointmentDate, holidays]);
 
   const handleSubmit = async () => {
-    if (!appointmentDateInputRef.current?.reportValidity()) return;
     if (!form.serviceId) return setError("Service is required.");
     if (!form.appointmentDate) return setError("Appointment date is required.");
     if (!form.appointmentStartTime) return setError("Appointment start time is required.");
@@ -372,7 +369,7 @@ export default function AppointmentFormPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Appointment Date</label>
-                <DatePicker ref={appointmentDateInputRef} required className={inputClass} value={form.appointmentDate} onChange={(appointmentDate) => setForm({ ...form, appointmentDate })} />
+                <input type="date" className={inputClass} value={form.appointmentDate} onChange={(e) => setForm({ ...form, appointmentDate: e.target.value })} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Location</label>
