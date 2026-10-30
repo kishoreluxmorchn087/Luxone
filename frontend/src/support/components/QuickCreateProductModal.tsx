@@ -88,11 +88,25 @@ export default function QuickCreateProductModal({ open, onClose, onSaved }: Prop
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">Unit Price</label>
-          <input type="number" value={unitPrice} onChange={(e) => setUnitPrice(Number(e.target.value))} className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm" />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={unitPrice}
+            onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value) || 0))}
+            className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm"
+          />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">Tax</label>
-          <input type="number" value={tax} onChange={(e) => setTax(Number(e.target.value))} className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm" />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={tax}
+            onChange={(e) => setTax(Math.max(0, Number(e.target.value) || 0))}
+            className="h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm"
+          />
         </div>
       </div>
       {error ? <div className="mt-3 text-sm text-rose-600">{error}</div> : null}

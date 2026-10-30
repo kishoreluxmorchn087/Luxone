@@ -1,4 +1,8 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -328,3 +332,29 @@ class InventoryLinkingTests(APITestCase):
 
         self.assertEqual(second_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(second_response.data["product_code"], f"PRD{existing_count + 3:04d}")
+
+    def test_product_rejects_negative_numeric_values(self):
+        response = self.client.post(
+            "/api/products",
+            {
+                "product_name": "Negative Values Product",
+                "unit_price": "-1.00",
+                "commission_rate": "-1.00",
+                "tax": "-1.00",
+                "quantity_in_stock": -1,
+                "quantity_in_demand": -1,
+                "reorder_level": -1,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        for field in (
+            "unit_price",
+            "commission_rate",
+            "tax",
+            "quantity_in_stock",
+            "quantity_in_demand",
+            "reorder_level",
+        ):
+            self.assertIn(field, response.data)

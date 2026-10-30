@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
 import type { ProjectPriority, ProjectTaskStatus } from "../projects/types";
 
@@ -22,17 +23,6 @@ type AssignableUser = {
 
 const TASK_PRIORITIES: ProjectPriority[] = ["Low", "Medium", "High"];
 const TASK_STATUSES: ProjectTaskStatus[] = ["Not Started", "In Progress", "On Hold", "Completed"];
-
-function getCurrentUserEmail() {
-  try {
-    const raw = localStorage.getItem("loggedInUser");
-    if (!raw) return "";
-    const user = JSON.parse(raw) as { email?: string };
-    return user.email ?? "";
-  } catch {
-    return "";
-  }
-}
 
 function getCurrentUserRole() {
   try {
@@ -96,7 +86,7 @@ export default function CreateProjectDeskTaskPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialProject]);
 
   useEffect(() => {
     let active = true;
@@ -153,7 +143,7 @@ export default function CreateProjectDeskTaskPage() {
       return users.filter((user) => user.role === "employee");
     }
     return [];
-  }, [form.assignee_role, users]);
+  }, [currentUserRole, form.assignee_role, users]);
 
   const inputCls =
     "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -321,11 +311,11 @@ export default function CreateProjectDeskTaskPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Due Date</label>
-                <input
-                  type="date"
+                <DatePicker
                   className={inputCls}
                   value={form.due_date}
-                  onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))}
+                  futureOnly
+                  onChange={(due_date) => setForm((current) => ({ ...current, due_date }))}
                 />
               </div>
 

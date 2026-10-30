@@ -6,6 +6,7 @@ import type {
   SocialPlatform,
   SourceType,
 } from "./types";
+import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
 const providerLabels: Record<IntegrationProviderType, string> = {
   zoho_mail: "Business Mail",
@@ -103,12 +104,7 @@ export function formatPortalUrl(value: string | null | undefined) {
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return "-";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(parsed);
+  return formatDateTimeForDisplay(value);
 }
 
 export function fallbackValue<T>(value: T | null | undefined, fallback = "-") {
@@ -127,9 +123,32 @@ export function isValidEmail(value: string) {
   const email = value.trim();
   const [localPart, domain] = email.split("@");
 
-  if (!localPart || domain.toLowerCase() !== "gmail.com" || email.includes("..") || localPart.startsWith(".") || localPart.endsWith(".")) {
+  if (
+    !localPart ||
+    !domain ||
+    email.includes("..") ||
+    localPart.startsWith(".") ||
+    localPart.endsWith(".")
+  ) {
     return false;
   }
 
-  return /^[^\s@]+@gmail\.com$/i.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function isValidEmailForProvider(value: string, provider: IntegrationProviderType) {
+  if (!isValidEmail(value)) {
+    return false;
+  }
+
+  const domain = value.trim().split("@")[1].toLowerCase();
+  if (provider === "gmail") {
+    return domain === "gmail.com";
+  }
+
+  if (provider === "yahoo") {
+    return domain === "yahoo.com";
+  }
+
+  return true;
 }

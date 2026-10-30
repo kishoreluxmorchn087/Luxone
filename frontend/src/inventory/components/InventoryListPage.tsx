@@ -16,6 +16,17 @@ type InventoryListPageProps = {
   moduleKey: InventoryModuleKey;
 };
 
+const INVENTORY_CHART_COLORS = ["#ec4899", "#f97316", "#facc15", "#14b8a6", "#6366f1", "#8b5cf6"];
+const HIDE_ROW_ACTIONS_MODULES = new Set<InventoryModuleKey>([
+  "products",
+  "price-books",
+  "quotes",
+  "sales-orders",
+  "purchase-orders",
+  "invoices",
+  "vendors",
+]);
+
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
   const today = new Date();
@@ -79,6 +90,7 @@ function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDet
 
 export default function InventoryListPage({ moduleKey }: InventoryListPageProps) {
   const meta = getInventoryMeta(moduleKey);
+  const sortConfig = useMemo(() => getInventorySortConfig(moduleKey), [moduleKey]);
   const navigate = useNavigate();
   const [rows, setRows] = useState<CRMRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +133,11 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setSortState(null);
+    setPage(1);
+  }, [moduleKey]);
+
   const visibleColumns = useMemo(
     () => meta.columns.filter((column) => !hiddenColumns.includes(column.key)),
     [hiddenColumns, meta.columns]
@@ -134,6 +151,55 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     }
     return output;
   }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
+
+  const chartDistribution = useMemo(() => {
+    const categoryFields: Partial<Record<InventoryModuleKey, string[]>> = {
+      products: ["productCategory", "productType", "billingCycle", "deploymentModel"],
+      vendors: ["category", "status"],
+      "price-books": ["pricingModel", "active"],
+      quotes: ["quoteStage", "status"],
+      "sales-orders": ["status"],
+      "purchase-orders": ["status"],
+      invoices: ["status"],
+      configurator: ["targetModule", "active"],
+    };
+    const fields = [
+      ...(categoryFields[moduleKey] ?? []),
+      "status",
+      "category",
+      "type",
+    ];
+    const getValue = (row: CRMRecord, field: string) => {
+      const value = (row as Record<string, unknown>)[field];
+      if (typeof value === "boolean") return value ? "Active" : "Inactive";
+      if (typeof value === "string" || typeof value === "number") {
+        return String(value).trim();
+      }
+      return "";
+    };
+    const groupField = fields.find((field) => processedRows.some((row) => getValue(row, field)));
+    const counts = new Map<string, number>();
+
+    processedRows.forEach((row) => {
+      const category = groupField ? getValue(row, groupField) || "Uncategorized" : "All Records";
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    });
+
+    const sorted = [...counts.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 5);
+    const remaining = [...counts.entries()].sort((left, right) => right[1] - left[1]).slice(5);
+    const remainingCount = remaining.reduce((total, [, count]) => total + count, 0);
+
+    if (remainingCount > 0) sorted.push(["Other", remainingCount]);
+
+    return {
+      groupLabel: groupField
+        ? groupField.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())
+        : "Records",
+      data: sorted.map(([name, count]) => ({ name, count })),
+    };
+  }, [moduleKey, processedRows]);
 
   const pageSize = 10;
   const paginatedRows = useMemo(() => {
@@ -155,9 +221,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           showImportActions={Boolean(meta.importRoute)}
+          sortFields={sortConfig.sortFields}
+          sortFieldKeyMap={sortConfig.sortFieldKeyMap}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
@@ -216,6 +285,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                 onApply={(filters) => {
                   setSidebarFilters(filters);
                   setPage(1);
+                  if (moduleKey === "vendors") setFilterOpen(false);
                 }}
                 onClear={() => {
                   setSidebarFilters({});

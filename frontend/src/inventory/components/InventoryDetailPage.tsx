@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import CRMDetailHeader from "../../components/crm/CRMDetailHeader";
 import CRMEmptyState from "../../components/crm/CRMEmptyState";
@@ -7,11 +7,19 @@ import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { convertQuoteToSalesOrder, convertSalesOrderToInvoice, getInventoryDetail } from "../api";
+import { SendEmailModal } from "../../components/crm/CRMActionModals";
+import {
+  addInventoryAttachment,
+  convertQuoteToSalesOrder,
+  convertSalesOrderToInvoice,
+  getInventoryDetail,
+  sendVendorEmail,
+} from "../api";
 import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 type InventoryDetailPageProps = {
   moduleKey: InventoryModuleKey;
@@ -70,6 +78,11 @@ function renderRelatedRecord(record: any, navigate: ReturnType<typeof useNavigat
   );
 }
 
+function formatDetailValue(label: string, value: unknown) {
+  const text = String(value ?? "");
+  return /date/i.test(label) ? formatDateTimeForDisplay(text) : text;
+}
+
 export default function InventoryDetailPage({ moduleKey }: InventoryDetailPageProps) {
   const isLongTextLabel = (label: string) => {
     const normalized = label.toLowerCase();
@@ -90,6 +103,10 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
   const [activeRelatedItem, setActiveRelatedItem] = useState(meta.relatedListItems[0] || "Notes");
   const [payload, setPayload] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(searchParams.get("preview") === "1");
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const headerActions = useMemo(() => {
     if (moduleKey === "quotes") return ["Convert to Sales Order", "Edit"];
@@ -140,12 +157,32 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           actions={headerActions}
           onBack={() => navigate(meta.baseRoute)}
           onAction={async (action) => {
+            if (action === "Send Email" && moduleKey === "vendors") {
+              setEmailOpen(true);
+              return;
+            }
+
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
               return;
             }
 
+            if (action === "Assign" && moduleKey === "vendors" && id) {
+              navigate(`${meta.baseRoute}/${id}/edit?assign=1`);
+              return;
+            }
+
+            if (action === "New" && moduleKey === "vendors") {
+              navigate(`${meta.baseRoute}/create`);
+              return;
+            }
+
             if (!id) return;
+
+            if (action === "Attach" && moduleKey === "vendors") {
+              attachmentInputRef.current?.click();
+              return;
+            }
 
             if (action === "Preview" && (moduleKey === "invoices" || moduleKey === "purchase-orders")) {
               setPreviewOpen(true);
@@ -198,6 +235,41 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           }}
         />
 
+        {moduleKey === "vendors" && (
+          <>
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              className="hidden"
+              aria-label="Select a vendor attachment"
+              onChange={async (event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (!file || !id) return;
+
+                try {
+                  setAttachmentError(null);
+                  setUploadingAttachment(true);
+                  await addInventoryAttachment("vendors", id, file);
+                  setPayload(await getInventoryDetail("vendors", id));
+                } catch (err) {
+                  setAttachmentError(err instanceof Error ? err.message : "Failed to upload attachment.");
+                } finally {
+                  setUploadingAttachment(false);
+                }
+              }}
+            />
+            {attachmentError && (
+              <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {attachmentError}
+              </p>
+            )}
+            {uploadingAttachment && (
+              <p role="status" className="text-sm text-slate-600">Uploading attachment...</p>
+            )}
+          </>
+        )}
+
         <CRMTabs activeTab={activeTab} onChange={setActiveTab} />
 
         <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
@@ -230,7 +302,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(item.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {item.value || "-"}
+                        {formatDetailValue(item.label, item.value) || "-"}
                       </p>
                     </div>
                   ))}
@@ -247,7 +319,7 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
                           isLongTextLabel(field.label) ? "break-all whitespace-normal" : "break-words"
                         }`}
                       >
-                        {field.value || "-"}
+                        {formatDetailValue(field.label, field.value) || "-"}
                       </p>
                     </div>
                   ))}
@@ -365,6 +437,23 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
               next.delete("preview");
               setSearchParams(next, { replace: true });
             }
+          }}
+        />
+      )}
+      {moduleKey === "vendors" && (
+        <SendEmailModal
+          open={emailOpen}
+          onClose={() => setEmailOpen(false)}
+          toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
+          recordName={detail.name}
+          allowAttachments
+          errorHelpLink={{
+            href: "/integrations/email",
+            label: "Open Email Provider Settings",
+          }}
+          onSend={async (email) => {
+            if (!id) throw new Error("Vendor record is unavailable.");
+            await sendVendorEmail(id, email);
           }}
         />
       )}

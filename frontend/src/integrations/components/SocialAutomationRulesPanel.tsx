@@ -21,7 +21,7 @@ export default function SocialAutomationRulesPanel({ rules, onCreate, onEdit, on
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                {["Platform", "Trigger", "Action", "Assignment", "Status", "Actions"].map((header) => <th key={header} className="px-3 py-2 font-medium">{header}</th>)}
+                {["Platform", "Trigger", "Action", "Assigned To User", "Assigned To Team", "Status", "Actions"].map((header) => <th key={header} className="px-3 py-2 font-medium">{header}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -30,7 +30,8 @@ export default function SocialAutomationRulesPanel({ rules, onCreate, onEdit, on
                   <td className="px-3 py-3">{socialPlatformOptions.find((option) => option.value === rule.platform)?.label || rule.platform}</td>
                   <td className="px-3 py-3">{automationTriggerOptions.find((option) => option.value === rule.trigger_type)?.label || rule.trigger_type}</td>
                   <td className="px-3 py-3">{rule.action_type.replace("_", " ")}</td>
-                  <td className="px-3 py-3">{rule.assign_to_user_email || rule.assign_to_team || "-"}</td>
+                  <td className="px-3 py-3">{rule.assign_to_user_email?.trim() || (rule.assign_to_user ? `User #${rule.assign_to_user}` : "-")}</td>
+                  <td className="px-3 py-3">{rule.assign_to_team?.trim() || "-"}</td>
                   <td className="px-3 py-3"><IntegrationStatusBadge label={rule.is_active ? "Active" : "Inactive"} value={rule.is_active} /></td>
                   <td className="px-3 py-3">
                     <div className="flex gap-2">
@@ -47,4 +48,3 @@ export default function SocialAutomationRulesPanel({ rules, onCreate, onEdit, on
     </CRMSectionCard>
   );
 }
-

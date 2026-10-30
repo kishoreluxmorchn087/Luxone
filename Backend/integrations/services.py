@@ -5,7 +5,7 @@ from datetime import timedelta, timezone as dt_timezone
 import email.utils
 from email import policy
 from email.header import decode_header, make_header
-from email.message import Message
+from email.message import EmailMessage, Message
 from email.parser import BytesParser
 import imaplib
 import json
@@ -1170,6 +1170,7 @@ def send_provider_email_live(
     cc_emails: list[str] | None = None,
     bcc_emails: list[str] | None = None,
     reply_to: str | None = None,
+    attachments: list[dict[str, Any]] | None = None,
 ) -> None:
     if not provider_integration.is_active:
         raise ValueError("Only an active provider can send email.")
@@ -1184,19 +1185,27 @@ def send_provider_email_live(
     if not recipients:
         raise ValueError("At least one recipient email is required.")
 
-    mime_lines = [
-        f"From: {provider_integration.display_name or provider_integration.email_address} <{provider_integration.email_address}>",
-        f"To: {', '.join(to_emails)}",
-        f"Subject: {subject or '(No subject)'}",
-        "MIME-Version: 1.0",
-        "Content-Type: text/html; charset=utf-8",
-        f"Date: {email.utils.formatdate(localtime=True)}",
-    ]
+    mime_message = EmailMessage()
+    mime_message["From"] = f"{provider_integration.display_name or provider_integration.email_address} <{provider_integration.email_address}>"
+    mime_message["To"] = ", ".join(to_emails)
+    mime_message["Subject"] = subject or "(No subject)"
+    mime_message["Date"] = email.utils.formatdate(localtime=True)
     if cc_emails:
-        mime_lines.append(f"Cc: {', '.join(cc_emails)}")
+        mime_message["Cc"] = ", ".join(cc_emails)
     if reply_to or provider_integration.reply_to_address:
-        mime_lines.append(f"Reply-To: {reply_to or provider_integration.reply_to_address}")
-    mime_message = "\r\n".join([*mime_lines, "", body])
+        mime_message["Reply-To"] = reply_to or provider_integration.reply_to_address
+    mime_message.set_content(body, subtype="html", charset="utf-8")
+    for attachment in attachments or []:
+        file_type = attachment.get("file_type") or "application/octet-stream"
+        maintype, separator, subtype = file_type.partition("/")
+        if not separator or not maintype or not subtype:
+            maintype, subtype = "application", "octet-stream"
+        mime_message.add_attachment(
+            attachment["content"],
+            maintype=maintype,
+            subtype=subtype,
+            filename=attachment["file_name"],
+        )
 
     smtp_port = int(config["smtp_port"])
     if config.get("smtp_use_ssl"):
@@ -1212,10 +1221,12 @@ def send_provider_email_live(
             auth_string = _smtp_oauth2_string(provider_integration.email_address, provider_integration.access_token)
             code, response = smtp.docmd("AUTH", "XOAUTH2 " + auth_string)
             if code not in (235, 250):
-                raise ValueError(f"SMTP OAuth authentication failed: {response!r}")
+                raise ValueError(
+                    "SMTP OAuth authentication failed. Reconnect the email provider and try again."
+                )
         else:
             smtp.login(provider_integration.email_address, live_secret)
-        smtp.sendmail(provider_integration.email_address, recipients, mime_message.encode("utf-8"))
+        smtp.sendmail(provider_integration.email_address, recipients, mime_message.as_bytes())
     finally:
         try:
             smtp.quit()
@@ -1233,6 +1244,7 @@ def create_outgoing_crm_email(
     cc_emails: list[str] | None = None,
     bcc_emails: list[str] | None = None,
     reply_to: str | None = None,
+    attachments: list[dict[str, Any]] | None = None,
     send_live: bool = False,
     owner=None,
     lead: Lead | None = None,
@@ -1259,6 +1271,7 @@ def create_outgoing_crm_email(
             cc_emails=cleaned_cc_emails,
             bcc_emails=cleaned_bcc_emails,
             reply_to=reply_to,
+            attachments=attachments,
         )
 
     message = SyncedEmailMessage.objects.create(
@@ -1278,7 +1291,7 @@ def create_outgoing_crm_email(
         sent_at=now,
         is_read=True,
         is_starred=False,
-        has_attachments=False,
+        has_attachments=bool(attachments),
         lead=lead,
         contact=contact,
         account=account,
@@ -1300,6 +1313,7 @@ def create_outgoing_crm_email(
             "cc_emails": cleaned_cc_emails,
             "bcc_emails": cleaned_bcc_emails,
             "reply_to": reply_to or provider_integration.reply_to_address,
+            "has_attachments": bool(attachments),
             "sent_live": send_live,
             "provider_id": provider_integration.pk,
             "provider_email": provider_integration.email_address,

@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -11,8 +12,16 @@ from deals.services import ensure_default_stages
 from leads.models import Lead
 from support.models import SupportCase
 
-from .models import EmailProviderIntegration, EmailRecordLink, SocialLeadAutomationRule, VisitorTrackingPortal, VisitorTrackingSetting
-from .services import create_synced_email_message, run_provider_sync
+from .models import (
+    EmailProviderIntegration,
+    EmailRecordLink,
+    SocialAccount,
+    SocialBrand,
+    SocialLeadAutomationRule,
+    VisitorTrackingPortal,
+    VisitorTrackingSetting,
+)
+from .services import create_synced_email_message, run_provider_sync, send_provider_email_live
 from .utils import build_portal_tracking_key
 
 
@@ -38,8 +47,170 @@ class EmailProviderValidationTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["email_address"][0], "Enter a valid Gmail address")
+        self.assertEqual(response.data["email_address"][0], "Enter a valid email address.")
         self.assertFalse(EmailProviderIntegration.objects.exists())
+
+    def test_create_rejects_gmail_address_for_yahoo_provider(self):
+        response = self.client.post(
+            "/api/integrations/email/providers/",
+            {
+                "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                "email_address": "user@gmail.com",
+                "display_name": "CRM",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["email_address"][0], "Enter a valid Yahoo Mail address")
+        self.assertFalse(EmailProviderIntegration.objects.exists())
+
+    def test_create_accepts_yahoo_address_for_yahoo_provider(self):
+        response = self.client.post(
+            "/api/integrations/email/providers/",
+            {
+                "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                "email_address": "user@yahoo.com",
+                "display_name": "CRM",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["data"]["email_address"], "user@yahoo.com")
+        self.assertTrue(
+            EmailProviderIntegration.objects.filter(
+                provider_type=EmailProviderIntegration.ProviderType.YAHOO,
+                email_address="user@yahoo.com",
+            ).exists()
+        )
+
+    def test_create_rejects_non_yahoo_com_address_for_yahoo_provider(self):
+        for email_address in ("user@yahoo.co.uk", "user@ymail.com", "user@rocketmail.com"):
+            with self.subTest(email_address=email_address):
+                response = self.client.post(
+                    "/api/integrations/email/providers/",
+                    {
+                        "provider_type": EmailProviderIntegration.ProviderType.YAHOO,
+                        "protocol_type": EmailProviderIntegration.ProtocolType.IMAP,
+                        "email_address": email_address,
+                        "display_name": "CRM",
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(
+                    response.data["email_address"][0],
+                    "Enter a valid Yahoo Mail address",
+                )
+        self.assertFalse(EmailProviderIntegration.objects.exists())
+
+
+class SocialAccountHandleValidationTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="social-handle-validation@example.com",
+            password="test-password",
+            is_active=True,
+            is_staff=True,
+        )
+        self.client.force_authenticate(self.user)
+        self.brand = SocialBrand.objects.create(
+            brand_name="Test Brand",
+            created_by=self.user,
+        )
+        self.accounts_url = "/api/integrations/social/accounts/"
+
+    def test_create_rejects_handle_without_at_prefix(self):
+        response = self.client.post(
+            self.accounts_url,
+            {
+                "brand": self.brand.id,
+                "platform": SocialAccount.Platform.X,
+                "account_name": "Test Account",
+                "handle": "brandname",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("@", response.data["handle"][0])
+        self.assertFalse(SocialAccount.objects.exists())
+
+    def test_create_accepts_handle_with_at_prefix(self):
+        response = self.client.post(
+            self.accounts_url,
+            {
+                "brand": self.brand.id,
+                "platform": SocialAccount.Platform.X,
+                "account_name": "Test Account",
+                "handle": "@brandname",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["handle"], "@brandname")
+
+    def test_connect_rejects_handle_without_at_prefix(self):
+        account = SocialAccount.objects.create(
+            brand=self.brand,
+            platform=SocialAccount.Platform.X,
+            account_name="Test Account",
+            handle="@brandname",
+        )
+
+        response = self.client.post(
+            f"{self.accounts_url}{account.id}/connect/",
+            {"handle": "brandname"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        account.refresh_from_db()
+        self.assertEqual(account.handle, "@brandname")
+
+
+class SocialEmailOAuthErrorTests(APITestCase):
+    def test_smtp_oauth_error_does_not_expose_provider_response(self):
+        provider = SimpleNamespace(
+            is_active=True,
+            display_name="LuxOne",
+            email_address="sender@example.com",
+            protocol_type=EmailProviderIntegration.ProtocolType.IMAP_OAUTH,
+            access_token="private-access-token",
+            reply_to_address="",
+        )
+        smtp_response = b"Authentication failed: private-access-token"
+
+        with (
+            patch(
+                "integrations.services._resolved_provider_config",
+                return_value={
+                    "smtp_host": "smtp.example.com",
+                    "smtp_port": 587,
+                    "smtp_use_ssl": False,
+                    "smtp_use_tls": False,
+                },
+            ),
+            patch("integrations.services.smtplib.SMTP") as smtp_class,
+        ):
+            smtp_class.return_value.docmd.return_value = (535, smtp_response)
+
+            with self.assertRaises(ValueError) as error:
+                send_provider_email_live(
+                    provider_integration=provider,
+                    subject="Test",
+                    body="Test",
+                    to_emails=["recipient@example.com"],
+                )
+
+        self.assertIn("Reconnect the email provider", str(error.exception))
+        self.assertNotIn("private-access-token", str(error.exception))
+        self.assertNotIn(smtp_response.decode(), str(error.exception))
 
 
 class IntegrationLinkingTests(APITestCase):

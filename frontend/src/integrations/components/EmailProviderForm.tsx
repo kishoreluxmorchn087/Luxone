@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import CRMModalBase from "../../components/crm/CRMModalBase";
 import { protocolOptions, providerOptions } from "../config";
 import type {
@@ -6,7 +7,7 @@ import type {
   EmailProviderIntegration,
   IntegrationProviderType,
 } from "../types";
-import { isValidEmail } from "../utils";
+import { getProviderLabel, isValidEmail, isValidEmailForProvider } from "../utils";
 
 type ProviderField =
   | "provider_type"
@@ -60,6 +61,7 @@ export default function EmailProviderForm({
   const [values, setValues] = useState<EmailProviderFormValues>(emptyValues);
   const [errors, setErrors] = useState<ProviderFieldErrors>({});
   const [formError, setFormError] = useState<string>("");
+  const [isAccessTokenVisible, setIsAccessTokenVisible] = useState(false);
   const formId = useId();
   const fieldRefs = useRef<Partial<Record<ProviderField, HTMLElement | null>>>({});
 
@@ -96,8 +98,12 @@ export default function EmailProviderForm({
     value: EmailProviderFormValues[K]
   ) => {
     setValues((current) => ({ ...current, [key]: value }));
-    if (key in errors) {
-      setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key in errors || key === "provider_type") {
+      setErrors((current) => ({
+        ...current,
+        [key]: undefined,
+        ...(key === "provider_type" ? { email_address: undefined } : {}),
+      }));
     }
     setFormError("");
   };
@@ -121,7 +127,9 @@ export default function EmailProviderForm({
       if (!values.email_address.trim()) {
         nextErrors.email_address = "Email address is required";
       } else if (!isValidEmail(values.email_address)) {
-        nextErrors.email_address = "Enter a valid Gmail address";
+        nextErrors.email_address = "Enter a valid email address";
+      } else if (!isValidEmailForProvider(values.email_address, values.provider_type)) {
+        nextErrors.email_address = `Enter an email address that matches ${getProviderLabel(values.provider_type)}`;
       }
 
       if (!values.display_name.trim()) {
@@ -130,7 +138,7 @@ export default function EmailProviderForm({
 
       const replyTo = values.reply_to_address.trim();
       if (replyTo && !isValidEmail(replyTo)) {
-        nextErrors.reply_to_address = "Enter a valid Gmail address";
+        nextErrors.reply_to_address = "Enter a valid email address";
       }
 
       return nextErrors;
@@ -201,7 +209,7 @@ export default function EmailProviderForm({
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         {formError ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {formError}
@@ -256,15 +264,17 @@ export default function EmailProviderForm({
             <span className="text-slate-600">Email Address</span>
             <input
               type="email"
+              id={`${formId}-provider-email-address`}
+              name="provider_email_address"
+              autoComplete="off"
               required
-              pattern="[^\s@]+@gmail\.com"
               ref={(element) => {
                 fieldRefs.current.email_address = element;
               }}
               value={values.email_address}
               onChange={(event) => setField("email_address", event.target.value)}
               className={inputClassName("email_address")}
-              placeholder="name@company.com"
+              placeholder="support@gmail.com"
             />
             {renderFieldError("email_address")}
           </label>
@@ -278,7 +288,7 @@ export default function EmailProviderForm({
               value={values.display_name}
               onChange={(event) => setField("display_name", event.target.value)}
               className={inputClassName("display_name")}
-              placeholder="Lavanya"
+              placeholder="Support Team"
             />
             {renderFieldError("display_name")}
           </label>
@@ -293,7 +303,7 @@ export default function EmailProviderForm({
               value={values.reply_to_address}
               onChange={(event) => setField("reply_to_address", event.target.value)}
               className={inputClassName("reply_to_address")}
-              placeholder="support@zora.com"
+              placeholder="support@gmail.com"
             />
             {renderFieldError("reply_to_address")}
           </label>
@@ -323,19 +333,36 @@ export default function EmailProviderForm({
 
           <label className="space-y-1 text-sm sm:col-span-2">
             <span className="text-slate-600">App Password / Access Token</span>
-            <input
-              type="password"
-              value={values.access_token || ""}
-              onChange={(event) => setField("access_token", event.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"
-              placeholder="Required for live inbox sync"
-            />
+            <div className="relative">
+              <input
+                type={isAccessTokenVisible ? "text" : "password"}
+                id={`${formId}-provider-access-token`}
+                name="provider_access_token"
+                autoComplete="new-password"
+                value={values.access_token || ""}
+                onChange={(event) => setField("access_token", event.target.value)}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 outline-none transition focus:border-blue-500"
+                placeholder="Required for live inbox sync"
+              />
+              <button
+                type="button"
+                aria-label={isAccessTokenVisible ? "Hide app password" : "Show app password"}
+                aria-pressed={isAccessTokenVisible}
+                onClick={() => setIsAccessTokenVisible((visible) => !visible)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {isAccessTokenVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </label>
 
           <label className="space-y-1 text-sm sm:col-span-2">
             <span className="text-slate-600">Refresh Token (Optional)</span>
             <input
               type="password"
+              id={`${formId}-provider-refresh-token`}
+              name="provider_refresh_token"
+              autoComplete="new-password"
               value={values.refresh_token || ""}
               onChange={(event) => setField("refresh_token", event.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none transition focus:border-blue-500"

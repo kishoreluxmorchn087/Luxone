@@ -1,6 +1,9 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import CRMModalBase from "./CRMModalBase";
+import DatePicker from "../common/DatePicker";
+import { formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
 
 // ── Shared call helpers ────────────────────────────────────────────────────
 
@@ -42,7 +45,7 @@ function FullCallModalShell({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-6 py-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">{children}</div>
       </div>
     </div>
   );
@@ -69,24 +72,31 @@ export function SendEmailModal({
   onClose,
   toEmail = "",
   recordName = "",
+  allowAttachments = false,
+  errorHelpLink,
   onSend,
 }: BaseModalProps & {
   toEmail?: string;
   recordName?: string;
-  onSend?: (payload: { to: string; subject: string; body: string; from_email?: string }) => Promise<void>;
+  allowAttachments?: boolean;
+  errorHelpLink?: { href: string; label: string };
+  onSend?: (payload: { to: string; subject: string; body: string; from_email?: string; attachments?: File[] }) => Promise<void>;
 }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState(toEmail);
   const [subject, setSubject] = useState(recordName ? `Re: ${recordName}` : "");
   const [body, setBody] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setTo(toEmail);
     setSubject(recordName ? `Re: ${recordName}` : "");
     setBody("");
+    setAttachments([]);
     setError(null);
   }, [open, toEmail, recordName]);
 
@@ -105,7 +115,13 @@ export function SendEmailModal({
       setError(null);
 
       if (onSend) {
-        await onSend({ to: to.trim(), subject: subject.trim(), body: body.trim(), from_email: from.trim() || undefined });
+        await onSend({
+          to: to.trim(),
+          subject: subject.trim(),
+          body: body.trim(),
+          from_email: from.trim() || undefined,
+          attachments: attachments.length ? attachments : undefined,
+        });
       } else {
         throw new Error("Email sending is not configured for this screen.");
       }
@@ -145,8 +161,63 @@ export function SendEmailModal({
         </div>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="w-full resize-none rounded-b-lg px-3 py-2 text-sm outline-none" />
       </div>
-      <button className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"><Paperclip size={14} />Attach Files</button>
-      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      {allowAttachments && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(event) => {
+              const selectedFiles = Array.from(event.currentTarget.files || []);
+              setAttachments((current) => [
+                ...current,
+                ...selectedFiles.filter((file) => !current.some(
+                  (existing) => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified
+                )),
+              ]);
+              event.currentTarget.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+          >
+            <Paperclip size={14} />Attach Files
+          </button>
+          {attachments.length > 0 && (
+            <ul className="mt-2 space-y-2" aria-label="Attached files">
+              {attachments.map((file, index) => (
+                <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate text-slate-700">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                    className="ml-3 shrink-0 text-slate-500 hover:text-rose-600"
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+      {error && (
+        <div className="mt-2">
+          <p className="text-sm text-rose-600">{error}</p>
+          {errorHelpLink && /oauth|provider|smtp|sending credentials|email could not be sent/i.test(error) && (
+            <Link
+              to={errorHelpLink.href}
+              className="mt-1 inline-block text-sm font-medium text-blue-700 underline hover:text-blue-800"
+            >
+              {errorHelpLink.label}
+            </Link>
+          )}
+        </div>
+      )}
     </CRMModalBase>
   );
 }
@@ -204,6 +275,8 @@ export function NoteModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
+    if (!validateDatePickerInputs()) return;
+
     if (!note.trim()) {
       setError("Please enter a note.");
       return;
@@ -463,25 +536,53 @@ export function ScheduleCallModal({
 
   if (!open) return null;
 
-  const handleSave = async () => {
-    if (!subject.trim()) { setError("Subject is required."); return; }
-    try {
-      setSaving(true);
-      setError(null);
-      await onSave?.({
-        call_summary: subject.trim(),
-        call_outcome: purpose.trim(),
-        call_type: callType,
-        call_start_time: `${startDate}T${startTime}:00`,
-        reminder,
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to schedule call.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  
+const handleSave = async () => {
+  if (!subject.trim()) {
+    setError("Subject is required.");
+    return;
+  }
+
+  if (!onSave) {
+    setError("Save handler is not connected.");
+    console.error("ScheduleCallModal: onSave prop is missing.");
+    return;
+  }
+
+  try {
+    setSaving(true);
+    setError(null);
+
+    console.log("Scheduling call with payload:", {
+      call_summary: subject.trim(),
+      call_outcome: purpose.trim(),
+      call_type: callType,
+      call_start_time: `${startDate}T${startTime}:00`,
+      reminder,
+    });
+
+    await onSave({
+      call_summary: subject.trim(),
+      call_outcome: purpose.trim(),
+      call_type: callType,
+      call_start_time: `${startDate}T${startTime}:00`,
+      reminder,
+    });
+
+    console.log("Call scheduled successfully.");
+    onClose();
+  } catch (err) {
+    console.error("Failed to schedule call:", err);
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Failed to schedule call. Please try again."
+    );
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <FullCallModalShell title="Schedule a Call" onClose={onClose}>
@@ -513,7 +614,7 @@ export function ScheduleCallModal({
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <DatePicker value={startDate} onChange={setStartDate} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>
@@ -591,6 +692,7 @@ export function LogCallModal({
 
   const handleSave = async () => {
     if (!subject.trim()) { setError("Subject is required."); return; }
+    if (!validateDatePickerInputs()) return;
     try {
       setSaving(true);
       setError(null);
@@ -636,7 +738,7 @@ export function LogCallModal({
             </CallFormRow>
             <CallFormRow label="Call Start Time">
               <div className="grid grid-cols-2 overflow-hidden rounded-md border border-slate-300">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
+                <DatePicker value={startDate} onChange={setStartDate} className="border-r border-slate-300 px-3 py-2 text-sm outline-none" />
                 <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3 py-2 text-sm outline-none" />
               </div>
             </CallFormRow>
@@ -700,16 +802,18 @@ export function DeleteModal({
       title="Delete Record"
       maxWidthClassName="max-w-sm"
       footer={
-        <>
-          <button onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
+        <div className="flex w-full items-center justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={deleting} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Cancel</button>
           <button
+            type="button"
             onClick={() => void handleDelete()}
             disabled={deleting}
-            className="rounded-lg bg-rose-600 px-3 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50"
+            className="inline-flex min-w-20 items-center justify-center rounded-lg border border-rose-700 bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+            style={{ backgroundColor: "#e11d48", color: "#ffffff" }}
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
-        </>
+        </div>
       }
     >
       <p className="text-sm text-slate-700">
@@ -833,7 +937,7 @@ export function ActivityDetailModal({
         <div className="space-y-3 px-5 py-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-slate-500">Date</span>
-            <span className="font-semibold text-slate-800">{activity.date}</span>
+            <span className="font-semibold text-slate-800">{formatDateTimeForDisplay(activity.date)}</span>
           </div>
           {recordName && (
             <div className="flex items-center justify-between text-sm">
@@ -879,8 +983,9 @@ export function MassDeleteModal({
   open,
   onClose,
   count,
+  isSelection = false,
   onConfirm,
-}: BaseModalProps & { count: number; onConfirm: () => Promise<void> }) {
+}: BaseModalProps & { count: number; isSelection?: boolean; onConfirm: () => Promise<void> }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -920,13 +1025,14 @@ export function MassDeleteModal({
             disabled={deleting}
             className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
           >
-            {deleting ? "Deleting..." : "Delete All"}
+            {deleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       }
     >
       <p className="text-sm text-slate-700">
-        Are you sure you want to delete all <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
+        Are you sure you want to delete {isSelection ? "the selected" : "all"}{" "}
+        <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
       </p>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </CRMModalBase>

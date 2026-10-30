@@ -39,9 +39,7 @@ export function filterRecords<T extends CRMRecord>(
 
     // 2. Column-based filters (header filters)
     const columnMatch = columns.every((column) => {
-      const filterValue = (filters[column.key] ?? "").trim().toLowerCase();
-      if (!filterValue) return true;
-      return String(row[column.key] ?? "").toLowerCase().includes(filterValue);
+      return matchesFilterValue(row[column.key], filters[column.key]);
     });
 
     if (!columnMatch) return false;
@@ -49,14 +47,21 @@ export function filterRecords<T extends CRMRecord>(
     // 3. Extra filters (sidebar filters)
     return Object.entries(filters).every(([key, value]) => {
       if (typeof key === "string" && columnKeys.has(key as keyof T & string)) return true; // already handled
-      const filterValue = (value ?? "").trim().toLowerCase();
-      if (!filterValue) return true;
-      
       // Fallback: try direct key access or find a mapping
-      const rowValue = String(findRowValue(row, key) ?? "").toLowerCase();
-      return rowValue.includes(filterValue);
+      return matchesFilterValue(findRowValue(row, key), value);
     });
   });
+}
+
+function matchesFilterValue(rowValue: unknown, filterValue: string | undefined): boolean {
+  if (!filterValue?.trim()) return true;
+
+  const normalizedRowValue = String(rowValue ?? "").toLowerCase();
+  return (filterValue ?? "")
+    .split("\u001f")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .some((value) => normalizedRowValue.includes(value));
 }
 
 function visibleColumnsMatch<T extends CRMRecord>(row: T, columns: CRMColumn<T>[], search: string): boolean {
@@ -81,4 +86,3 @@ function findRowValue<T extends CRMRecord>(row: T, key: string): any {
 
   return null;
 }
-

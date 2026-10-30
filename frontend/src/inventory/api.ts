@@ -512,6 +512,17 @@ export async function getInventoryList(
   return normalizeInvoices(items);
 }
 
+export async function addInventoryNote(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  note: string
+): Promise<void> {
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
 async function getRelatedList(path: string, mapper: (item: any) => any) {
   try {
     const data = await apiRequest<any[]>(path);
@@ -737,7 +748,7 @@ export async function getInventoryDetail(
     fields: Object.entries({
       "Product Code": detail.product_code,
       Manufacturer: detail.manufacturer,
-      Category: detail.product_category,
+      Category: moduleKey === "vendors" ? detail.category : detail.product_category,
       "Product Type": detail.product_type,
       "Deployment Model": detail.deployment_model,
       "License Type": detail.license_type,
@@ -745,7 +756,7 @@ export async function getInventoryDetail(
       "Subscription Term (Months)": detail.subscription_term_months,
       "Renewal Required": detail.renewal_required === undefined ? "" : detail.renewal_required ? "Yes" : "No",
       "Implementation Required": detail.implementation_required === undefined ? "" : detail.implementation_required ? "Yes" : "No",
-      Vendor: detail.vendor_name,
+      Vendor: moduleKey === "vendors" ? undefined : detail.vendor_name,
       "Price Book": detail.name,
       Active: detail.active ? "Active" : detail.active === false ? "Inactive" : "",
       "Quote Stage": detail.quote_stage,
@@ -1102,6 +1113,17 @@ export async function deleteInventoryRecord(moduleKey: InventoryModuleKey, id: s
   await apiRequest(`${path}/${id}`, { method: "DELETE" });
 }
 
+// export async function addInventoryNote(moduleKey: InventoryModuleKey, id: string, note: string) {
+//   if (moduleKey === "configurator") {
+//     throw new Error("Notes are not supported for configurator records.");
+//   }
+
+//   return apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/notes`, {
+//     method: "POST",
+//     body: JSON.stringify({ note }),
+//   });
+// }
+
 export async function fetchLookupOptions(
   lookup: keyof typeof LOOKUP_PATHS,
   query: string,
@@ -1131,6 +1153,38 @@ export async function getInventoryRecordSnapshot(
   id: string
 ) {
   return apiRequest<any>(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}`);
+}
+
+export async function addInventoryAttachment(
+  moduleKey: Exclude<InventoryModuleKey, "configurator">,
+  id: string,
+  file: File
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  await apiRequest(`${INVENTORY_ENDPOINTS[moduleKey]}/${id}/attachments`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function sendVendorEmail(
+  id: string,
+  payload: { to: string; subject: string; body: string; attachments?: File[] }
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("to_email", payload.to);
+  formData.append("subject", payload.subject);
+  formData.append("body", payload.body);
+  payload.attachments?.forEach((file, index) => {
+    formData.append(`attachments[${index}]`, file);
+  });
+
+  await apiRequest(`${INVENTORY_ENDPOINTS.vendors}/${id}/send-email`, {
+    method: "POST",
+    body: formData,
+  });
 }
 
 export async function quickCreateVendor(values: Pick<VendorFormValues, "vendorName" | "phone" | "email">) {

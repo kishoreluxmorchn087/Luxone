@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
+import { copyToClipboard } from "../../lib/clipboard";
+import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 import { getCompanyDetails, getServicesSetupStatus, listAppointments, listDomainMappings, listJobSheets, listServices, listTeamMembers, updateCompanyDetails } from "../api";
 import type { CompanyDetails, DomainMapping, ServiceSettings, TeamMember } from "../types";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
-const phonePattern = /^\+?[0-9\-().\s]{7,20}$/;
-type CompanyDetailsField = "companyName" | "phone";
+type CompanyDetailsField = "companyName" | "contactPerson" | "phone";
 type CompanyDetailsErrors = Partial<Record<CompanyDetailsField, string>>;
 
 export default function CompanyDetailsPage() {
@@ -20,6 +22,7 @@ export default function CompanyDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<CompanyDetailsErrors>({});
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [usageSummary, setUsageSummary] = useState({ services: 0, appointments: 0, jobSheets: 0 });
 
   useEffect(() => {
@@ -57,8 +60,11 @@ export default function CompanyDetailsPage() {
     if (!form.companyName.trim()) {
       validationErrors.companyName = "Company Name is required.";
     }
-    if (form.phone.trim() && !phonePattern.test(form.phone.trim())) {
-      validationErrors.phone = "Enter a valid phone number.";
+    if (!form.contactPerson.trim()) {
+      validationErrors.contactPerson = "Contact Person Name is required.";
+    }
+    if (!isValidPhoneNumber(form.phone)) {
+      validationErrors.phone = "Phone number must contain digits only and be no more than 20 digits.";
     }
     setFieldErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
@@ -97,14 +103,63 @@ export default function CompanyDetailsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-name">Company Name</label><input id="company-name" required className={`${inputClass}${fieldErrors.companyName ? " border-rose-500" : ""}`} value={form.companyName} aria-invalid={Boolean(fieldErrors.companyName)} aria-describedby={fieldErrors.companyName ? "company-name-error" : undefined} onChange={(e) => { setForm({ ...form, companyName: e.target.value }); setFieldErrors({ ...fieldErrors, companyName: undefined }); }} />{fieldErrors.companyName ? <p id="company-name-error" className="mt-1 text-xs text-rose-600">{fieldErrors.companyName}</p> : null}</div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Company Email</label><input className={inputClass} value={form.companyEmail} onChange={(e) => setForm({ ...form, companyEmail: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Contact Person</label><input className={inputClass} value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-phone">Phone</label><input id="company-phone" type="tel" className={`${inputClass}${fieldErrors.phone ? " border-rose-500" : ""}`} value={form.phone} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "company-phone-error" : undefined} onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFieldErrors({ ...fieldErrors, phone: undefined }); }} />{fieldErrors.phone ? <p id="company-phone-error" className="mt-1 text-xs text-rose-600">{fieldErrors.phone}</p> : null}</div>
+              <div><label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="contact-person">Contact Person Name</label><input id="contact-person" required className={`${inputClass}${fieldErrors.contactPerson ? " border-rose-500" : ""}`} value={form.contactPerson} aria-invalid={Boolean(fieldErrors.contactPerson)} aria-describedby={fieldErrors.contactPerson ? "contact-person-error" : undefined} onChange={(e) => { setForm({ ...form, contactPerson: e.target.value }); setFieldErrors({ ...fieldErrors, contactPerson: undefined }); }} />{fieldErrors.contactPerson ? <p id="contact-person-error" className="mt-1 text-xs text-rose-600">{fieldErrors.contactPerson}</p> : null}</div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="company-phone">Phone</label>
+                <input
+                  id="company-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={PHONE_NUMBER_MAX_LENGTH}
+                  placeholder="Enter phone number"
+                  className={`${inputClass}${fieldErrors.phone ? " border-rose-500" : ""}`}
+                  value={form.phone}
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  aria-describedby={fieldErrors.phone ? "company-phone-error" : undefined}
+                  onChange={(e) => {
+                    const numericValue = sanitizePhoneNumber(e.target.value);
+                    setForm({ ...form, phone: numericValue });
+                    setFieldErrors({ ...fieldErrors, phone: undefined });
+                  }}
+                />
+                {fieldErrors.phone ? <p id="company-phone-error" className="mt-1 text-xs text-rose-600">{fieldErrors.phone}</p> : null}
+              </div>
               <div className="md:col-span-2"><label className="mb-1.5 block text-sm font-medium text-slate-700">Address</label><textarea className={textareaClass} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
             </div>
           </CRMSectionCard>
           <CRMSectionCard title="Access and Locale">
             <div className="space-y-4 text-sm text-slate-600">
-              <div><p className="text-xs uppercase tracking-wide text-slate-500">Access URL</p><p className="mt-1 break-all text-slate-800">{accessUrl}</p></div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Access URL</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="break-all text-slate-800">{accessUrl}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void copyToClipboard(accessUrl).then((success) => {
+                        if (success) {
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 2000);
+                        }
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    title="Copy Access URL"
+                  >
+                    {copiedUrl ? (
+                      <>
+                        <Check size={12} className="text-emerald-600" />
+                        <span className="text-emerald-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Mapped Domain Status</p><p className="mt-1 break-all text-slate-800">{verifiedDomain ? `Verified: ${verifiedDomain.domain}` : pendingDomain ? `Pending: ${pendingDomain.domain}` : "No mapped domain yet"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Timezone</p><p className="mt-1 text-slate-800">{settings?.defaultTimezone || "Not configured"}</p></div>
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Service Contact</p><p className="mt-1 break-all text-slate-800">{form.serviceContactName || form.contactPerson || "-"} {form.serviceContactEmail ? `(${form.serviceContactEmail})` : ""}</p></div>

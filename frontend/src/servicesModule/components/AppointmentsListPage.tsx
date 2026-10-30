@@ -6,7 +6,7 @@ import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
-import type { CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
+import type { CRMRowAction } from "../../lib/shared/crmTypes";
 import { cancelAppointment, getAppointmentsSummary, listAppointments } from "../api";
 import { servicesModuleMeta } from "../config";
 import type { AppointmentRecord, AppointmentSummary } from "../types";
@@ -55,13 +55,17 @@ export default function AppointmentsListPage() {
     () => meta.columns.filter((column) => !hiddenColumns.includes(column.key)),
     [hiddenColumns, meta.columns]
   );
+  const tableColumns = visibleColumns.map((column) => ({
+    ...column,
+    key: column.key as keyof AppointmentRecord & string,
+  }));
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows as CRMRecord[], visibleColumns as any, combined) as AppointmentRecord[];
-    if (sortState) output = sortRecords(output as any, sortState.key as never, sortState.direction) as AppointmentRecord[];
+    let output = filterRecords(rows, tableColumns, combined);
+    if (sortState) output = sortRecords(output, sortState.key as keyof AppointmentRecord & string, sortState.direction);
     return output;
-  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
+  }, [rows, tableColumns, sidebarFilters, columnFilters, sortState]);
 
   const paginatedRows = useMemo(() => processedRows.slice((page - 1) * 10, page * 10), [page, processedRows]);
 
@@ -84,6 +88,7 @@ export default function AppointmentsListPage() {
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           showImportActions={false}
           isFilterOpen={filterOpen}
@@ -131,14 +136,15 @@ export default function AppointmentsListPage() {
                 />
               ) : null}
               <div className="min-w-0 flex-1 space-y-3">
-                <CRMTable
-                  rows={paginatedRows as any}
-                  columns={visibleColumns as any}
+                 <CRMTable<AppointmentRecord>
+                  rows={paginatedRows}
+                  columns={tableColumns}
                   rowActions={rowActions}
                   selectedIds={selectedIds}
                   hiddenColumns={hiddenColumns}
                   pinnedColumn={pinnedColumn}
                   columnFilters={columnFilters}
+                  showActionsColumn={false}
                   onToggleAll={(checked) => setSelectedIds(checked ? paginatedRows.map((row) => row.id) : [])}
                   onToggleRow={(id, checked) =>
                     setSelectedIds((prev) => (checked ? [...new Set([...prev, id])] : prev.filter((item) => item !== id)))

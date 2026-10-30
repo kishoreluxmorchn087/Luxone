@@ -28,7 +28,7 @@ function ActivityReminderBadge({ activity, onClick }: { activity: ActivityBadge;
       className={`inline-flex cursor-pointer items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium transition-colors ${colorMap[activity.type]}`}
     >
       {iconMap[activity.type]}
-      {activity.date}
+      {formatDateTimeForDisplay(activity.date)}
     </button>
   );
 }
@@ -43,6 +43,7 @@ type CRMTableProps<T extends CRMRecord> = {
   columnFilters: Partial<Record<string, string>>;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActionsColumn?: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (id: string, checked: boolean) => void;
   onOpenRow: (row: T) => void;
@@ -66,6 +67,7 @@ export default function CRMTable<T extends CRMRecord>({
   columnFilters,
   showNotes = true,
   showActivity = true,
+  showActionsColumn = true,
   onToggleAll,
   onToggleRow,
   onOpenRow,
@@ -85,6 +87,20 @@ export default function CRMTable<T extends CRMRecord>({
       normalized.includes("website") ||
       normalized.includes("address")
     );
+  };
+  const formatCellValue = (columnKey: string, value: unknown) => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (columnKey === "annualRevenue" || columnKey.toLowerCase().includes("revenue")) {
+      const num = Number(String(value).replace(/,/g, ""));
+      if (Number.isFinite(num)) {
+        if (num === 0) return "-";
+        return `Rs. ${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+      }
+    }
+    if (typeof value === "string" && /(date|_at|At$)/i.test(columnKey)) {
+      return formatDateTimeForDisplay(value) || "-";
+    }
+    return String(value);
   };
 
   const [openHeaderMenu, setOpenHeaderMenu] = useState<string | null>(null);
@@ -116,6 +132,20 @@ export default function CRMTable<T extends CRMRecord>({
     );
   }
 
+  const cellPaddingClass =
+    density === "compact"
+      ? "py-1.5 px-3 text-xs"
+      : density === "comfortable"
+      ? "py-4 px-4 text-sm"
+      : "py-2.5 px-4 text-sm";
+
+  const headerPaddingClass =
+    density === "compact"
+      ? "py-2 px-3 text-[11px]"
+      : density === "comfortable"
+      ? "py-3.5 px-4 text-xs"
+      : "py-3 px-4 text-xs";
+
   const allChecked = rows.every((row) => selectedIds.includes(row.id));
 
   return (
@@ -139,7 +169,7 @@ export default function CRMTable<T extends CRMRecord>({
             {visibleColumns.map((column) => (
               <th
                 key={column.key}
-                className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
+                className={`${headerPaddingClass} font-semibold uppercase tracking-wide text-slate-600 ${column.minWidth ?? ""} ${
                   pinnedColumn === column.key ? "sticky z-30 bg-slate-50" : ""
                 }`}
                 style={pinnedColumn === column.key ? { left: showNotes && showActivity ? 172 : 132 } : undefined}
@@ -182,7 +212,13 @@ export default function CRMTable<T extends CRMRecord>({
               <td className="px-2 py-2" onClick={(event) => event.stopPropagation()}>
                 <CRMRowMoreOptionsMenu
                   actions={rowActions}
-                  onClickAction={(actionKey) => onRowAction(actionKey, row)}
+                  onClickAction={(actionKey) => {
+                    console.log("1. MENU ACTION:", actionKey, row.id);
+
+                    onRowAction(actionKey, row);
+
+                    console.log("2. onRowAction CALLED");
+                  }}
                 />
               </td>
 
@@ -226,11 +262,11 @@ export default function CRMTable<T extends CRMRecord>({
                   <button
                     type="button"
                     onClick={() => onOpenRow(row)}
-                    className={`w-full text-left text-sm text-slate-700 ${
+                    className={`w-full text-left ${cellPaddingClass.includes("text-xs") ? "text-xs" : "text-sm"} text-slate-700 ${
                       isLongTextColumn(column.key) ? "break-all whitespace-normal" : "break-words"
                     }`}
                   >
-                    {String(row[column.key] || "-")}
+                    {formatCellValue(column.key, row[column.key])}
                   </button>
                 </td>
               ))}

@@ -23,6 +23,7 @@ import {
   type RelatedModule,
 } from "../../lib/api/documentsApi";
 import { keepEmployeeOwnedRows } from "../../lib/shared/recordVisibility";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 
 // ── Upload Modal ────────────────────────────────────────────────────────────
 
@@ -413,7 +414,7 @@ export default function DocumentsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3 text-xs text-slate-500">
-                        {new Date(doc.created_at).toLocaleDateString()}
+                        {formatDateForDisplay(doc.created_at)}
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-2">

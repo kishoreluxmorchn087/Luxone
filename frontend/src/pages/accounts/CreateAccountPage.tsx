@@ -43,8 +43,8 @@ const sections: CRMCreateSection[] = [
       { name: "phone", label: "Phone", type: "phone" },
       { name: "website", label: "Website", type: "text" },
       { name: "industry", label: "Industry", type: "select", options: INDUSTRY_OPTIONS },
-      { name: "annualRevenue", label: "Annual Revenue", type: "currency" },
-      { name: "employees", label: "Employees", type: "number" },
+      { name: "annualRevenue", label: "Annual Revenue", type: "currency", digitsOnly: true, inputMode: "numeric", sanitizeValue: (value) => value.replace(/[^0-9]/g, "") },
+      { name: "employees", label: "Employees", type: "number", min: 0 },
     ],
   },
   {
