@@ -488,21 +488,41 @@ function normalizeConfigurators(items: any[]): InventoryListRecord[] {
 
 export async function getInventoryList(
   moduleKey: InventoryModuleKey,
-  options?: { pageSize?: number; cacheTtlMs?: number }
+  options?: { pageSize?: number; cacheTtlMs?: number; forceFresh?: boolean }
 ): Promise<InventoryListRecord[]> {
+  const fetchAllPages = async (path: string) => {
+    const items: any[] = [];
+    let page = 1;
+
+    while (page <= 1000) {
+      const data = await apiRequest<any[] | Paginated<any>>(path, {
+        query: {
+          page,
+          ...(options?.pageSize ? { page_size: options.pageSize } : {}),
+        },
+        cacheTtlMs: options?.cacheTtlMs,
+        forceFresh: options?.forceFresh,
+      });
+
+      if (Array.isArray(data)) {
+        items.push(...data);
+        break;
+      }
+
+      items.push(...data.results);
+      if (!data.next) break;
+      page += 1;
+    }
+
+    return dedupeBy(items, (item) => asString(item.id));
+  };
+
   if (moduleKey === "configurator") {
-    const data = await apiRequest<any[] | Paginated<any>>("/inventory/configurator", {
-      query: options?.pageSize ? { page_size: options.pageSize } : undefined,
-      cacheTtlMs: options?.cacheTtlMs,
-    });
-    return normalizeConfigurators(toList(data));
+    const items = await fetchAllPages("/inventory/configurator");
+    return normalizeConfigurators(items);
   }
 
-  const data = await apiRequest<any[] | Paginated<any>>(INVENTORY_ENDPOINTS[moduleKey], {
-    query: options?.pageSize ? { page_size: options.pageSize } : undefined,
-    cacheTtlMs: options?.cacheTtlMs,
-  });
-  const items = toList(data);
+  const items = await fetchAllPages(INVENTORY_ENDPOINTS[moduleKey]);
   if (moduleKey === "products") return normalizeProducts(items);
   if (moduleKey === "vendors") return normalizeVendors(items);
   if (moduleKey === "price-books") return normalizePriceBooks(items);

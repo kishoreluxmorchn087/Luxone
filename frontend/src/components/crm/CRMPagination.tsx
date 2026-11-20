@@ -16,7 +16,9 @@ export default function CRMPagination({ page, pageSize, totalItems, onPageChange
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => {
+            if (page > 1) onPageChange(page - 1);
+          }}
           disabled={page <= 1}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
@@ -25,7 +27,9 @@ export default function CRMPagination({ page, pageSize, totalItems, onPageChange
         <span className="text-sm font-semibold text-slate-700">Page {page} / {totalPages}</span>
         <button
           type="button"
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => {
+            if (page < totalPages) onPageChange(page + 1);
+          }}
           disabled={page >= totalPages}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
