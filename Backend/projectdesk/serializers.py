@@ -126,17 +126,36 @@ class ProjectDeskMeetingSerializer(serializers.ModelSerializer):
         return meeting
 
     def _sync_attendance_records(self, meeting, participant_entries):
+        existing_records = list(meeting.attendance_records.all())
+        records_by_email = {
+            record.participant_email.strip().lower(): record
+            for record in existing_records
+            if record.participant_email.strip()
+        }
+        records_by_name = {
+            record.participant_name.strip().lower(): record
+            for record in existing_records
+            if record.participant_name.strip()
+        }
         meeting.attendance_records.all().delete()
         if not participant_entries:
             return
-        ProjectDeskMeetingParticipant.objects.bulk_create([
-            ProjectDeskMeetingParticipant(
+        participant_records = []
+        for entry in participant_entries:
+            existing_record = (
+                records_by_email.get(entry["participant_email"].strip().lower())
+                or records_by_name.get(entry["participant_name"].strip().lower())
+            )
+            participant_records.append(ProjectDeskMeetingParticipant(
                 meeting=meeting,
                 participant_name=entry["participant_name"],
                 participant_email=entry["participant_email"],
-            )
-            for entry in participant_entries
-        ])
+                attendance_status=(
+                    existing_record.attendance_status if existing_record else "Pending"
+                ),
+                marked_at=existing_record.marked_at if existing_record else None,
+            ))
+        ProjectDeskMeetingParticipant.objects.bulk_create(participant_records)
 
     def get_attended_count(self, obj):
         return obj.attendance_records.filter(attendance_status="Attended").count()

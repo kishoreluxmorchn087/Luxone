@@ -9,6 +9,7 @@ import {
   type CampaignRecord,
   type CampaignSubmission,
 } from "../../lib/api/campaignsApi";
+import { formatDateForDisplay, formatDateTimeForDisplay } from "../../lib/dateUtils";
 import {
   ArrowLeft,
   CheckCircle,
@@ -68,7 +69,7 @@ function SubmissionDetailModal({
           <InfoRow label="Source" value={submission.source} />
           <InfoRow
             label="Submitted At"
-            value={new Date(submission.submittedAt).toLocaleString()}
+            value={formatDateTimeForDisplay(submission.submittedAt)}
           />
           <div className="flex gap-2">
             <span className="w-36 shrink-0 text-slate-500">Status</span>
@@ -278,8 +279,8 @@ export default function CampaignDetailPage() {
               <InfoRow label="Campaign Name" value={campaign.campaignName} />
               <InfoRow label="Type" value={campaign.type} />
               <InfoRow label="Status" value={campaign.status} />
-              <InfoRow label="Start Date" value={campaign.startDate} />
-              <InfoRow label="End Date" value={campaign.endDate} />
+              <InfoRow label="Start Date" value={formatDateForDisplay(campaign.startDate)} />
+              <InfoRow label="End Date" value={formatDateForDisplay(campaign.endDate)} />
               <InfoRow label="Expected Revenue" value={campaign.expectedRevenue ? `Rs. ${campaign.expectedRevenue}` : undefined} />
               <InfoRow label="Budgeted Cost" value={campaign.budgetedCost ? `Rs. ${campaign.budgetedCost}` : undefined} />
               <InfoRow label="Owner" value={campaign.campaignOwnerEmail} />
@@ -418,7 +419,7 @@ export default function CampaignDetailPage() {
                         <td className="px-4 py-3 text-slate-600">{sub.phone || "-"}</td>
                         <td className="px-4 py-3 text-slate-600">{sub.company || "-"}</td>
                         <td className="px-4 py-3 text-slate-500 text-xs">
-                          {new Date(sub.submittedAt).toLocaleString()}
+                          {formatDateTimeForDisplay(sub.submittedAt)}
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge converted={sub.isConverted} />

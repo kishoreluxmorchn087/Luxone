@@ -26,8 +26,17 @@ import InventoryLookupField from "./InventoryLookupField";
 import InventoryQuickVendorModal from "./InventoryQuickVendorModal";
 import InventoryReviewChangesModal from "./InventoryReviewChangesModal";
 import InventoryTotalsPanel from "./InventoryTotalsPanel";
+import DatePicker from "../../components/common/DatePicker";
+import { validateDatePickerInputs } from "../../lib/dateUtils";
+import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 
 type Props = { moduleKey: InventoryModuleKey };
+
+type AssignableUser = {
+  id: number | string;
+  name?: string;
+  email: string;
+};
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
@@ -39,6 +48,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </div>
   );
+}
+
+function nonNegativeNumber(value: unknown, minimum = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(minimum, parsed) : minimum;
 }
 
 function getInitialValues(moduleKey: InventoryModuleKey): InventoryFormValues {
@@ -84,15 +98,15 @@ function mapSnapshotToForm(moduleKey: InventoryModuleKey, snapshot: any): Invent
       deploymentModel: String(snapshot.deployment_model || "cloud"),
       billingCycle: String(snapshot.billing_cycle || "yearly"),
       licenseType: String(snapshot.license_type || "named"),
-      unitPrice: Number(snapshot.unit_price || 0),
-      commissionRate: Number(snapshot.commission_rate || 0),
-      tax: Number(snapshot.tax || 0),
-      quantityInStock: Number(snapshot.quantity_in_stock || 0),
-      quantityInDemand: Number(snapshot.quantity_in_demand || 0),
-      reorderLevel: Number(snapshot.reorder_level || 0),
+      unitPrice: nonNegativeNumber(snapshot.unit_price),
+      commissionRate: nonNegativeNumber(snapshot.commission_rate),
+      tax: nonNegativeNumber(snapshot.tax),
+      quantityInStock: nonNegativeNumber(snapshot.quantity_in_stock),
+      quantityInDemand: nonNegativeNumber(snapshot.quantity_in_demand),
+      reorderLevel: nonNegativeNumber(snapshot.reorder_level),
       usageUnit: String(snapshot.usage_unit || "users"),
-      defaultUserSeats: Number(snapshot.default_user_seats || 1),
-      subscriptionTermMonths: Number(snapshot.subscription_term_months || 12),
+      defaultUserSeats: nonNegativeNumber(snapshot.default_user_seats, 1),
+      subscriptionTermMonths: nonNegativeNumber(snapshot.subscription_term_months, 1),
       renewalRequired: Boolean(snapshot.renewal_required),
       implementationRequired: Boolean(snapshot.implementation_required),
       supportStartDate: String(snapshot.support_start_date || ""),
@@ -384,6 +398,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
+  const isVendorAssignment = moduleKey === "vendors" && searchParams.get("assign") === "1";
   const isDuplicate = Boolean(duplicateId) && (moduleKey === "invoices" || moduleKey === "purchase-orders");
   const isEdit = Boolean(id);
   const [form, setForm] = useState<InventoryFormValues>(() => getInitialValues(moduleKey));
@@ -393,6 +408,9 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewData, setReviewData] = useState<any | null>(null);
   const [quickVendorOpen, setQuickVendorOpen] = useState(false);
+  const [vendorOwners, setVendorOwners] = useState<AssignableUser[]>([]);
+  const [vendorOwnersLoading, setVendorOwnersLoading] = useState(false);
+  const [vendorOwnersError, setVendorOwnersError] = useState<string | null>(null);
   const anyForm = form as any;
   const currentUserName = getLoggedInUserName();
   const totals = useMemo(() => Array.isArray(anyForm.items) ? recalculateDocument(anyForm.items as InventoryLineItem[], Number(anyForm.adjustment || 0)) : null, [anyForm.adjustment, anyForm.items]);
@@ -455,6 +473,30 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       cancelled = true;
     };
   }, [duplicateId, id, isDuplicate, isEdit, meta.singular, moduleKey]);
+
+  useEffect(() => {
+    if (!isVendorAssignment) return;
+
+    let active = true;
+    setVendorOwnersLoading(true);
+    setVendorOwnersError(null);
+    apiRequest<AssignableUser[] | { results?: AssignableUser[] }>("/auth/manage-users/")
+      .then((response) => {
+        if (!active) return;
+        setVendorOwners(Array.isArray(response) ? response : response.results ?? []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setVendorOwnersError(err instanceof Error ? err.message : "Failed to load assignment options.");
+      })
+      .finally(() => {
+        if (active) setVendorOwnersLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isVendorAssignment]);
 
   useEffect(() => {
     if (moduleKey !== "quotes" || !anyForm.deal) return;
@@ -725,6 +767,18 @@ export default function InventoryFormPage({ moduleKey }: Props) {
   }, [anyForm.purchaseOrder, anyForm.salesOrder, moduleKey]);
 
   const save = async () => {
+    if (!validateDatePickerInputs()) return;
+
+    if (moduleKey === "vendors" && !isValidPhoneNumber(String(anyForm.phone || ""))) {
+      setError("Phone number must contain digits only and be no more than 20 digits.");
+      return;
+    }
+
+    if (isVendorAssignment && !String(anyForm.vendorOwner || "").trim()) {
+      setError("Select a user to assign this vendor.");
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -906,12 +960,12 @@ export default function InventoryFormPage({ moduleKey }: Props) {
       <div className="space-y-4">
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">{isEdit ? `Edit ${meta.singular}` : isDuplicate ? `Duplicate ${meta.singular}` : meta.createLabel}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{isVendorAssignment ? "Assign Vendor" : isEdit ? `Edit ${meta.singular}` : isDuplicate ? `Duplicate ${meta.singular}` : meta.createLabel}</h1>
             <p className="text-sm text-slate-500">Integrated {meta.singular.toLowerCase()} form connected to the CRM backend.</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => navigate(isEdit && id ? `${meta.baseRoute}/${id}` : meta.baseRoute)} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700">Cancel</button>
-            <button type="button" disabled={saving || loading} onClick={() => void onSaveClick()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{loading ? "Loading..." : saving ? "Saving..." : isEdit ? "Update" : isDuplicate ? "Create Duplicate" : "Save"}</button>
+            <button type="button" disabled={saving || loading || (isVendorAssignment && (vendorOwnersLoading || Boolean(vendorOwnersError) || vendorOwners.length === 0))} onClick={() => void onSaveClick()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{loading ? "Loading..." : saving ? "Saving..." : isVendorAssignment ? "Assign" : isEdit ? "Update" : isDuplicate ? "Create Duplicate" : "Save"}</button>
           </div>
         </div>
 
@@ -920,7 +974,7 @@ export default function InventoryFormPage({ moduleKey }: Props) {
         {!loading && (
           <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700">
             <span className="font-medium text-slate-900">Before you save:</span>{" "}
-            {formGuidance[moduleKey]}
+            {isVendorAssignment ? "Choose a user to assign this vendor, then save the assignment." : formGuidance[moduleKey]}
           </div>
         )}
 
@@ -938,27 +992,53 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Deployment Model"><select className={inputClass} value={anyForm.deploymentModel || "cloud"} onChange={(e) => setForm({ ...anyForm, deploymentModel: e.target.value })}><option value="cloud">Cloud</option><option value="on_prem">On-premise</option><option value="hybrid">Hybrid</option></select></Field>
                   <Field label="Billing Cycle"><select className={inputClass} value={anyForm.billingCycle || "yearly"} onChange={(e) => setForm({ ...anyForm, billingCycle: e.target.value })}><option value="one_time">One-time</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option><option value="custom">Custom</option></select></Field>
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
-                  <Field label="Unit Price"><input type="number" className={inputClass} value={anyForm.unitPrice} onChange={(e) => setForm({ ...anyForm, unitPrice: Number(e.target.value) })} /></Field>
-                  <Field label="Commission Rate"><input type="number" className={inputClass} value={anyForm.commissionRate} onChange={(e) => setForm({ ...anyForm, commissionRate: Number(e.target.value) })} /></Field>
-                  <Field label="Tax"><input type="number" className={inputClass} value={anyForm.tax} onChange={(e) => setForm({ ...anyForm, tax: Number(e.target.value) })} /></Field>
-                  <Field label="Quantity In Stock"><input type="number" className={inputClass} value={anyForm.quantityInStock} onChange={(e) => setForm({ ...anyForm, quantityInStock: Number(e.target.value) })} /></Field>
-                  <Field label="Quantity In Demand"><input type="number" className={inputClass} value={anyForm.quantityInDemand} onChange={(e) => setForm({ ...anyForm, quantityInDemand: Number(e.target.value) })} /></Field>
-                  <Field label="Reorder Level"><input type="number" className={inputClass} value={anyForm.reorderLevel} onChange={(e) => setForm({ ...anyForm, reorderLevel: Number(e.target.value) })} /></Field>
+                  <Field label="Unit Price"><input type="number" min={0} step="any" className={inputClass} value={anyForm.unitPrice} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, unitPrice: "" }); }} onChange={(e) => setForm({ ...anyForm, unitPrice: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, unitPrice: 0 }); }} /></Field>
+                  <Field label="Commission Rate"><input type="number" min={0} step="any" className={inputClass} value={anyForm.commissionRate} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, commissionRate: "" }); }} onChange={(e) => setForm({ ...anyForm, commissionRate: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, commissionRate: 0 }); }} /></Field>
+                  <Field label="Tax"><input type="number" min={0} step="any" className={inputClass} value={anyForm.tax} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, tax: "" }); }} onChange={(e) => setForm({ ...anyForm, tax: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, tax: 0 }); }} /></Field>
+                  <Field label="Quantity In Stock"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInStock} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, quantityInStock: "" }); }} onChange={(e) => setForm({ ...anyForm, quantityInStock: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, quantityInStock: 0 }); }} /></Field>
+                  <Field label="Quantity In Demand"><input type="number" min={0} step={1} className={inputClass} value={anyForm.quantityInDemand} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, quantityInDemand: "" }); }} onChange={(e) => setForm({ ...anyForm, quantityInDemand: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, quantityInDemand: 0 }); }} /></Field>
+                  <Field label="Reorder Level"><input type="number" min={0} step={1} className={inputClass} value={anyForm.reorderLevel} onFocus={(e) => { if (Number(e.currentTarget.value) === 0) setForm({ ...anyForm, reorderLevel: "" }); }} onChange={(e) => setForm({ ...anyForm, reorderLevel: nonNegativeNumber(e.target.value) })} onBlur={(e) => { if (e.currentTarget.value === "") setForm({ ...anyForm, reorderLevel: 0 }); }} /></Field>
                   <Field label="Usage Unit"><input className={inputClass} value={anyForm.usageUnit || ""} onChange={(e) => setForm({ ...anyForm, usageUnit: e.target.value })} /></Field>
-                  <Field label="Default User Seats"><input type="number" min={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: Number(e.target.value) })} /></Field>
-                  <Field label="Subscription Term (Months)"><input type="number" min={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: Number(e.target.value) })} /></Field>
+                  <Field label="Default User Seats"><input type="number" min={1} step={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: nonNegativeNumber(e.target.value, 1) })} /></Field>
+                  <Field label="Subscription Term (Months)"><input type="number" min={1} step={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Renewal Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired ?? true)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} />Renewal Required</label></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Support Start Date"><input type="date" className={inputClass} value={anyForm.supportStartDate || ""} onChange={(e) => setForm({ ...anyForm, supportStartDate: e.target.value })} /></Field>
-                  <Field label="Support Expiry Date"><input type="date" className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(e) => setForm({ ...anyForm, supportExpiryDate: e.target.value })} /></Field>
+                  <Field label="Support Start Date"><DatePicker className={inputClass} value={anyForm.supportStartDate || ""} onChange={(supportStartDate) => setForm({ ...anyForm, supportStartDate })} /></Field>
+                  <Field label="Support Expiry Date"><DatePicker className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(supportExpiryDate) => setForm({ ...anyForm, supportExpiryDate })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
                 </>
               )}
               {moduleKey === "vendors" && (
                 <>
+                  {isVendorAssignment && (
+                    <>
+                      <Field label="Assign to">
+                        <select
+                          className={inputClass}
+                          value={anyForm.vendorOwner || ""}
+                          disabled={vendorOwnersLoading || Boolean(vendorOwnersError)}
+                          onChange={(e) => updateInventoryForm({ ...anyForm, vendorOwner: e.target.value })}
+                        >
+                          <option value="">{vendorOwnersLoading ? "Loading users..." : "Select a user"}</option>
+                          {anyForm.vendorOwner && !vendorOwners.some((user) => String(user.id) === String(anyForm.vendorOwner)) && (
+                            <option value={anyForm.vendorOwner}>Current owner</option>
+                          )}
+                          {vendorOwners.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.name || user.email}
+                            </option>
+                          ))}
+                        </select>
+                        {vendorOwnersError && <p className="mt-1 text-sm text-rose-600">{vendorOwnersError}</p>}
+                      </Field>
+                      {!vendorOwnersLoading && !vendorOwnersError && vendorOwners.length === 0 && (
+                        <p className="text-sm text-slate-500">No assignment options are available.</p>
+                      )}
+                    </>
+                  )}
                   <Field label="Vendor Name"><input className={inputClass} value={anyForm.vendorName} onChange={(e) => setForm({ ...anyForm, vendorName: e.target.value })} /></Field>
                   <Field label="Email"><input className={inputClass} value={anyForm.email || ""} onChange={(e) => setForm({ ...anyForm, email: e.target.value })} /></Field>
-                  <Field label="Phone"><input className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: e.target.value })} /></Field>
+                  <Field label="Phone"><input type="tel" inputMode="numeric" maxLength={PHONE_NUMBER_MAX_LENGTH} className={inputClass} value={anyForm.phone || ""} onChange={(e) => setForm({ ...anyForm, phone: sanitizePhoneNumber(e.target.value) })} /></Field>
                   <Field label="Website"><input className={inputClass} value={anyForm.website || ""} onChange={(e) => setForm({ ...anyForm, website: e.target.value })} /></Field>
                   <Field label="Category"><input className={inputClass} value={anyForm.category || ""} onChange={(e) => setForm({ ...anyForm, category: e.target.value })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
@@ -1036,37 +1116,71 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                       <div className="space-y-3">
                         {anyForm.ranges.map((range: any, index: number) => (
                           <div key={index} className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-                            <input
+                            <input                            
                               type="number"
+                              min="0"
+                              step="1"
                               className={inputClass}
-                              placeholder="From Range"
-                              value={range.fromRange}
+                              placeholder="From Qty"
+                              value={range.fromRange ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
                               onChange={(e) => {
+                                 const value = e.target.value;
+                                 if (value !== "" && Number(value) < 0) return;
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], fromRange: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index],fromRange: value === "" ? "" : Number(value),
+                                  };
                                 updateInventoryForm({ ...anyForm, ranges });
                               }}
                             />
                             <input
                               type="number"
+                              min="0"
+                              step="1"
                               className={inputClass}
-                              placeholder="To Range"
-                              value={range.toRange}
-                              onChange={(e) => {
+                              placeholder="To Qty"
+                              value={range.toRange ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
+                              onChange={(e) => { 
+                                 const value = e.target.value;
+                                  if (value !== "" && Number(value) < 0) return;
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], toRange: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index],  toRange: value === "" ? "" : Number(value), };
                                 updateInventoryForm({ ...anyForm, ranges });
                               }}
                             />
                             <input
                               type="number"
+                               min="0"
+                              max="100"
+                              step="0"
                               className={inputClass}
                               placeholder="Discount %"
-                              value={range.discountPercentage}
+                              value={range.discountPercentage  ?? ""}
+                              onFocus={(e) => e.currentTarget.select()}
                               onChange={(e) => {
+                                 const value = e.target.value;
+                                  if (value === "") {
                                 const ranges = [...anyForm.ranges];
-                                ranges[index] = { ...ranges[index], discountPercentage: Number(e.target.value) };
+                                ranges[index] = { ...ranges[index], discountPercentage:"" };
+
                                 updateInventoryForm({ ...anyForm, ranges });
+                                 return;
+                                  }
+                                   const discount = Number(value);
+                                   if (!Number.isFinite(discount)) return;
+                                   if (discount < 0 || discount > 100) return;
+                                   const ranges = [...anyForm.ranges];
+                                     ranges[index] = { ...ranges[index],discountPercentage: discount,    };
+
+                                     updateInventoryForm({ ...anyForm, ranges, });
+                              }}
+                              onBlur={(e) => {
+                                if (e.currentTarget.value === "") {
+                                  const ranges = [...anyForm.ranges];
+                                  ranges[index] = { ...ranges[index], discountPercentage: 0 };
+                                  updateInventoryForm({ ...anyForm, ranges });
+                                }
                               }}
                             />
                             <button
@@ -1244,16 +1358,16 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                 {moduleKey === "sales-orders" && <Field label="Customer No"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.customerNo || ""} readOnly placeholder="Auto-filled from account" /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="Requisition Number"><input className={inputClass} value={anyForm.requisitionNumber || ""} onChange={(e) => setForm({ ...anyForm, requisitionNumber: e.target.value })} /></Field>}
                 {moduleKey === "purchase-orders" && <Field label="PO Number"><input className={`${inputClass} bg-slate-50 text-slate-500`} value={anyForm.poNumber || ""} readOnly placeholder="Auto-generated on save" /></Field>}
-                {moduleKey === "invoices" && <Field label="Invoice Date"><input type="date" className={inputClass} value={anyForm.invoiceDate || ""} onChange={(e) => setForm({ ...anyForm, invoiceDate: e.target.value })} /></Field>}
+                {moduleKey === "invoices" && <Field label="Invoice Date"><DatePicker className={inputClass} value={anyForm.invoiceDate || ""} onChange={(invoiceDate) => setForm({ ...anyForm, invoiceDate })} /></Field>}
                 {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Status"><input className={inputClass} value={anyForm.status || ""} onChange={(e) => setForm({ ...anyForm, status: e.target.value })} /></Field>}
                 <Field label="Carrier"><input className={inputClass} value={anyForm.carrier || ""} onChange={(e) => setForm({ ...anyForm, carrier: e.target.value })} /></Field>
                 {moduleKey === "quotes" && (
                   <div>
-                    <Field label="Valid Until"><input type="date" className={inputClass} value={anyForm.validUntil || ""} onChange={(e) => updateInventoryForm({ ...anyForm, validUntil: e.target.value })} /></Field>
+                    <Field label="Valid Until"><DatePicker className={inputClass} value={anyForm.validUntil || ""} onChange={(validUntil) => updateInventoryForm({ ...anyForm, validUntil })} /></Field>
                     <p className="mt-1 text-xs text-slate-500">Set the last date the customer can accept this quote.</p>
                   </div>
                 )}
-                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><input type="date" className={inputClass} value={anyForm.dueDate || ""} onChange={(e) => setForm({ ...anyForm, dueDate: e.target.value })} /></Field>}
+                {(moduleKey === "sales-orders" || moduleKey === "purchase-orders" || moduleKey === "invoices") && <Field label="Due Date"><DatePicker futureOnly className={inputClass} value={anyForm.dueDate || ""} onChange={(dueDate) => setForm({ ...anyForm, dueDate })} /></Field>}
                 {moduleKey === "sales-orders" && <Field label="Quote Name"><InventoryLookupField lookup="quotes" value={anyForm.quote || ""} displayValue={anyForm.quoteLabel || ""} onChange={(option) => setForm({ ...anyForm, quote: option?.id || "", quoteLabel: option?.label || "" })} /></Field>}
                 {moduleKey !== "purchase-orders" && (
                   <div>
@@ -1286,9 +1400,9 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="License Type"><select className={inputClass} value={anyForm.licenseType || "named"} onChange={(e) => setForm({ ...anyForm, licenseType: e.target.value })}><option value="named">Named User</option><option value="concurrent">Concurrent</option><option value="unlimited">Unlimited</option><option value="trial">Trial</option></select></Field>
                   <Field label="Licensed Users"><input type="number" min={1} className={inputClass} value={anyForm.licensedUsers ?? 1} onChange={(e) => setForm({ ...anyForm, licensedUsers: Number(e.target.value) })} /></Field>
                   <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
-                  <Field label="Subscription Start Date"><input type="date" className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionStartDate: e.target.value })} /></Field>
-                  <Field label="Subscription End Date"><input type="date" className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(e) => setForm({ ...anyForm, subscriptionEndDate: e.target.value })} /></Field>
-                  <Field label="Renewal Due Date"><input type="date" className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(e) => setForm({ ...anyForm, renewalDueDate: e.target.value })} /></Field>
+                  <Field label="Subscription Start Date"><DatePicker className={inputClass} value={anyForm.subscriptionStartDate || ""} onChange={(subscriptionStartDate) => setForm({ ...anyForm, subscriptionStartDate })} /></Field>
+                  <Field label="Subscription End Date"><DatePicker className={inputClass} value={anyForm.subscriptionEndDate || ""} onChange={(subscriptionEndDate) => setForm({ ...anyForm, subscriptionEndDate })} /></Field>
+                  <Field label="Renewal Due Date"><DatePicker futureOnly className={inputClass} value={anyForm.renewalDueDate || ""} onChange={(renewalDueDate) => setForm({ ...anyForm, renewalDueDate })} /></Field>
                 </div>
               </div>
             )}
@@ -1318,8 +1432,31 @@ export default function InventoryFormPage({ moduleKey }: Props) {
             <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
               <InventoryDocumentItemsTable title={moduleKey === "quotes" ? "Quoted Items" : moduleKey === "sales-orders" ? "Ordered Items" : moduleKey === "purchase-orders" ? "Purchase Items" : "Invoiced Items"} items={anyForm.items as InventoryLineItem[]} onChange={syncItems} showDescription={moduleKey === "invoices"} />
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4"><Field label="Adjustment"><input type="number" className={inputClass} value={anyForm.adjustment || 0} onChange={(e) => { const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value)); setForm({ ...anyForm, ...next }); }} /></Field></div>
-                <InventoryTotalsPanel subtotal={totals?.subtotal || 0} discount={totals?.discount || 0} tax={totals?.tax || 0} adjustment={totals?.adjustment || 0} grandTotal={totals?.grandTotal || 0} />
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <Field label="Adjustment">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0.00"
+                      className={inputClass}
+                      value={anyForm.adjustment ?? ""}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const numericValue = e.target.value === "" ? 0 : Number(e.target.value);
+                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], numericValue);
+                        setForm({ ...anyForm, ...next, adjustment: numericValue });
+                      }}
+                    />
+                  </Field>
+                </div>
+                <InventoryTotalsPanel
+                  subtotal={Number(totals?.subtotal ?? 0)}
+                  discount={Number(totals?.discount ?? 0)}
+                  tax={Number(totals?.tax ?? 0)}
+                  adjustment={Number(totals?.adjustment ?? 0)}
+                  grandTotal={Number(totals?.grandTotal ?? 0)}
+                />
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import re
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -12,7 +13,6 @@ from deals.models import Deal
 from inventory.models import Invoice, Product, SalesOrder
 from leads.models import Lead
 from support.models import SupportCase
-import re
 
 from .models import (
     BusinessHours,
@@ -104,13 +104,6 @@ class ServicesModuleSettingsSerializer(serializers.ModelSerializer):
                 "address": details.address,
             }
         return None
-    
-    def validate_phone(self, value):
-      if value and not re.fullmatch(r"[0-9+()\-\s]+", value):
-        raise serializers.ValidationError(
-            "Phone number can contain only numbers and valid phone characters."
-        )
-      return value
 
     def get_public_booking_base_url(self, obj):
         return get_public_booking_base_url()
@@ -239,6 +232,8 @@ class ServiceListSerializer(serializers.ModelSerializer):
             "delivery_team",
             "available_days_mode",
             "available_time_mode",
+            "custom_time_start",
+            "custom_time_end",
             "business_hours",
             "business_hours_name",
             "business_hours_timezone",
@@ -290,6 +285,8 @@ class ServiceWriteSerializer(serializers.ModelSerializer):
             "delivery_team",
             "available_days_mode",
             "available_time_mode",
+            "custom_time_start",
+            "custom_time_end",
             "business_hours",
             "created_by",
             "updated_by",
@@ -322,6 +319,14 @@ class ServiceWriteSerializer(serializers.ModelSerializer):
         available_time_mode = attrs.get("available_time_mode", getattr(self.instance, "available_time_mode", None))
         location_type = attrs.get("location_type", getattr(self.instance, "location_type", None))
         location = (attrs.get("location", getattr(self.instance, "location", "")) or "").strip()
+        custom_start = attrs.get("custom_time_start", getattr(self.instance, "custom_time_start", None))
+        custom_end = attrs.get("custom_time_end", getattr(self.instance, "custom_time_end", None))
+
+        if available_time_mode == CRMService.AvailabilityMode.CUSTOM:
+            if custom_start is None or custom_end is None:
+                raise serializers.ValidationError({"custom_time_start": "Start time is required for custom availability."})
+            if custom_end <= custom_start:
+                raise serializers.ValidationError({"custom_time_end": "End time must be after start time."})
 
         if (available_days_mode == CRMService.AvailabilityMode.BUSINESS_HOURS or available_time_mode == CRMService.AvailabilityMode.BUSINESS_HOURS) and not business_hours:
             default_hours = BusinessHours.objects.filter(is_active=True, is_default=True).first()
@@ -991,11 +996,14 @@ class ServiceCompanyDetailsSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at"]
 
     def validate_phone(self, value):
-        if value and not re.fullmatch(r"[0-9+()\-\s]+", value):
-            raise serializers.ValidationError(
-                "Phone number can contain only numbers and valid phone characters."
-            )
-        return value   
+        if value:
+            clean_value = str(value).strip()
+            if not re.fullmatch(r"^\d{10}$", clean_value):
+                raise serializers.ValidationError(
+                    "Phone number must be exactly 10 digits and contain only numbers."
+                )
+            return clean_value
+        return value
 
     def get_public_booking_base_url(self, obj):
         return get_public_booking_base_url()

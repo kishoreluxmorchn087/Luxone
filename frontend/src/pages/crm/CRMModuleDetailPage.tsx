@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { X } from "lucide-react";
 import CRMDetailHeader from "../../components/crm/CRMDetailHeader";
 import CRMEmptyState from "../../components/crm/CRMEmptyState";
 import CRMInfoGrid from "../../components/crm/CRMInfoGrid";
@@ -7,8 +8,14 @@ import CRMRelatedList from "../../components/crm/CRMRelatedList";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
+import { AddTagsModal, DeleteModal, SendEmailModal, TaskModal } from "../../components/crm/CRMActionModals";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DocumentsSection from "../documents/DocumentsSection";
+import { apiRequest } from "../../api/client";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
+import { sendAccountEmail } from "../../lib/api/accountsApi";
+import { sendContactEmail } from "../../lib/api/contactsApi";
+import { sendLeadEmail } from "../../lib/api/leadsApi";
 import type {
   Activity,
   Attachment,
@@ -72,6 +79,10 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "timeline">("overview");
   const [activeRelatedItem, setActiveRelatedItem] = useState(config.relatedListItems[0] || "");
+  const [activeModal, setActiveModal] = useState<"add-tags" | "send-email" | "create-task" | "delete" | null>(null);
+  const [recordTags, setRecordTags] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const clickedRelatedItemRef = useRef<string | null>(null);
 
   const renderPrimarySecondary = (primary: string, secondary?: string) => {
     const cleanPrimary = String(primary || "").trim() || "Unnamed";
@@ -80,6 +91,227 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
   };
 
   const record = useMemo(() => rows.find((row) => row.id === id) ?? rows[0], [id, rows]);
+
+  useEffect(() => {
+    if (record) {
+      const anyRec = record as Record<string, unknown>;
+      const existing = Array.isArray(anyRec.tags) ? (anyRec.tags as string[]) : [];
+      setRecordTags(existing);
+    }
+  }, [record]);
+
+  const showToast = (text: string, type: "success" | "error" = "success") => {
+    setToastMessage({ text, type });
+    window.setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  const recordName = useMemo(() => {
+    if (!record) return "";
+    return String(record[config.nameKey] || "");
+  }, [record, config.nameKey]);
+
+  const recipientEmail = useMemo(() => {
+    if (!record) return "";
+    const anyRec = record as Record<string, unknown>;
+    if (typeof anyRec.email === "string" && anyRec.email) return anyRec.email;
+    if (data.contacts && data.contacts.length > 0 && data.contacts[0].email) {
+      return data.contacts[0].email;
+    }
+    if (typeof anyRec.ownerEmail === "string" && anyRec.ownerEmail) return anyRec.ownerEmail;
+    return "";
+  }, [record, data.contacts]);
+
+  const handleClone = async () => {
+    if (!record?.id) return;
+    try {
+      const res = await apiRequest<{
+        id?: number | string;
+        account_id?: number | string;
+        contact_id?: number | string;
+        deal_id?: number | string;
+        lead_id?: number | string;
+        message?: string;
+      }>(`/${config.module}/${record.id}/clone/`, {
+        method: "POST",
+      });
+      const newId = res.id ?? res.account_id ?? res.contact_id ?? res.deal_id ?? res.lead_id;
+      showToast(res.message || `${config.module.slice(0, -1)} cloned successfully!`);
+      if (newId) {
+        navigate(`${config.baseRoute}/${newId}`);
+      } else {
+        navigate(config.baseRoute);
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to clone record", "error");
+    }
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!record?.id) return;
+    try {
+      await apiRequest(`/${config.module}/${record.id}/`, {
+        method: "DELETE",
+      });
+      showToast("Record deleted successfully!");
+      navigate(config.baseRoute);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to delete record", "error");
+      throw err;
+    }
+  };
+
+  const handleHeaderAction = (action: string) => {
+    if (config.module !== "leads") {
+      if (action === "Add Tags") {
+        setActiveModal("add-tags");
+        return;
+      }
+      if (action === "Send Email") {
+        setActiveModal("send-email");
+        return;
+      }
+      if (action === "Create Task") {
+        setActiveModal("create-task");
+        return;
+      }
+      if (action === "Delete") {
+        setActiveModal("delete");
+        return;
+      }
+      if (action === "Clone") {
+        void handleClone();
+        return;
+      }
+    }
+    onAction?.(action);
+  };
+
+  const handleAddTag = async (tag: string) => {
+    if (!record?.id) return;
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+
+    if (config.module === "leads") {
+      try {
+        await apiRequest<{ tags: string[] }>(`/leads/${record.id}/add-tags/`, {
+          method: "POST",
+          body: JSON.stringify({ tags: [trimmed] }),
+        });
+      } catch (err) {
+        console.warn("Failed to persist lead tag", err);
+      }
+    } else {
+      try {
+        await apiRequest(`/${config.module}/${record.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ tags: [...recordTags, trimmed] }),
+        }).catch(() => null);
+      } catch {
+        // Fallback to local state
+      }
+    }
+
+    setRecordTags((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    showToast(`Tag "${trimmed}" added successfully!`);
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setRecordTags((prev) => prev.filter((t) => t !== tagToRemove));
+    showToast(`Tag "${tagToRemove}" removed.`);
+  };
+
+  const handleSendEmail = async (payload: {
+    to: string;
+    subject: string;
+    body: string;
+    from_email?: string;
+  }) => {
+    if (!record?.id) throw new Error("No record selected.");
+
+    if (config.module === "accounts") {
+      try {
+        await sendAccountEmail(record.id, {
+          subject: payload.subject,
+          body: payload.body,
+          to: payload.to,
+        });
+        showToast("Email sent successfully!");
+        return;
+      } catch {
+        // Fallback to general email endpoint
+      }
+    }
+
+    if (config.module === "contacts") {
+      try {
+        await sendContactEmail(record.id, {
+          subject: payload.subject,
+          body: payload.body,
+          to: payload.to,
+        });
+        showToast("Email sent successfully!");
+        return;
+      } catch {
+        // Fallback to general email endpoint
+      }
+    }
+
+    if (config.module === "leads") {
+      try {
+        await sendLeadEmail(record.id, {
+          subject: payload.subject,
+          body: payload.body,
+          to: payload.to,
+        });
+        showToast("Email sent successfully!");
+        return;
+      } catch {
+        // Fallback to general email endpoint
+      }
+    }
+
+    await apiRequest("/send-email", {
+      method: "POST",
+      body: JSON.stringify({
+        to: payload.to,
+        subject: payload.subject,
+        body: payload.body,
+        from_email: payload.from_email,
+      }),
+    });
+    showToast("Email sent successfully!");
+  };
+
+  const handleCreateTask = async (payload: { subject: string; description?: string }) => {
+    if (!record?.id) return;
+    try {
+      if (config.module === "deals") {
+        await apiRequest(`/deals/${record.id}/create-task`, {
+          method: "POST",
+          body: JSON.stringify({
+            subject: payload.subject,
+            description: payload.description || "",
+          }),
+        });
+      } else {
+        await apiRequest(`/activities/`, {
+          method: "POST",
+          body: JSON.stringify({
+            activity_type: "task",
+            title: payload.subject,
+            description: payload.description || "",
+            related_to_type: config.module,
+            related_to_id: record.id,
+          }),
+        });
+      }
+      showToast("Task created successfully!");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to create task", "error");
+    }
+  };
   const documentModule = useMemo<RelatedModule>(
     () => (config.module === "leads" ? "lead" : ""),
     [config.module]
@@ -118,14 +350,20 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
 
         if (visible.length > 0) {
           const found = observed.find((item) => item.element.id === visible[0].target.id);
-          if (found) setActiveRelatedItem(found.item);
+          if (found && !clickedRelatedItemRef.current) setActiveRelatedItem(found.item);
         }
       },
-      { rootMargin: "-25% 0px -60% 0px", threshold: [0.1, 0.3, 0.6] }
+      {
+        root: observed[0].element.closest("main"),
+        rootMargin: "-25% 0px -60% 0px",
+        threshold: [0.1, 0.3, 0.6],
+      }
     );
 
     observed.forEach((entry) => observer.observe(entry.element));
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   }, [activeTab, relatedListItems, sectionIdMap]);
 
   const isLongTextField = (fieldKey: string) => {
@@ -170,7 +408,7 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
                   {item.dealName}
                 </button>
                 <p className="text-xs text-slate-500">
-                  {item.stage} • {item.closingDate ? new Date(item.closingDate).toLocaleDateString("en-GB") : "—"}
+                  {item.stage} • {item.closingDate ? formatDateTimeForDisplay(item.closingDate) : "—"}
                 </p>
               </div>
               <span className="text-sm font-semibold text-slate-700">${item.amount.toLocaleString()}</span>
@@ -498,6 +736,9 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
     if (value === null || value === undefined || value === "") {
       return fieldKey.toLowerCase().includes("owner") ? "Assigned to you" : "Not provided";
     }
+    if (typeof value === "string" && /(date|_at|At$)/i.test(fieldKey)) {
+      return formatDateTimeForDisplay(value);
+    }
     return String(value);
   };
 
@@ -508,8 +749,10 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
           title={String(record[config.nameKey] || "")}
           subtitle={String(record[config.subtitleKey] || "")}
           actions={config.headerActions}
-          onAction={onAction}
+          onAction={handleHeaderAction}
           onBack={() => navigate(config.baseRoute)}
+          tags={recordTags}
+          onRemoveTag={handleRemoveTag}
         />
 
         <CRMTabs activeTab={activeTab} onChange={setActiveTab} />
@@ -521,6 +764,7 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
             onSelect={(item) => {
               setActiveTab("overview");
               setActiveRelatedItem(item);
+              clickedRelatedItemRef.current = item;
               window.setTimeout(() => {
                 const targetId = sectionIdMap[item];
                 const element = document.getElementById(targetId);
@@ -575,6 +819,55 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
           )}
         </div>
       </div>
+
+      <SendEmailModal
+        open={activeModal === "send-email"}
+        onClose={() => setActiveModal(null)}
+        toEmail={recipientEmail}
+        recordName={recordName}
+        onSend={handleSendEmail}
+      />
+
+      <AddTagsModal
+        open={activeModal === "add-tags"}
+        onClose={() => setActiveModal(null)}
+        recordName={recordName}
+        existingTags={recordTags}
+        onAddTag={handleAddTag}
+      />
+
+      <TaskModal
+        open={activeModal === "create-task"}
+        onClose={() => setActiveModal(null)}
+        recordName={recordName}
+        onSave={handleCreateTask}
+      />
+
+      <DeleteModal
+        open={activeModal === "delete"}
+        onClose={() => setActiveModal(null)}
+        recordName={recordName}
+        onConfirm={handleDeleteRecord}
+      />
+
+      {toastMessage && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium shadow-xl transition-all ${
+            toastMessage.type === "success"
+              ? "border border-green-200 bg-green-50 text-green-800"
+              : "border border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <span>{toastMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-2 text-slate-500 hover:text-slate-800"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

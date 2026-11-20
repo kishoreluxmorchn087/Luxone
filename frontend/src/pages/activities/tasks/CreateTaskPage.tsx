@@ -1,10 +1,12 @@
-import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import DatePicker from "../../../components/common/DatePicker";
 import { apiRequest } from "../../../api/client";
 import { getAccounts } from "../../../lib/api/accountsApi";
 import { getContacts } from "../../../lib/api/contactsApi";
 import type { AccountRecord, ContactRecord } from "../../../lib/shared/crmTypes";
+import { formatDateForInput, parseDateInput } from "../../../lib/dateUtils";
 
 type TaskFormState = {
   subject: string;
@@ -51,6 +53,10 @@ function buildRecordLabel(recordName: string, fallback: string) {
   return recordName?.trim() ? recordName : fallback;
 }
 
+function isValidDueDate(value: string) {
+  return Boolean(parseDateInput(formatDateForInput(value)));
+}
+
 export default function CreateTaskPage() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
@@ -64,7 +70,22 @@ export default function CreateTaskPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const dueDateInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const vendorName = searchParams.get("vendorName") ?? "";
+
+  
+  useEffect(() => {
+    if (!vendorName || isEdit) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      subject: prev.subject || `Task for ${vendorName}`,
+      description: prev.description || `Vendor: ${vendorName}`,
+    }));
+  }, [vendorName, isEdit]);
 
   useEffect(() => {
     let active = true;
@@ -168,6 +189,11 @@ export default function CreateTaskPage() {
   const handleSave = async (stayOnPage: boolean) => {
     if (!formData.subject.trim()) {
       setError("Subject is required.");
+      return;
+    }
+
+    if (!dueDateInputRef.current?.reportValidity() || (formData.dueDate && !isValidDueDate(formData.dueDate))) {
+      setError("Enter a valid due date with a four-digit year and a month between 01 and 12.");
       return;
     }
 
@@ -316,12 +342,15 @@ export default function CreateTaskPage() {
                 <label htmlFor="dueDate" className="mb-2 block text-sm font-semibold text-slate-600">
                   Due date
                 </label>
-                <input
+                <DatePicker
+                  ref={dueDateInputRef}
                   id="dueDate"
                   name="dueDate"
-                  type="date"
                   value={formData.dueDate}
-                  onChange={handleChange}
+                  futureOnly
+                  onChange={(dueDate) => setFormData((previous) => ({ ...previous, dueDate }))}
+                  min="0001-01-01"
+                  max="9999-12-31"
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500"
                 />
               </div>

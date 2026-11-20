@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
 import type { ProjectPriority, ProjectTaskStatus } from "../projects/types";
 
@@ -321,11 +322,11 @@ export default function CreateProjectDeskTaskPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Due Date</label>
-                <input
-                  type="date"
+                <DatePicker
                   className={inputCls}
                   value={form.due_date}
-                  onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))}
+                  futureOnly
+                  onChange={(due_date) => setForm((current) => ({ ...current, due_date }))}
                 />
               </div>
 

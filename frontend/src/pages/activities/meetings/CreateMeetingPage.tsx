@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
+import DatePicker from "../../../components/common/DatePicker";
 import { apiRequest } from "../../../api/client";
 import {
   ChevronDown,
-  Pencil,
   Search,
   X,
 } from "lucide-react";
 
 type VenueType = "In-office" | "Client location" | "Online";
-type RelatedToType = "None" | "Lead" | "Contact" | "Others";
+type RelatedToType = "None" | "Lead" | "Contact" | "Account" | "Others";
 type ReminderType =
   | "None"
   | "At time of meeting"
@@ -45,6 +45,11 @@ type BackendLead = {
   lead_name?: string | null;
 };
 
+type BackendAccount = {
+  id: number;
+  account_name: string;
+};
+
 type BackendUser = {
   id: number;
   email: string;
@@ -56,6 +61,7 @@ type MeetingResponse = {
   description?: string;
   meeting_venue: VenueType;
   location?: string;
+  meeting_link?: string | null;
   all_day: boolean;
   start_date: string;
   end_date?: string | null;
@@ -69,6 +75,8 @@ type MeetingResponse = {
   lead_name?: string | null;
   contact?: number | null;
   contact_name?: string | null;
+  account?: number | null;
+  account_name?: string | null;
 };
 
 type Paginated<T> = { results: T[] };
@@ -113,11 +121,16 @@ export default function CreateMeetingPage() {
   const [showMore, setShowMore] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
+  const [meetingContactSearch, setMeetingContactSearch] = useState("");
+  const [selectedMeetingContactId, setSelectedMeetingContactId] = useState<number | null>(null);
+  const [selectedMeetingContactName, setSelectedMeetingContactName] = useState("");
+  const [showMeetingContactDropdown, setShowMeetingContactDropdown] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
 
   // Real data from backend
   const [contactOptions, setContactOptions] = useState<Participant[]>([]);
   const [leadOptions, setLeadOptions] = useState<{ id: number; name: string; searchText: string }[]>([]);
+  const [accountOptions, setAccountOptions] = useState<{ id: number; name: string; searchText: string }[]>([]);
   const [userOptions, setUserOptions] = useState<BackendUser[]>([]);
 
   // Related-to selection
@@ -138,7 +151,7 @@ export default function CreateMeetingPage() {
       })
       .catch(() => {});
 
-    apiRequest<BackendLead[] | Paginated<BackendLead>>("/leads/")
+    apiRequest<BackendLead[] | Paginated<BackendLead>>("/leads/?page_size=100")
       .then((data) => {
         const leads = toList(data).map((l) => ({
           id: l.id,
@@ -160,6 +173,17 @@ export default function CreateMeetingPage() {
             .toLowerCase(),
         }));
         setLeadOptions(leads);
+      })
+      .catch(() => {});
+
+    apiRequest<{ results: BackendAccount[] } | BackendAccount[]>("/accounts/")
+      .then((data) => {
+        const accounts = toList(data).map((account) => ({
+          id: account.id,
+          name: account.account_name,
+          searchText: account.account_name.toLowerCase(),
+        }));
+        setAccountOptions(accounts);
       })
       .catch(() => {});
 
@@ -190,8 +214,8 @@ export default function CreateMeetingPage() {
 
   // Set default host once users load
   useEffect(() => {
-    if (userOptions.length > 0 && !formData.host) {
-      setFormData((prev) => ({ ...prev, host: userOptions[0].email }));
+    if (userOptions.length > 0) {
+      setFormData((prev) => prev.host ? prev : { ...prev, host: userOptions[0].email });
     }
   }, [userOptions]);
 
@@ -212,16 +236,33 @@ export default function CreateMeetingPage() {
 
         const startDate = new Date(meeting.start_date);
         const endDate = meeting.end_date ? new Date(meeting.end_date) : new Date(meeting.start_date);
-        const relatedType = (meeting.related_to as RelatedToType) || (meeting.contact ? "Contact" : meeting.lead ? "Lead" : "None");
-        const relatedId = relatedType === "Contact" ? meeting.contact ?? null : relatedType === "Lead" ? meeting.lead ?? null : null;
-        const relatedName = relatedType === "Contact" ? meeting.contact_name ?? "" : relatedType === "Lead" ? meeting.lead_name ?? "" : "";
+        const savedRelatedType = meeting.related_to as RelatedToType;
+        const relatedType = savedRelatedType && savedRelatedType !== "None"
+          ? savedRelatedType
+          : meeting.account
+            ? "Account"
+            : meeting.contact
+              ? "Contact"
+              : meeting.lead
+                ? "Lead"
+                : "None";
+        const relatedId = relatedType === "Account"
+          ? meeting.account ?? null
+          : relatedType === "Lead"
+            ? meeting.lead ?? null
+            : null;
+        const relatedName = relatedType === "Account"
+          ? meeting.account_name ?? ""
+          : relatedType === "Lead"
+            ? meeting.lead_name ?? ""
+            : "";
 
         setFormData({
           title: meeting.title ?? "",
           description: meeting.description ?? "",
           meeting_venue: meeting.meeting_venue ?? "In-office",
           location: meeting.location ?? "",
-          meeting_link: (meeting as any).meeting_link ?? "",
+          meeting_link: meeting.meeting_link ?? "",
           all_day: Boolean(meeting.all_day),
           from_date: formatDateForInput(startDate),
           from_time: formatTimeForInput(startDate),
@@ -237,6 +278,9 @@ export default function CreateMeetingPage() {
         setSelectedRelatedId(relatedId);
         setSelectedRelatedName(relatedName);
         setRelatedSearch("");
+        setSelectedMeetingContactId(meeting.contact ?? null);
+        setSelectedMeetingContactName(meeting.contact_name ?? "");
+        setMeetingContactSearch("");
       })
       .catch((err) => {
         if (isMounted) {
@@ -262,12 +306,18 @@ export default function CreateMeetingPage() {
             ? lead.searchText.includes(relatedSearch.trim().toLowerCase())
             : true
         )
-      : contactOptions.filter((contact) =>
-          relatedSearch.trim()
-            ? contact.name.toLowerCase().includes(relatedSearch.trim().toLowerCase()) ||
-              contact.email.toLowerCase().includes(relatedSearch.trim().toLowerCase())
-            : true
-        );
+      : formData.related_to === "Account"
+        ? accountOptions.filter((account) =>
+            relatedSearch.trim()
+              ? account.searchText.includes(relatedSearch.trim().toLowerCase())
+              : true
+          )
+        : [];
+
+  const filteredMeetingContacts = contactOptions.filter((contact) =>
+    contact.name.toLowerCase().includes(meetingContactSearch.toLowerCase()) ||
+    contact.email.toLowerCase().includes(meetingContactSearch.toLowerCase())
+  );
 
   const selectedIds = new Set(participants.map((item) => item.id));
 
@@ -316,13 +366,15 @@ export default function CreateMeetingPage() {
   };
 
   const buildPayload = () => {
+    const toIsoDateTime = (date: string, time: string) =>
+      new Date(`${date}T${time}`).toISOString();
     const startDateTime = formData.all_day
-      ? `${formData.from_date}T00:00:00`
-      : `${formData.from_date}T${formData.from_time}:00`;
+      ? toIsoDateTime(formData.from_date, "00:00:00")
+      : toIsoDateTime(formData.from_date, `${formData.from_time}:00`);
 
     const endDateTime = formData.all_day
-      ? `${formData.to_date}T23:59:59`
-      : `${formData.to_date}T${formData.to_time}:00`;
+      ? toIsoDateTime(formData.to_date, "23:59:59")
+      : toIsoDateTime(formData.to_date, `${formData.to_time}:00`);
 
     return {
       title: formData.title,
@@ -339,8 +391,9 @@ export default function CreateMeetingPage() {
       related_to: formData.related_to,
       repeat: formData.repeat,
       participants_reminder: formData.participants_reminder,
-      ...(formData.related_to === "Lead" && selectedRelatedId ? { lead: selectedRelatedId } : {}),
-      ...(formData.related_to === "Contact" && selectedRelatedId ? { contact: selectedRelatedId } : {}),
+      lead: formData.related_to === "Lead" ? selectedRelatedId : null,
+      contact: selectedMeetingContactId,
+      account: formData.related_to === "Account" ? selectedRelatedId : null,
     };
   };
 
@@ -457,11 +510,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="From">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="from_date"
                       value={formData.from_date}
-                      onChange={handleFieldChange}
+                      onChange={(from_date) => setFormData((previous) => ({ ...previous, from_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (
@@ -478,11 +530,10 @@ export default function CreateMeetingPage() {
 
                 <Field label="To">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
+                    <DatePicker
                       name="to_date"
                       value={formData.to_date}
-                      onChange={handleFieldChange}
+                      onChange={(to_date) => setFormData((previous) => ({ ...previous, to_date }))}
                       className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 text-[15px] text-slate-900 outline-none focus:border-blue-600"
                     />
                     {!formData.all_day && (
@@ -571,13 +622,14 @@ export default function CreateMeetingPage() {
                       <option value="None">None</option>
                       <option value="Lead">Lead</option>
                       <option value="Contact">Contact</option>
+                      <option value="Account">Account</option>
                       <option value="Others">Others</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-0 top-2 h-4 w-4 text-slate-500" />
                   </div>
                 </Field>
 
-                {(formData.related_to === "Lead" || formData.related_to === "Contact") && (
+                {(formData.related_to === "Lead" || formData.related_to === "Account") && (
                   <Field label={formData.related_to}>
                     <div className="relative">
                       <input
@@ -621,20 +673,62 @@ export default function CreateMeetingPage() {
                   </Field>
                 )}
 
+                <Field label="Contact">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search Contact..."
+                      value={selectedMeetingContactName || meetingContactSearch}
+                      onChange={(e) => {
+                        setSelectedMeetingContactId(null);
+                        setSelectedMeetingContactName("");
+                        setMeetingContactSearch(e.target.value);
+                        setShowMeetingContactDropdown(true);
+                      }}
+                      onFocus={() => setShowMeetingContactDropdown(true)}
+                      onClick={() => setShowMeetingContactDropdown(true)}
+                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-1 pr-6 text-[15px] text-slate-900 outline-none focus:border-blue-600"
+                    />
+                    <Search className="pointer-events-none absolute right-0 top-2 h-4 w-4 text-slate-400" />
+                    {showMeetingContactDropdown && !selectedMeetingContactId && (
+                      <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                        {filteredMeetingContacts.slice(0, 12).map((contact) => (
+                          <button
+                            key={contact.id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-[14px] text-slate-800 hover:bg-slate-100"
+                            onClick={() => {
+                              setSelectedMeetingContactId(contact.id);
+                              setSelectedMeetingContactName(contact.name);
+                              setMeetingContactSearch("");
+                              setShowMeetingContactDropdown(false);
+                            }}
+                          >
+                            {contact.name}
+                          </button>
+                        ))}
+                        {filteredMeetingContacts.length === 0 && (
+                          <p className="px-3 py-2 text-sm text-slate-500">No contacts found.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Field>
+
                 <Field label="Repeat">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-300 py-1">
+                  <div className="relative border-b border-slate-300">
                     <select
                       name="repeat"
                       value={formData.repeat}
                       onChange={handleFieldChange}
-                      className="w-full appearance-none bg-transparent text-[15px] text-slate-900 outline-none"
+                      className="w-full appearance-none bg-transparent py-1 pr-6 text-[15px] text-slate-900 outline-none"
                     >
                       <option value="None">None</option>
                       <option value="Daily">Daily</option>
                       <option value="Weekly">Weekly</option>
                       <option value="Monthly">Monthly</option>
                     </select>
-                    <Pencil className="h-4 w-4 text-blue-600" />
+                    <ChevronDown className="pointer-events-none absolute right-0 top-2 h-4 w-4 text-slate-500" />
                   </div>
                 </Field>
 

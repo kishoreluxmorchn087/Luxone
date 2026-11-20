@@ -19,6 +19,8 @@ const emptyForm: ServiceFormData = {
   deliveryTeam: "general",
   availableDaysMode: "business_hours",
   availableTimeMode: "business_hours",
+  customTimeStart: "09:00",
+  customTimeEnd: "18:00",
   businessHoursId: "",
   memberIds: [],
   primaryMemberId: "",
@@ -57,6 +59,8 @@ export default function ServiceFormPage() {
             deliveryTeam: detail.deliveryTeam || "general",
             availableDaysMode: detail.availableDaysMode,
             availableTimeMode: detail.availableTimeMode,
+            customTimeStart: detail.customTimeStart || "09:00",
+            customTimeEnd: detail.customTimeEnd || "18:00",
             businessHoursId: detail.businessHours,
             memberIds: detail.members?.map((item) => item.memberId) || [],
             primaryMemberId: detail.members?.find((item) => item.isPrimary)?.memberId || "",
@@ -201,11 +205,39 @@ export default function ServiceFormPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Available Time</label>
-                  <select className={inputClass} value={form.availableTimeMode} onChange={(e) => setForm({ ...form, availableTimeMode: e.target.value })}>
+                  <select
+                    className={inputClass}
+                    value={form.availableTimeMode}
+                    onChange={(e) => setForm({ ...form, availableTimeMode: e.target.value })}
+                  >
                     {availabilityModeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </div>
               </div>
+
+              {form.availableTimeMode === "custom" && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Start Time</label>
+                    <input
+                      type="time"
+                      className={inputClass}
+                      value={form.customTimeStart}
+                      onChange={(e) => setForm({ ...form, customTimeStart: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">End Time</label>
+                    <input
+                      type="time"
+                      className={inputClass}
+                      value={form.customTimeEnd}
+                      onChange={(e) => setForm({ ...form, customTimeEnd: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="mt-4">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Description</label>
                 <textarea className={textareaClass} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />

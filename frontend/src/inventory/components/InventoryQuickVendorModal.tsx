@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { quickCreateVendor } from "../api";
+import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
 
 type InventoryQuickVendorModalProps = {
   open: boolean;
@@ -32,8 +33,11 @@ export default function InventoryQuickVendorModal({
             className="h-[38px] rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500"
           />
           <input
+            type="tel"
+            inputMode="numeric"
+            maxLength={PHONE_NUMBER_MAX_LENGTH}
             value={form.phone}
-            onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+            onChange={(event) => setForm((prev) => ({ ...prev, phone: sanitizePhoneNumber(event.target.value) }))}
             placeholder="Phone"
             className="h-[38px] rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500"
           />
@@ -58,6 +62,10 @@ export default function InventoryQuickVendorModal({
           <button
             type="button"
             onClick={async () => {
+              if (!isValidPhoneNumber(form.phone)) {
+                setError("Phone number must contain digits only and be no more than 20 digits.");
+                return;
+              }
               try {
                 setSaving(true);
                 setError(null);

@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { ChevronDown, UserPlus } from "lucide-react";
 import { createCampaign, getCampaignById, updateCampaign, type CampaignFormData } from "../../lib/api/campaignsApi";
+import DatePicker from "../../components/common/DatePicker";
+import { validateDatePickerInputs } from "../../lib/dateUtils";
 
 type CampaignFormState = {
   campaignOwner: string;
@@ -149,6 +151,10 @@ function CurrencyField({
   );
 }
 
+function sanitizeNumericInput(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 export default function CreateCampaignPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -185,7 +191,11 @@ export default function CreateCampaignPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    const value =
+      ["budgetedCost", "expectedRevenue", "actualCost"].includes(name)
+        ? sanitizeNumericInput(e.target.value)
+        : e.target.value;
 
     setError(null);
     setSuccessMessage(null);
@@ -202,6 +212,8 @@ export default function CreateCampaignPage() {
   };
 
   const handleSave = async (goToNew = false) => {
+    if (!validateDatePickerInputs()) return;
+
     if (!formData.campaignName.trim()) {
       setError("Campaign Name is required.");
       return;
@@ -350,20 +362,21 @@ export default function CreateCampaignPage() {
                       </button>
                     </div>
 
-                    <label className={labelClass}>Campaign Name</label>
+                    <label className={labelClass}>
+                      Campaign Name <span className="text-red-500">*</span>
+                    </label>
                     <TextField
                       name="campaignName"
                       value={formData.campaignName}
                       onChange={handleChange}
                     />
-                    {!formData.campaignName.trim() ? <p className="col-start-2 -mt-3 text-xs text-red-500">Campaign Name is required.</p> : null}
 
                     <label className={labelClass}>Start Date</label>
-                    <TextField
+                    <DatePicker
                       name="startDate"
                       value={formData.startDate}
-                      onChange={handleChange}
-                      type="date"
+                      onChange={(startDate) => setFormData((previous) => ({ ...previous, startDate }))}
+                      className={inputClass}
                     />
 
                     <label className={labelClass}>Expected Revenue</label>
@@ -426,11 +439,11 @@ export default function CreateCampaignPage() {
                     />
 
                     <label className={labelClass}>End Date</label>
-                    <TextField
+                    <DatePicker
                       name="endDate"
                       value={formData.endDate}
-                      onChange={handleChange}
-                      type="date"
+                      onChange={(endDate) => setFormData((previous) => ({ ...previous, endDate }))}
+                      className={inputClass}
                     />
 
                     <label className={labelClass}>Budgeted Cost</label>
@@ -467,15 +480,6 @@ export default function CreateCampaignPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-5 border-t border-[#d9e1ef] px-8 py-3">
-              <button
-                type="button"
-                className="text-[14px] text-[#1d4ed8] hover:underline"
-              >
-                Create Form Views
-              </button>
-
-            </div>
           </div>
         </div>
       </div>

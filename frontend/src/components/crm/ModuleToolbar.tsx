@@ -10,16 +10,17 @@ import {
   LayoutGrid,
   Table,
   ChartPie,
-  MapPin,
   Search,
   Check,
 } from "lucide-react";
+import CRMPageSettingsModal, { type DensityMode } from "./CRMPageSettingsModal";
 
 type ModuleToolbarProps = {
   viewName: string;
   createButtonLabel: string;
   baseRoute?: string;
   importPrimaryLabel?: string;
+  massDeleteLabel?: string;
   showImportActions?: boolean;
   sortFields?: string[];
   sortFieldKeyMap?: Partial<Record<string, string>>;
@@ -30,6 +31,23 @@ type ModuleToolbarProps = {
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
   viewMode?: "list" | "table" | "grid" | "kanban" | "chart";
   onViewModeChange?: (mode: "list" | "table" | "grid" | "kanban" | "chart") => void;
+  columns?: Array<{ key: string; label: string; minWidth?: string }>;
+  hiddenColumns?: string[];
+  onSetHiddenColumns?: (hidden: string[]) => void;
+  pinnedColumn?: string | null;
+  onSetPinnedColumn?: (pinned: string | null) => void;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  density?: DensityMode;
+  onDensityChange?: (density: DensityMode) => void;
+  showNotes?: boolean;
+  onToggleShowNotes?: (show: boolean) => void;
+  showActivity?: boolean;
+  onToggleShowActivity?: (show: boolean) => void;
+  sortState?: { key: string; direction: "asc" | "desc" } | null;
+  moduleName?: string;
+  onOpenPageSettings?: () => void;
+  onOpenManageViews?: () => void;
 };
 
 const defaultSortFields = [
@@ -56,6 +74,7 @@ export default function ModuleToolbar({
   createButtonLabel,
   baseRoute,
   importPrimaryLabel,
+  massDeleteLabel = "Mass Delete",
   showImportActions = true,
   sortFields,
   sortFieldKeyMap,
@@ -66,6 +85,23 @@ export default function ModuleToolbar({
   onMassAction,
   viewMode = "table",
   onViewModeChange,
+  columns,
+  hiddenColumns,
+  onSetHiddenColumns,
+  pinnedColumn,
+  onSetPinnedColumn,
+  pageSize,
+  onPageSizeChange,
+  density,
+  onDensityChange,
+  showNotes,
+  onToggleShowNotes,
+  showActivity,
+  onToggleShowActivity,
+  sortState,
+  moduleName,
+  onOpenPageSettings,
+  onOpenManageViews,
 }: ModuleToolbarProps) {
   const navigate = useNavigate();
 
@@ -75,11 +111,12 @@ export default function ModuleToolbar({
   const [fieldDropdownOpen, setFieldDropdownOpen] = useState(false);
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
-  const [ellipsisMenuOpen, setEllipsisMenuOpen] = useState(false);
-  const ellipsisMenuRef = useRef<HTMLDivElement | null>(null);
   
   const [topEllipsisOpen, setTopEllipsisOpen] = useState(false);
   const topEllipsisRef = useRef<HTMLDivElement | null>(null);
+
+  const [pageSettingsModalOpen, setPageSettingsModalOpen] = useState(false);
+  const [pageSettingsInitialTab, setPageSettingsInitialTab] = useState<"columns" | "table" | "views">("columns");
 
   const [selectedField, setSelectedField] = useState(fields[0] ?? "None");
   const [selectedOrder, setSelectedOrder] = useState<"Ascending" | "Descending">(
@@ -146,13 +183,14 @@ export default function ModuleToolbar({
       }
 
       if (
-        ellipsisMenuRef.current &&
-        !ellipsisMenuRef.current.contains(event.target as Node)
+        topEllipsisRef.current &&
+        !topEllipsisRef.current.contains(event.target as Node)
       ) {
-        setEllipsisMenuOpen(false);
+        setTopEllipsisOpen(false);
       }
 
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+    if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setSortModalOpen(false);
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
    }
@@ -218,14 +256,30 @@ export default function ModuleToolbar({
               <div className="absolute left-0 top-[40px] z-50 min-w-[150px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => setTopEllipsisOpen(false)}
+                  onClick={() => {
+                    setTopEllipsisOpen(false);
+                    if (onOpenManageViews) {
+                      onOpenManageViews();
+                    } else {
+                      setPageSettingsInitialTab("views");
+                      setPageSettingsModalOpen(true);
+                    }
+                  }}
                   className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
                 >
                   Manage Views
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTopEllipsisOpen(false)}
+                  onClick={() => {
+                    setTopEllipsisOpen(false);
+                    if (onOpenPageSettings) {
+                      onOpenPageSettings();
+                    } else {
+                      setPageSettingsInitialTab("table");
+                      setPageSettingsModalOpen(true);
+                    }
+                  }}
                   className="block w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
                 >
                   Page Settings
@@ -281,41 +335,8 @@ export default function ModuleToolbar({
             onClick={() => onMassAction?.("mass-delete")}
             className="cursor-pointer rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition duration-150 hover:bg-red-100 hover:shadow-sm"
           >
-            Mass Delete
+            {massDeleteLabel}
           </button>
-          <div className="relative" ref={ellipsisMenuRef}>
-            <button
-              type="button"
-              onClick={() => setEllipsisMenuOpen((prev) => !prev)}
-              className="cursor-pointer rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm"
-            >
-              <Ellipsis size={16} />
-            </button>
-
-            {ellipsisMenuOpen && (
-              <div className="absolute right-0 top-[42px] z-50 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                {(["Mass Delete", "Mass Update"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setEllipsisMenuOpen(false);
-                      const actionMap = {
-                        "Mass Delete": "mass-delete",
-                        "Mass Update": "mass-update",
-                      } as const;
-                      onMassAction?.(actionMap[item]);
-                    }}
-                    className={`block w-full px-4 py-2 text-left text-sm transition hover:bg-slate-100 ${
-                      item === "Mass Delete" ? "text-red-600 hover:bg-red-50" : "text-slate-700"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -347,7 +368,7 @@ export default function ModuleToolbar({
 
           {!hidePostSortIconStrip && (
             <>
-              <div className="mx-1 h-5 w-px bg-slate-200" />
+              <div className="mx-1.5 h-5 w-px bg-slate-200" />
 
               <button
                 type="button"
@@ -419,21 +440,6 @@ export default function ModuleToolbar({
                 </span>
               </button>
 
-              <button type="button" aria-label="Map View" className={`group ${toolbarIconButtonClass}`}>
-                <MapPin size={16} />
-                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
-                  Map View
-                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
-                </span>
-              </button>
-
-              <button type="button" aria-label="More Views" className={`group ${toolbarIconButtonClass}`}>
-                <ChevronDown size={16} />
-                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
-                  More Views
-                  <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800"></span>
-                </span>
-              </button>
             </>
           )}
         </div>
@@ -563,6 +569,52 @@ export default function ModuleToolbar({
           </div>
         )}
       </div>
+
+      <CRMPageSettingsModal
+        open={pageSettingsModalOpen}
+        onClose={() => setPageSettingsModalOpen(false)}
+        viewName={viewName}
+        moduleName={moduleName || singularModuleName}
+        columns={columns || []}
+        hiddenColumns={hiddenColumns || []}
+        pageSize={pageSize ?? 25}
+        density={density ?? "normal"}
+        pinnedColumn={pinnedColumn ?? null}
+        sortState={sortState}
+        filterOpen={isFilterOpen}
+        showNotes={showNotes ?? true}
+        showActivity={showActivity ?? false}
+        initialTab={pageSettingsInitialTab}
+        onApply={(settings) => {
+          if (onSetHiddenColumns) onSetHiddenColumns(settings.hiddenColumns);
+          if (onPageSizeChange) onPageSizeChange(settings.pageSize);
+          if (onDensityChange) onDensityChange(settings.density);
+          if (onSetPinnedColumn) onSetPinnedColumn(settings.pinnedColumn);
+          if (onApplySort) {
+            onApplySort(settings.sortColumn, settings.sortDirection);
+          }
+          if (settings.filterOpen !== undefined && settings.filterOpen !== isFilterOpen) {
+            onToggleFilter();
+          }
+          if (settings.showNotes !== undefined && onToggleShowNotes) {
+            onToggleShowNotes(settings.showNotes);
+          }
+          if (settings.showActivity !== undefined && onToggleShowActivity) {
+            onToggleShowActivity(settings.showActivity);
+          }
+          setPageSettingsModalOpen(false);
+        }}
+        onResetDefaults={() => {
+          if (onSetHiddenColumns) onSetHiddenColumns([]);
+          if (onPageSizeChange) onPageSizeChange(25);
+          if (onDensityChange) onDensityChange("normal");
+          if (onSetPinnedColumn) onSetPinnedColumn(null);
+          if (onApplySort) onApplySort(null, "asc");
+          if (!isFilterOpen) onToggleFilter();
+          if (onToggleShowNotes) onToggleShowNotes(true);
+          if (onToggleShowActivity) onToggleShowActivity(false);
+        }}
+      />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import type { Deal } from "../../lib/shared/crmTypes";
 import { loadDealLinkedData } from "../../lib/api/linkedRecordsApi";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 
 const DEAL_STAGE_ORDER = [
   "Qualification",
@@ -47,9 +48,7 @@ function formatCurrency(amount: number) {
 
 function formatDate(value?: string) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-GB");
+  return formatDateForDisplay(value);
 }
 
 function normalizeStage(stage?: string): (typeof DEAL_STAGE_ORDER)[number] {

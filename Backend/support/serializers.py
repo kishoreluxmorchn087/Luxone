@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -22,6 +23,7 @@ from .models import (
     SupportNote,
     SupportSolution,
     SupportTimelineEntry,
+    SupportURLLink,
 )
 from .services import list_timeline
 
@@ -56,6 +58,21 @@ class SupportNoteSerializer(serializers.ModelSerializer):
 
     def get_created_by_email(self, obj):
         return getattr(obj.created_by, "email", None) if obj.created_by else None
+
+
+class SupportURLLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupportURLLink
+        fields = ["id", "label", "url", "created_by", "created_at", "updated_at"]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_label(self, value):
+        return value.strip()
+
+    def validate_url(self, value):
+        if urlsplit(value).scheme.lower() not in {"http", "https"}:
+            raise serializers.ValidationError("Only HTTP and HTTPS links are supported.")
+        return value
 
 
 class SupportCommentSerializer(serializers.ModelSerializer):
@@ -539,6 +556,8 @@ class SupportLookupSerializer(serializers.Serializer):
 class SupportQuickCreateProductSerializer(serializers.ModelSerializer):
     vendor = serializers.PrimaryKeyRelatedField(queryset=_active_queryset(Vendor), required=False, allow_null=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=_active_queryset(User), required=False, allow_null=True)
+    unit_price = serializers.DecimalField(max_digits=15, decimal_places=2, min_value=0, required=False)
+    tax = serializers.DecimalField(max_digits=15, decimal_places=2, min_value=0, required=False)
 
     class Meta:
         model = Product

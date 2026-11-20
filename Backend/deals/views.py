@@ -421,3 +421,24 @@ class DealViewSet(viewsets.ModelViewSet):
             user=request.user,
         )
         return Response(DealProductSerializer(line_item).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="clone")
+    def clone(self, request, pk=None):
+        deal = self.get_object()
+        deal_data = {
+            field.name: getattr(deal, field.name)
+            for field in deal._meta.fields
+            if field.name not in ["id", "created_at", "updated_at"]
+        }
+        deal_data["deal_name"] = f"{deal.deal_name or ''} (Clone)".strip()
+        cloned = Deal.objects.create(**deal_data)
+        deal_service.log_activity(
+            deal=cloned,
+            action="Deal cloned",
+            description=f"Cloned from deal #{deal.pk}",
+            user=request.user,
+        )
+        return Response(
+            {"message": "Deal cloned successfully", "deal_id": cloned.pk, "id": cloned.pk},
+            status=status.HTTP_201_CREATED,
+        )

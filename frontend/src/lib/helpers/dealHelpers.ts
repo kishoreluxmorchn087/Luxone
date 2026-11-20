@@ -1,6 +1,7 @@
 import type { DealRecord } from "../types/dealTypes";
 import { dealStages } from "../mock/dealStages";
 import type { DealStage } from "../mock/dealStages";
+import { formatDateForDisplay } from "../dateUtils";
 
 export function filterDeals(deals: DealRecord[], filters: any): DealRecord[] {
   // Implement filtering logic based on filters object
@@ -50,5 +51,5 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return formatDateForDisplay(date);
 }

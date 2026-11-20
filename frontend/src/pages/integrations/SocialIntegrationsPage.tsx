@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { apiRequest } from "../../api/client";
 import CRMModalBase from "../../components/crm/CRMModalBase";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import DashboardLayout from "../../components/layout/DashboardLayout";
@@ -27,6 +28,12 @@ import type {
 
 type Notice = { tone: "success" | "error"; message: string } | null;
 type ModalError = string | null;
+
+type AssignmentUser = {
+  id: number;
+  email: string;
+  name: string;
+};
 
 type AccountDraft = {
   brandId: number;
@@ -82,6 +89,8 @@ export default function SocialIntegrationsPage() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [adminSettings, setAdminSettings] = useState<SocialPermissionSetting[]>([]);
   const [rules, setRules] = useState<SocialLeadAutomationRule[]>([]);
+  const [assignmentUsers, setAssignmentUsers] = useState<AssignmentUser[]>([]);
+  const [assignmentUsersError, setAssignmentUsersError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -100,16 +109,34 @@ export default function SocialIntegrationsPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const [nextBrands, nextAccounts, nextAdminSettings, nextRules] = await Promise.all([
+      const [
+        nextBrands,
+        nextAccounts,
+        nextAdminSettings,
+        nextRules,
+        nextAssignmentUsers,
+      ] = await Promise.all([
         integrationsApi.listSocialBrands().catch(() => []),
         integrationsApi.listSocialAccounts().catch(() => []),
         integrationsApi.listSocialAdminSettings().catch(() => []),
         integrationsApi.listSocialAutomationRules().catch(() => []),
+        apiRequest<AssignmentUser[]>("/auth/users").catch((error: unknown) => {
+          setAssignmentUsersError(
+            error instanceof Error ? error.message : "Failed to load users."
+          );
+          return null;
+        }),
       ]);
       setBrands(nextBrands);
       setAccounts(nextAccounts);
       setAdminSettings(nextAdminSettings);
       setRules(nextRules);
+      if (nextAssignmentUsers) {
+        setAssignmentUsers(nextAssignmentUsers);
+        setAssignmentUsersError(null);
+      } else {
+        setAssignmentUsers([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -147,6 +174,14 @@ export default function SocialIntegrationsPage() {
 
   const adminSetting = adminSettings[0] || null;
   const connectedAccountsCount = accounts.filter((account) => account.is_connected).length;
+  const unavailableRuleUser =
+    editingRule?.assign_to_user &&
+    !assignmentUsers.some((user) => user.id === editingRule.assign_to_user)
+      ? {
+          id: editingRule.assign_to_user,
+          email: editingRule.assign_to_user_email,
+        }
+      : null;
   const setupItems = useMemo(
     () => [
       {
@@ -261,6 +296,11 @@ export default function SocialIntegrationsPage() {
       return;
     }
 
+    if (handle && !handle.startsWith("@")) {
+      setAccountError("Handle must start with @ (for example, @brandname).");
+      return;
+    }
+
     if (!handle && !pageId) {
       setAccountError("Enter either a handle or page ID to identify the social account.");
       return;
@@ -311,11 +351,6 @@ export default function SocialIntegrationsPage() {
     const assignToUser = ruleDraft.assign_to_user.trim();
     const assignToTeam = ruleDraft.assign_to_team.trim();
     const qualificationLogicText = ruleDraft.qualification_logic_text.trim();
-
-    if (assignToUser && !/^\d+$/.test(assignToUser)) {
-      setRuleError("Assign To User ID must be a number.");
-      return;
-    }
 
     if (qualificationLogicText) {
       try {
@@ -633,6 +668,11 @@ export default function SocialIntegrationsPage() {
               {ruleError}
             </div>
           ) : null}
+          {assignmentUsersError ? (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              User options could not be loaded: {assignmentUsersError}
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span className="text-slate-600">Platform</span>
@@ -673,8 +713,8 @@ export default function SocialIntegrationsPage() {
               </select>
             </label>
             <label className="space-y-1 text-sm">
-              <span className="text-slate-600">Assign To User ID</span>
-              <input
+              <span className="text-slate-600">Assign To User</span>
+              <select
                 value={ruleDraft.assign_to_user}
                 onChange={(event) =>
                   setRuleDraft((previous) => ({
@@ -683,8 +723,20 @@ export default function SocialIntegrationsPage() {
                   }))
                 }
                 className="w-full rounded-md border border-slate-300 px-3 py-2"
-                placeholder="Internal CRM user ID"
-              />
+              >
+                <option value="">No user assigned</option>
+                {unavailableRuleUser ? (
+                  <option value={unavailableRuleUser.id}>
+                    {unavailableRuleUser.email ||
+                      `User ${unavailableRuleUser.id}`}
+                  </option>
+                ) : null}
+                {assignmentUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name ? `${user.name} (${user.email})` : user.email}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="space-y-1 text-sm">
               <span className="text-slate-600">Assign To Team</span>

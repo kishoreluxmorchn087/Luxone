@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import CRMCreatePage, { type CRMCreateSection } from "../../components/crm/CRMCreatePage";
 import { getContactById, updateContact } from "../../lib/api/contactsApi";
 import { SALUTATION_OPTIONS } from "../../config/crm/createOptions";
+import { validateContactEmail } from "./contactValidation";
 
 type ContactEditValues = {
   contactOwner: string;
@@ -36,15 +37,19 @@ const sections: CRMCreateSection[] = [
       { name: "accountName", label: "Account Name", type: "text", required: true },
       { name: "title", label: "Title", type: "text" },
       { name: "department", label: "Department", type: "text" },
-      { name: "email", label: "Email", type: "email" },
-      { name: "phone", label: "Phone", type: "text" },
+      { name: "email", label: "Email", type: "email", validateValue: validateContactEmail },
+      { name: "phone", label: "Phone", type: "phone" },
 
       { name: "lastName", label: "Last Name", type: "text", required: true },
-      { name: "mobile", label: "Mobile", type: "text" },
-      { name: "otherPhone", label: "Other Phone", type: "text" },
+      {
+        name: "mobile",
+        label: "Mobile",
+        type: "mobile",
+      },
+      { name: "otherPhone", label: "Other Phone", type: "phone" },
       { name: "fax", label: "Fax", type: "text" },
       { name: "assistant", label: "Assistant", type: "text" },
-      { name: "assistantPhone", label: "Assistant Phone", type: "text" },
+      { name: "assistantPhone", label: "Assistant Phone", type: "phone" },
     ],
   },
   {

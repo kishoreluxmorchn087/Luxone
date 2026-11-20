@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import { createHoliday, deleteHoliday, listAppointments, listHolidays, updateHoliday } from "../api";
 import type { Holiday } from "../types";
+import DatePicker from "../../components/common/DatePicker";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 
 const inputClass = "h-[38px] w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500";
 const textareaClass = "min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500";
@@ -14,6 +16,7 @@ export default function HolidaysPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appointmentsByDate, setAppointmentsByDate] = useState<Record<string, number>>({});
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     try {
@@ -39,7 +42,7 @@ export default function HolidaysPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.date) {
+    if (!form.name.trim() || !form.date || !dateInputRef.current?.reportValidity()) {
       setError("Holiday name and date are required.");
       return;
     }
@@ -69,7 +72,7 @@ export default function HolidaysPage() {
           <CRMSectionCard title={form.id ? "Edit Holiday" : "New Holiday"}>
             <div className="space-y-4">
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Holiday Name</label><input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label><input type="date" className={inputClass} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label><DatePicker ref={dateInputRef} required className={inputClass} value={form.date} onChange={(date) => setForm({ ...form, date })} /></div>
               <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Description</label><textarea className={textareaClass} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <div className="flex gap-2">
                 <button type="button" disabled={saving} onClick={() => void handleSave()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">{saving ? "Saving..." : "Save"}</button>
@@ -85,7 +88,7 @@ export default function HolidaysPage() {
                 <div key={row.id} className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-3">
                   <div>
                     <div className="text-sm font-medium text-slate-800">{row.name}</div>
-                    <div className="mt-1 text-xs text-slate-500">{row.date}</div>
+                    <div className="mt-1 text-xs text-slate-500">{formatDateForDisplay(row.date)}</div>
                     <div className="mt-1 text-xs text-slate-500">
                       Affected appointments: {appointmentsByDate[row.date] || 0}
                     </div>

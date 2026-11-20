@@ -18,7 +18,7 @@ export const protocolOptions: SelectOption[] = [
 
 export const emailServiceCards: IntegrationProviderCard[] = [
   { key: "zoho_mail", title: "Business Mail", description: "Connect your business mailbox for syncing, sending, and CRM visibility in LuxOne.", ctaLabel: "Configure" },
-  { key: "gmail", title: "Gmail", description: "Set up Gmail with IMAP or OAuth-based mailbox sync.", ctaLabel: "Get Started" },
+  { key: "gmail", title: "Gmail", description: "Set up Gmail with IMAP or OAuth-based mailbox sync.", ctaLabel: "Configure" },
   { key: "yahoo", title: "Yahoo Mail", description: "Bring Yahoo conversations into SalesInbox and CRM matching.", ctaLabel: "Configure" },
   { key: "office365", title: "Office 365", description: "Sync Microsoft 365 mailboxes and collaboration workflows.", ctaLabel: "Configure" },
   { key: "outlook", title: "Outlook", description: "Connect Outlook inboxes for send, receive, and timeline sync.", ctaLabel: "Configure" },

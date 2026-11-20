@@ -18,6 +18,7 @@ import {
   type DocumentType,
   type RelatedModule,
 } from "../../lib/api/documentsApi";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 
 const TYPE_COLORS: Record<string, string> = {
   portfolio: "bg-purple-100 text-purple-700",
@@ -245,7 +246,7 @@ export default function DocumentsSection({ module, relatedId }: Props) {
                     {DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ?? doc.document_type}
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    v{doc.version} · {new Date(doc.created_at).toLocaleDateString()}
+                    v{doc.version} · {formatDateForDisplay(doc.created_at)}
                   </span>
                 </div>
               </div>

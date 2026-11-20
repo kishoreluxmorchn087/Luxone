@@ -32,7 +32,7 @@ const sections: CRMCreateSection[] = [
       { name: "website", label: "Website", type: "text" },
       { name: "industry", label: "Industry", type: "select", options: INDUSTRY_OPTIONS },
       { name: "annualRevenue", label: "Annual Revenue", type: "currency" },
-      { name: "employees", label: "Employees", type: "number" },
+      { name: "employees", label: "Employees", type: "number", min: 0 },
     ],
   },
   {

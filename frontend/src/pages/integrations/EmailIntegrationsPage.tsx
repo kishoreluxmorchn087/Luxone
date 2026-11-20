@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CRMSectionCard from "../../components/crm/CRMSectionCard";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { integrationsApi } from "../../integrations/api";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 import IntegrationHeader from "../../integrations/components/IntegrationHeader";
 import AddDomainModal from "../../integrations/components/AddDomainModal";
 import BCCDropboxAddEmailModal from "../../integrations/components/BCCDropboxAddEmailModal";
@@ -46,6 +47,7 @@ import type {
 
 type Notice = { tone: "success" | "error"; message: string } | null;
 type ProviderFieldErrors = Partial<Record<"email_address" | "display_name" | "reply_to_address", string>>;
+type SalesInboxBooleanField = "is_enabled" | "crm_context_enabled" | "conversations_enabled" | "timeline_enabled";
 const EMAIL_AUTO_SYNC_INTERVAL_MS = 60_000;
 const SALES_INBOX_PAGE_SIZE = 10;
 
@@ -87,6 +89,12 @@ export default function EmailIntegrationsPage() {
   const [organizationEmails, setOrganizationEmails] = useState<OrganizationEmailAddress[]>([]);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [salesInboxSettings, setSalesInboxSettings] = useState<SalesInboxSetting[]>([]);
+  const salesInboxSettingsRef = useRef<SalesInboxSetting[]>([]);
+  const salesInboxQueuesRef = useRef(new Map<SalesInboxBooleanField, Array<{ value: boolean; version: number }>>());
+  const salesInboxInFlightRef = useRef(new Set<SalesInboxBooleanField>());
+  const salesInboxVersionsRef = useRef(new Map<SalesInboxBooleanField, number>());
+  const salesInboxConfirmedRef = useRef(new Map<SalesInboxBooleanField, boolean>());
+  salesInboxSettingsRef.current = salesInboxSettings;
   const [salesInboxFeed, setSalesInboxFeed] = useState<SalesInboxFeedItem[]>([]);
   const [salesInboxCount, setSalesInboxCount] = useState(0);
   const [salesInboxPage, setSalesInboxPage] = useState(1);
@@ -227,6 +235,16 @@ export default function EmailIntegrationsPage() {
       setOrganizationEmails(nextOrganizationEmails);
       setCustomFields(nextCustomFields);
       setSalesInboxSettings(nextSalesInboxSettings);
+      salesInboxSettingsRef.current = nextSalesInboxSettings;
+      const loadedPrimary = nextSalesInboxSettings[0] || null;
+      if (loadedPrimary) {
+        (["is_enabled", "crm_context_enabled", "conversations_enabled", "timeline_enabled"] as SalesInboxBooleanField[])
+          .forEach((field) => {
+            if (!salesInboxConfirmedRef.current.has(field) || !salesInboxInFlightRef.current.has(field)) {
+              salesInboxConfirmedRef.current.set(field, loadedPrimary[field]);
+            }
+          });
+      }
       setParsers(nextParsers);
       setBccSettings(nextBccSettings);
       setDomains(nextDomains);
@@ -309,6 +327,119 @@ export default function EmailIntegrationsPage() {
     }
   };
 
+  const saveSalesInboxSetting = (payload: Partial<SalesInboxSetting>) => {
+    const field = (["is_enabled", "crm_context_enabled", "conversations_enabled", "timeline_enabled"] as SalesInboxBooleanField[])
+      .find((candidate) => typeof payload[candidate] === "boolean");
+    if (!field) {
+      return;
+    }
+
+    const value = payload[field] as boolean;
+    const version = (salesInboxVersionsRef.current.get(field) || 0) + 1;
+    salesInboxVersionsRef.current.set(field, version);
+
+    const settings = salesInboxSettingsRef.current;
+    const primary = settings[0] || null;
+    if (!salesInboxConfirmedRef.current.has(field)) {
+      salesInboxConfirmedRef.current.set(field, primary?.[field] ?? (field === "is_enabled" ? false : true));
+    }
+    if (primary) {
+      const nextSettings = settings.map((setting) =>
+        setting.id === primary.id ? { ...setting, [field]: value } : setting
+      );
+      salesInboxSettingsRef.current = nextSettings;
+      setSalesInboxSettings(nextSettings);
+    } else {
+      const placeholder: SalesInboxSetting = {
+        id: 0,
+        is_enabled: false,
+        provider_integration: null,
+        is_active: true,
+        crm_context_enabled: true,
+        conversations_enabled: true,
+        timeline_enabled: true,
+        prioritized_columns_enabled: true,
+        created_at: "",
+        updated_at: "",
+        [field]: value,
+      };
+      salesInboxSettingsRef.current = [placeholder];
+      setSalesInboxSettings([placeholder]);
+      if (!salesInboxConfirmedRef.current.has(field)) {
+        salesInboxConfirmedRef.current.set(field, placeholder[field]);
+      }
+    }
+
+    const queue = salesInboxQueuesRef.current.get(field) || [];
+    queue.push({ value, version });
+    salesInboxQueuesRef.current.set(field, queue);
+
+    if (salesInboxInFlightRef.current.has(field)) {
+      return;
+    }
+    salesInboxInFlightRef.current.add(field);
+
+    void (async () => {
+      while (true) {
+        const currentQueue = salesInboxQueuesRef.current.get(field);
+        const item = currentQueue?.shift();
+        if (!item) {
+          salesInboxQueuesRef.current.delete(field);
+          salesInboxInFlightRef.current.delete(field);
+          return;
+        }
+
+        const currentSetting = salesInboxSettingsRef.current[0] || null;
+        if (!salesInboxConfirmedRef.current.has(field)) {
+          salesInboxConfirmedRef.current.set(field, currentSetting?.[field] ?? (field === "is_enabled" ? false : true));
+        }
+
+        try {
+          const response = currentSetting && currentSetting.id > 0
+            ? await integrationsApi.updateSalesInboxSetting(currentSetting.id, { [field]: item.value })
+            : await integrationsApi.createSalesInboxSetting({ [field]: item.value });
+
+          salesInboxConfirmedRef.current.set(field, response[field] ?? item.value);
+
+          if (salesInboxVersionsRef.current.get(field) === item.version) {
+            const nextSettings = salesInboxSettingsRef.current.map((setting) =>
+              setting.id === response.id || setting.id === 0
+                ? { ...setting, [field]: response[field] ?? item.value }
+                : setting
+            );
+            if (!nextSettings.some((setting) => setting.id === response.id)) {
+              nextSettings.unshift(response);
+            }
+            salesInboxSettingsRef.current = nextSettings;
+            setSalesInboxSettings(nextSettings);
+          } else {
+            // A newer checkbox change is in flight or pending; never let this response overwrite it.
+            const nextSettings = salesInboxSettingsRef.current.map((setting) =>
+              setting.id === 0 ? response : setting
+            );
+            if (nextSettings.length === 0) {
+              nextSettings.push(response);
+            } else {
+              salesInboxSettingsRef.current = nextSettings;
+              setSalesInboxSettings(nextSettings);
+            }
+          }
+          setSuccess("SalesInbox settings saved.");
+        } catch (error) {
+          setError(error);
+          if (salesInboxVersionsRef.current.get(field) === item.version) {
+            const previousValue = salesInboxConfirmedRef.current.get(field);
+            if (typeof previousValue === "boolean") {
+              const nextSettings = salesInboxSettingsRef.current.map((setting) => ({ ...setting, [field]: previousValue }));
+              salesInboxSettingsRef.current = nextSettings;
+              setSalesInboxSettings(nextSettings);
+            }
+          }
+        }
+      }
+    })();
+  };
+
   const openCreateProvider = (providerType?: EmailProviderIntegration["provider_type"]) => {
     setEditingProvider(null);
     setPresetProviderType(providerType);
@@ -348,7 +479,7 @@ export default function EmailIntegrationsPage() {
   );
   const latestInboxMessage = salesInboxFeed[0] || null;
   const latestInboxLabel = latestInboxMessage?.received_at
-    ? new Date(latestInboxMessage.received_at).toLocaleString()
+    ? formatDateTimeForDisplay(latestInboxMessage.received_at)
     : "No synced messages yet";
 
   useEffect(() => {
@@ -566,12 +697,7 @@ export default function EmailIntegrationsPage() {
               </div>
               <SalesInboxCard
                 setting={primarySalesInbox}
-                onSave={(payload) =>
-                  void runAction(
-                    () => primarySalesInbox ? integrationsApi.updateSalesInboxSetting(primarySalesInbox.id, payload) : integrationsApi.createSalesInboxSetting(payload),
-                    "SalesInbox settings saved."
-                  )
-                }
+                onSave={saveSalesInboxSetting}
               />
             </div>
             <SalesInboxFeed

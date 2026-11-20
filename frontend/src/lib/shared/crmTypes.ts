@@ -118,6 +118,13 @@ export type AccountRecord = {
   description: string;
   createdAt: string;
   updatedAt: string;
+  hasContacts?: boolean;
+  hasDeals?: boolean;
+  hasCases?: boolean;
+  hasEmails?: boolean;
+  hasInvoices?: boolean;
+  hasQuotes?: boolean;
+  hasSalesOrders?: boolean;
 };
 
 export type Deal = {

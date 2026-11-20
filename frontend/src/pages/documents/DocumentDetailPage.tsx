@@ -21,6 +21,7 @@ import {
   type DocumentType,
   type RelatedModule,
 } from "../../lib/api/documentsApi";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 const TYPE_COLORS: Record<string, string> = {
   portfolio: "bg-purple-100 text-purple-700",
@@ -260,7 +261,7 @@ export default function DocumentDetailPage() {
                     <div>
                       <span className="font-medium text-slate-700">v{v.version_number}</span>
                       <span className="ml-3 text-xs text-slate-400">
-                        {v.file_name ?? "file"} · {new Date(v.uploaded_at).toLocaleString()}
+                        {v.file_name ?? "file"} · {formatDateTimeForDisplay(v.uploaded_at)}
                       </span>
                     </div>
                     {v.file_url && (
@@ -354,8 +355,8 @@ export default function DocumentDetailPage() {
                 <InfoRow label="Uploaded By" value={doc.uploaded_by_email} />
                 <InfoRow label="File" value={doc.file_name} />
                 <InfoRow label="Version" value={`v${doc.version}`} />
-                <InfoRow label="Created" value={new Date(doc.created_at).toLocaleString()} />
-                <InfoRow label="Updated" value={new Date(doc.updated_at).toLocaleString()} />
+                <InfoRow label="Created" value={formatDateTimeForDisplay(doc.created_at)} />
+                <InfoRow label="Updated" value={formatDateTimeForDisplay(doc.updated_at)} />
               </div>
             )}
           </div>

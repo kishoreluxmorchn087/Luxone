@@ -1,4 +1,5 @@
 import type { TimelineItem } from "../../lib/shared/crmTypes";
+import { formatDateTimeForDisplay } from "../../lib/dateUtils";
 
 type CRMTimelineProps = {
   items: TimelineItem[];
@@ -23,7 +24,7 @@ export default function CRMTimeline({ items }: CRMTimelineProps) {
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">{item.type}: {item.title}</p>
-                <span className="text-xs text-slate-500">{new Date(item.at).toLocaleString()}</span>
+                <span className="text-xs text-slate-500">{formatDateTimeForDisplay(item.at)}</span>
               </div>
               <p className="mt-1 text-sm text-slate-700">{item.detail}</p>
               <p className="mt-1 text-xs text-slate-500">By {item.by}</p>

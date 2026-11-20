@@ -89,7 +89,7 @@ export const inventoryModules = {
       "Add Related List",
       "Links",
     ],
-    rowActions: defaultRowActions,
+    rowActions: vendorRowActions,
   } satisfies InventoryModuleMeta<InventoryVendorRecord>,
   products: {
     key: "products",
@@ -354,4 +354,21 @@ export const inventoryModules = {
 
 export function getInventoryMeta(moduleKey: InventoryModuleKey): InventoryModuleMeta<CRMRecord> {
   return inventoryModules[moduleKey] as InventoryModuleMeta<CRMRecord>;
+}
+
+export function getInventorySortConfig(moduleKey: InventoryModuleKey): {
+  sortFields: string[];
+  sortFieldKeyMap: Partial<Record<string, string>>;
+} {
+  const columns = inventoryModules[moduleKey].columns;
+  const sortFieldKeyMap: Partial<Record<string, string>> = {};
+
+  for (const column of columns) {
+    sortFieldKeyMap[column.label] = column.key;
+  }
+
+  return {
+    sortFields: ["None", ...columns.map((column) => column.label)],
+    sortFieldKeyMap,
+  };
 }

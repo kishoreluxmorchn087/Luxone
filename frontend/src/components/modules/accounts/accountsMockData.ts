@@ -167,7 +167,15 @@ export const accountModuleConfig: CRMModuleConfig<AccountRecord> = {
     },
     {
       title: "Filter By Related Modules",
-      items: ["Contacts", "Deals", "Cases", "Emails", "Invoices", "Quotes", "Sales Orders"],
+      items: [
+        { label: "Contacts", key: "hasContacts", value: "true" },
+        { label: "Deals", key: "hasDeals", value: "true" },
+        { label: "Cases", key: "hasCases", value: "true" },
+        { label: "Emails", key: "hasEmails", value: "true" },
+        { label: "Invoices", key: "hasInvoices", value: "true" },
+        { label: "Quotes", key: "hasQuotes", value: "true" },
+        { label: "Sales Orders", key: "hasSalesOrders", value: "true" },
+      ],
     },
   ],
   sortFields: [

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, storeAuthSession } from "../lib/api/authApi";
 import { getResolvedApiBaseUrl } from "../api/config";
@@ -75,6 +75,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [revealedPasswordIndex, setRevealedPasswordIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loginErrors, setLoginErrors] = useState<LoginFieldErrors>({});
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,12 @@ export default function LoginPage() {
   const [fpError, setFpError] = useState("");
   const [fpLoading, setFpLoading] = useState(false);
   const [fpSuccess, setFpSuccess] = useState("");
+
+  useEffect(() => {
+    if (showPassword || revealedPasswordIndex === null) return;
+    const timeoutId = window.setTimeout(() => setRevealedPasswordIndex(null), 800);
+    return () => window.clearTimeout(timeoutId);
+  }, [password, revealedPasswordIndex, showPassword]);
 
   const rawRedirect =
     typeof window.history.state === "object" &&
@@ -313,16 +320,36 @@ export default function LoginPage() {
                       maxLength={PASSWORD_MAX_LENGTH}
                       value={password}
                       onChange={(e) => {
-                        setPassword(e.target.value.slice(0, PASSWORD_MAX_LENGTH));
+                        const nextPassword = e.target.value.slice(0, PASSWORD_MAX_LENGTH);
+                        setPassword(nextPassword);
+                        setRevealedPasswordIndex(
+                          nextPassword.length >= password.length && nextPassword !== password && nextPassword.length > 0
+                            ? Math.min(nextPassword.length - 1, (e.currentTarget.selectionStart ?? nextPassword.length) - 1)
+                            : null
+                        );
                         setLoginErrors((current) => ({ ...current, password: undefined }));
                         if (error) setError("");
                       }}
                       placeholder="Enter your password"
                       className={inputCls + " pr-10"}
+                      style={showPassword ? undefined : { color: "transparent", caretColor: "#1e293b" }}
                     />
+                    {!showPassword && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-y-0 left-3.5 right-10 flex items-center overflow-hidden whitespace-pre text-sm text-slate-800"
+                      >
+                        {Array.from(password, (character, index) =>
+                          index === revealedPasswordIndex ? character : "•"
+                        ).join("")}
+                      </span>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setShowPassword((v) => !v)}
+                      onClick={() => {
+                        setShowPassword((v) => !v);
+                        setRevealedPasswordIndex(null);
+                      }}
                       className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >

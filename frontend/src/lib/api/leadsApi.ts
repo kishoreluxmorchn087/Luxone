@@ -247,7 +247,13 @@ function buildLeadPayload(payload: any) {
   }
 
   if (payload.annualRevenue !== undefined && payload.annualRevenue !== null && payload.annualRevenue !== "") {
-    body.annual_revenue = Number(payload.annualRevenue);
+    const rawRevenue = String(payload.annualRevenue).replace(/,/g, "").trim();
+    if (rawRevenue !== "") {
+      const num = Number(rawRevenue);
+      if (!Number.isNaN(num)) {
+        body.annual_revenue = num;
+      }
+    }
   }
 
   return body;

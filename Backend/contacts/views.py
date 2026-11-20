@@ -598,3 +598,33 @@ class ContactViewSet(viewsets.ModelViewSet):
         deals_qs = Deal.objects.filter(contact=contact).select_related("stage", "account", "deal_owner")
         serializer = DealListSerializer(deals_qs, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="clone")
+    def clone(self, request, pk=None):
+        contact = self.get_object()
+        contact_data = {
+            field.name: getattr(contact, field.name)
+            for field in contact._meta.fields
+            if field.name not in ["id", "created_at", "updated_at"]
+        }
+        contact_data["first_name"] = f"{contact.first_name or ''}".strip()
+        contact_data["last_name"] = f"{contact.last_name or ''} (Clone)".strip()
+        if contact.email:
+            base, domain = contact.email.split("@", 1) if "@" in contact.email else (contact.email, "example.com")
+            counter = 1
+            candidate = f"{base}-clone@{domain}"
+            while Contact.objects.filter(email=candidate).exists():
+                counter += 1
+                candidate = f"{base}-clone-{counter}@{domain}"
+            contact_data["email"] = candidate
+        cloned = Contact.objects.create(**contact_data)
+        contact_service.log_activity(
+            contact=cloned,
+            action="Contact cloned",
+            description=f"Cloned from contact #{contact.pk}",
+            user=request.user,
+        )
+        return Response(
+            {"message": "Contact cloned successfully", "contact_id": cloned.pk, "id": cloned.pk},
+            status=status.HTTP_201_CREATED,
+        )

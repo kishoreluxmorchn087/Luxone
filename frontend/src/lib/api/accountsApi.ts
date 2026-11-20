@@ -21,6 +21,13 @@ type BackendAccount = {
   owner_name?: string | null;
   account_owner?: number | null;
   owner_details?: { name?: string | null; email?: string | null } | null;
+  has_contacts?: boolean;
+  has_deals?: boolean;
+  has_cases?: boolean;
+  has_emails?: boolean;
+  has_invoices?: boolean;
+  has_quotes?: boolean;
+  has_sales_orders?: boolean;
   billing_address?: string | null;
   description?: string | null;
   created_at?: string;
@@ -79,6 +86,13 @@ function normalizeAccount(item: BackendAccount): AccountRecord {
     description: item.description ?? "",
     createdAt: item.created_at ?? "",
     updatedAt: item.updated_at ?? "",
+    hasContacts: item.has_contacts,
+    hasDeals: item.has_deals,
+    hasCases: item.has_cases,
+    hasEmails: item.has_emails,
+    hasInvoices: item.has_invoices,
+    hasQuotes: item.has_quotes,
+    hasSalesOrders: item.has_sales_orders,
   };
 }
 
@@ -114,7 +128,8 @@ function toBackendPayload(payload: Partial<CreateAccountPayload>): Record<string
   if (payload.industry !== undefined) body.industry = payload.industry || null;
   if (payload.annualRevenue !== undefined) body.annual_revenue = payload.annualRevenue || null;
   if (payload.employees !== undefined) {
-    body.employees = payload.employees ? Number(payload.employees) : null;
+    const employees = Number(payload.employees);
+    body.employees = payload.employees && Number.isFinite(employees) ? Math.max(0, employees) : null;
   }
   if (payload.description !== undefined) body.description = payload.description || null;
 

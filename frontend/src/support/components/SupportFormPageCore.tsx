@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getLoggedInUser, getLoggedInUserName } from "../../lib/auth/currentUser";
-import { createCase, createSolution, getCaseDetail, getCaseSnapshot, getSolutionDetail, updateCase, updateSolution } from "../api";
+import { isValidPhoneNumber, PHONE_NUMBER_MAX_LENGTH, sanitizePhoneNumber } from "../../lib/shared/phoneNumber";
+import { createCase, createSolution, getCaseFormData, getCaseSnapshot, getSolutionDetail, updateCase, updateSolution } from "../api";
 import {
   caseOriginOptions,
   casePriorityOptions,
@@ -98,13 +99,16 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     const load = async () => {
       try {
         if (moduleKey === "cases") {
-          const detail = await getCaseDetail(id);
-          setCaseForm((prev) => ({ ...prev, caseNumber: detail.caseNumber, subject: detail.subject }));
+          const formData = await getCaseFormData(id);
+          if (cancelled) return;
+          setCaseForm(formData);
         } else {
           const detail = await getSolutionDetail(id);
+          if (cancelled) return;
           setSolutionForm((prev) => ({
             ...prev,
             solutionNumber: detail.solutionNumber,
@@ -115,10 +119,15 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
           }));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load record.");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load record.");
+        }
       }
     };
     void load();
+    return () => {
+      cancelled = true;
+    };
   }, [id, moduleKey]);
 
   useEffect(() => {
@@ -399,6 +408,10 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
           setError("Subject is required.");
           return;
         }
+        if (!isValidPhoneNumber(caseForm.phone)) {
+          setError("Phone number must contain digits only and be no more than 20 digits.");
+          return;
+        }
         const response = isEdit && id ? await updateCase(id, caseForm) : await createCase(caseForm);
         if (createNew) {
           setCaseForm(emptyCaseForm);
@@ -475,7 +488,7 @@ export default function SupportFormPageCore({ moduleKey }: Props) {
                 <Field label="Reported By"><input className={inputClass} value={caseForm.reportedBy} onChange={(e) => setCaseForm({ ...caseForm, reportedBy: e.target.value })} /></Field>
                 <Field label="Deal Name"><CaseLookupField label="Deal" lookup="deals" value={caseForm.deal} displayValue={caseForm.dealLabel} onChange={handleDealSelect} /></Field>
                 <Field label="Email"><input className={inputClass} value={caseForm.email} onChange={(e) => setCaseForm({ ...caseForm, email: e.target.value })} /></Field>
-                <Field label="Phone"><input className={inputClass} value={caseForm.phone} onChange={(e) => setCaseForm({ ...caseForm, phone: e.target.value })} /></Field>
+                <Field label="Phone"><input type="tel" inputMode="numeric" maxLength={PHONE_NUMBER_MAX_LENGTH} className={inputClass} value={caseForm.phone} onChange={(e) => setCaseForm({ ...caseForm, phone: sanitizePhoneNumber(e.target.value) })} /></Field>
                 <Field label="Company"><input className={inputClass} value={caseForm.company} onChange={(e) => setCaseForm({ ...caseForm, company: e.target.value })} /></Field>
                 <Field label="Lead">
                   <div className="space-y-1">

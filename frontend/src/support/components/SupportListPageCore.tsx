@@ -87,6 +87,7 @@ export default function SupportListPageCore({ moduleKey }: Props) {
         <ModuleToolbar
           viewName={meta.title}
           createButtonLabel={meta.createLabel}
+          massDeleteLabel="Delete"
           baseRoute={meta.baseRoute}
           importPrimaryLabel={meta.importLabel}
           isFilterOpen={filterOpen}
