@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatDateTimeForDisplay } from "../../lib/dateUtils";
+import { formatDateTimeForDisplay, isDateLikeLabel } from "../../lib/dateUtils";
 import { Phone, CalendarCheck, CalendarDays, Activity, Pencil, Trash2 } from "lucide-react";
 import type { CRMColumn, CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
 import CRMRowMoreOptionsMenu from "./CRMRowMoreOptionsMenu";
@@ -102,7 +102,7 @@ export default function CRMTable<T extends CRMRecord>({
         return `Rs. ${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
       }
     }
-    if (typeof value === "string" && /(date|_at|At$)/i.test(columnKey)) {
+    if (typeof value === "string" && (isDateLikeLabel(columnKey) || /(_at|At$)/i.test(columnKey))) {
       return formatDateTimeForDisplay(value) || "-";
     }
     return String(value);
