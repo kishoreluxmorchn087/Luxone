@@ -111,3 +111,18 @@ export function validateDatePickerInputs(): boolean {
   invalidInput.focus();
   return false;
 }
+
+export function isDateLikeLabel(label: string): boolean {
+  const normalized = label.toLowerCase().replace(/[_\-\s]/g, "");
+  return /date|validuntil|due|renewal|subscriptionstart|subscriptionend|podate|documentdate/.test(normalized);
+}
+
+export function normalizeDateForApi(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (ISO_DATE_PATTERN.test(trimmed.slice(0, 10))) {
+    const isoDate = trimmed.slice(0, 10);
+    return ISO_DATE_PATTERN.test(isoDate) ? isoDate : undefined;
+  }
+  return parseDateInput(trimmed) || undefined;
+}
