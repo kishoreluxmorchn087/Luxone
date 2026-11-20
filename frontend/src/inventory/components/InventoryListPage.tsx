@@ -122,7 +122,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     try {
       setLoading(true);
       setError(null);
-      setRows(await getInventoryList(moduleKey));
+      setRows(await getInventoryList(moduleKey, { forceFresh: true }));
     } catch (err) {
       setError(err instanceof Error ? err.message : `Unable to load ${meta.title.toLowerCase()}.`);
     } finally {
@@ -147,6 +147,12 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
     let output = filterRecords(rows, visibleColumns as unknown as CRMColumn<CRMRecord>[], combined, globalSearch);
+    const seenIds = new Set<string>();
+    output = output.filter((row) => {
+      if (seenIds.has(row.id)) return false;
+      seenIds.add(row.id);
+      return true;
+    });
     if (sortState) {
       output = sortRecords(output, sortState.key as keyof CRMRecord & string, sortState.direction);
     }
@@ -207,6 +213,11 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     const start = (page - 1) * pageSize;
     return processedRows.slice(start, start + pageSize);
   }, [page, pageSize, processedRows]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(processedRows.length / pageSize));
+    if (page > totalPages) setPage(totalPages);
+  }, [page, pageSize, processedRows.length]);
 
   const handleMassDelete = async () => {
     try {
