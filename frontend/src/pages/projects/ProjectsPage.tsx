@@ -74,12 +74,9 @@ export default function ProjectsPage() {
     <DashboardLayout>
       <div className="min-h-screen bg-slate-50 px-6 py-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-slate-900">Projects</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Manage project delivery, progress, tasks, issues, and execution.
-            </p>
-          </div>
+          <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+            All Projects
+          </button>
 
           <Link
             to="/projects/create"

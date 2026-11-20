@@ -51,12 +51,11 @@ export default function CampaignsPage() {
   return (
     <DashboardLayout>
       <div className="h-full overflow-hidden bg-[#f5f7fb]">
-        <div className="border-b border-[#d9e1ef] bg-[#f7f9fc] px-4 py-3">
+        <div className="border-b border-slate-200 bg-white px-4 py-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-[18px] font-semibold text-[#1f2d3d]">Campaigns</h1>
-              <p className="text-sm text-slate-500">Manage sales campaigns from live CRM data.</p>
-            </div>
+            <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+              All Campaigns
+            </button>
             <div className="flex items-center gap-3">
               <input
                 type="search"

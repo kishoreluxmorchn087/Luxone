@@ -202,6 +202,11 @@ const getPageTitle = (pathname: string) => {
   if (pathname === "/contacts" || pathname.startsWith("/contacts/")) return "Contacts";
   if (pathname === "/accounts" || pathname.startsWith("/accounts/")) return "Accounts";
   if (pathname === "/deals" || pathname.startsWith("/deals/")) return "Deals";
+  if (pathname === "/projects" || pathname.startsWith("/projects/")) return "Projects";
+  if (pathname === "/tasks" || pathname.startsWith("/tasks/")) return "Tasks";
+  if (pathname === "/meetings" || pathname.startsWith("/meetings/")) return "Meetings";
+  if (pathname === "/calls" || pathname.startsWith("/calls/")) return "Calls";
+  if (pathname === "/documents" || pathname.startsWith("/documents/")) return "Documents";
   if (pathname === "/campaigns" || pathname.startsWith("/campaigns/")) return "Campaigns";
   if (pathname === "/support/cases" || pathname.startsWith("/support/cases/")) return "Cases";
   if (pathname === "/support/solutions" || pathname.startsWith("/support/solutions/")) return "Solutions";

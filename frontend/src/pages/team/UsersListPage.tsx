@@ -122,7 +122,9 @@ export default function UsersListPage() {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">User Management</h1>
+          <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+            All Users
+          </button>
           <p className="text-sm text-slate-500 mt-0.5">
             {users.length} total · {users.filter((u) => u.status === "active").length} active ·{" "}
             {users.filter((u) => u.status === "inactive").length} inactive ·{" "}
