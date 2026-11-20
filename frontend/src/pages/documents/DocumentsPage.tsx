@@ -301,19 +301,16 @@ export default function DocumentsPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#f5f7fb]">
       {/* Header */}
-      <div className="border-b border-[#d9e1ef] bg-[#f7f9fc] px-6 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[18px] font-semibold text-[#1f2d3d]">Documents</h1>
-            <p className="text-xs text-slate-500">Manage files linked to your CRM records</p>
-          </div>
-          <button
-            onClick={() => setShowUpload(true)}
-            className="flex items-center gap-1.5 rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
-          >
-            <Plus size={15} /> Upload Document
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2">
+        <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+          All Documents
+        </button>
+        <button
+          onClick={() => setShowUpload(true)}
+          className="flex items-center gap-1.5 rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
+        >
+          <Plus size={15} /> Upload Document
+        </button>
       </div>
 
       <div className="space-y-4 p-6">
