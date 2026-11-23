@@ -67,7 +67,7 @@ export default function CampaignsPage() {
               <button
                 type="button"
                 onClick={() => navigate("/campaigns/create")}
-                className="rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-[14px] font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
+                className="rounded-[6px] bg-blue-600 px-4 py-2 text-[14px] font-medium text-white transition"
               >
                 Create Campaign
               </button>

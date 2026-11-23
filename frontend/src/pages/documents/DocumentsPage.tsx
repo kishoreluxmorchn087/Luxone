@@ -307,7 +307,7 @@ export default function DocumentsPage() {
         </button>
         <button
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-1.5 rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
+          className="flex items-center gap-1.5 rounded-[6px] bg-blue-600 px-4 py-2 text-sm font-medium text-white transition"
         >
           <Plus size={15} /> Upload Document
         </button>

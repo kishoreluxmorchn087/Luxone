@@ -99,7 +99,7 @@ function DealsViewToggle({
           onClick={() => onChange("pipeline")}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
             viewMode === "pipeline"
-              ? "border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)]"
+            ? "border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] text-white shadow-[0_10px_24px_rgba(40,74,210,0.20)]"
               : "text-slate-600 hover:bg-white"
           }`}
         >
@@ -110,7 +110,7 @@ function DealsViewToggle({
           onClick={() => onChange("list")}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
             viewMode === "list"
-              ? "border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)]"
+            ? "border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] text-white shadow-[0_10px_24px_rgba(40,74,210,0.20)]"
               : "text-slate-600 hover:bg-white"
           }`}
         >
