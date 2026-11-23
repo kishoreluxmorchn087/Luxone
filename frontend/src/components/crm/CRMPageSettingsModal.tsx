@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Columns3,
   SlidersHorizontal,
@@ -78,11 +78,17 @@ export default function CRMPageSettingsModal({
   const [curFilterOpen, setCurFilterOpen] = useState<boolean>(initialFilterOpen);
   const [curShowNotes, setCurShowNotes] = useState<boolean>(initialShowNotes);
   const [curShowActivity, setCurShowActivity] = useState<boolean>(initialShowActivity);
+  const appliedColumnSettings = useRef(new Set<string>());
+  const settingsKey = `${moduleName}:${viewName}`;
 
   useEffect(() => {
     if (open) {
       setActiveTab(initialTab);
-      setHiddenCols(initialHiddenColumns);
+      setHiddenCols(
+        appliedColumnSettings.current.has(settingsKey) || initialHiddenColumns.length > 0
+          ? initialHiddenColumns
+          : columns.map((column) => column.key)
+      );
       setCurPageSize(initialPageSize);
       setCurDensity(initialDensity);
       setCurPinnedCol(initialPinnedColumn);
@@ -104,6 +110,8 @@ export default function CRMPageSettingsModal({
     initialFilterOpen,
     initialShowNotes,
     initialShowActivity,
+    columns,
+    settingsKey,
   ]);
 
   // Filter columns by search query
@@ -139,7 +147,7 @@ export default function CRMPageSettingsModal({
 
   const handleResetToDefaults = () => {
     setHiddenCols([]);
-    setCurPageSize(25);
+    setCurPageSize(10);
     setCurDensity("normal");
     setCurPinnedCol(null);
     setCurSortCol(null);
@@ -151,6 +159,7 @@ export default function CRMPageSettingsModal({
   };
 
   const handleSave = () => {
+    appliedColumnSettings.current.add(settingsKey);
     onApply({
       hiddenColumns: hiddenCols,
       pageSize: curPageSize,

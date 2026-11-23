@@ -78,7 +78,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   config,
   rows,
   loading = false,
-  pageSize = 1000,
+  pageSize = 10,
   showNotes = true,
   showActivity = false,
   showActionsColumn = true,
