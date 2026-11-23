@@ -168,9 +168,9 @@ export const leadModuleConfig: CRMModuleConfig<LeadRecord> = {
   headerActions: ["Convert", "Add Tags", "Send Email", "Edit", "More"],
   rowActions: leadRowActions,
   filterSections: leadFilterSections,
-  sortFields: ["None", "Lead ID", "Lead Name", "Company", "Email", "Phone", "Lead Source", "Lead Owner"],
+  sortFields: ["None", "ID", "Lead Name", "Company", "Email", "Phone", "Lead Source", "Lead Owner"],
   sortFieldKeyMap: {
-    "Lead ID": "id",
+    "ID": "id",
     "Lead Name": "leadName",
     "Company": "company",
     "Email": "email",
