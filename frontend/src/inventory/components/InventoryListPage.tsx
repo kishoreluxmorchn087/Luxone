@@ -7,6 +7,7 @@ import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
 import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
+import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { addInventoryNote, convertQuoteToSalesOrder, convertSalesOrderToInvoice, deleteInventoryRecord, getInventoryList } from "../api";
 import { getInventoryMeta, getInventorySortConfig } from "../config";
@@ -94,6 +95,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [density, setDensity] = useState<DensityMode>("normal");
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -208,7 +211,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     };
   }, [moduleKey, processedRows]);
 
-  const pageSize = 10;
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return processedRows.slice(start, start + pageSize);
@@ -285,6 +287,18 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
             setSortState(key ? { key, direction } : null);
             setPage(1);
           }}
+          columns={meta.columns}
+          hiddenColumns={hiddenColumns}
+          onSetHiddenColumns={setHiddenColumns}
+          pinnedColumn={pinnedColumn}
+          onSetPinnedColumn={setPinnedColumn}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          density={density}
+          onDensityChange={setDensity}
           sortState={sortState}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -439,6 +453,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   hiddenColumns={hiddenColumns}
                   pinnedColumn={pinnedColumn}
                   columnFilters={columnFilters}
+                  density={density}
                   showNotes={moduleKey === "vendors"}
                   showActivity={moduleKey === "vendors"}
                   onToggleAll={(checked) => {
