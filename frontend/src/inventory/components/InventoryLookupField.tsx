@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import { fetchLookupOptions } from "../api";
 import type { LookupOption } from "../types";
@@ -36,7 +37,14 @@ export default function InventoryLookupField({
   const [options, setOptions] = useState<LookupOption[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setQuery(displayValue);
@@ -44,13 +52,43 @@ export default function InventoryLookupField({
 
   useEffect(() => {
     const handleOutside = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updateMenuPosition = () => {
+      const anchor = rootRef.current?.getBoundingClientRect();
+      if (!anchor) return;
+
+      const spaceBelow = window.innerHeight - anchor.bottom - 8;
+      const spaceAbove = anchor.top - 8;
+      const useBelow = spaceBelow >= spaceAbove;
+      const maxHeight = Math.max(0, useBelow ? spaceBelow : spaceAbove);
+
+      setMenuPosition({
+        top: useBelow ? anchor.bottom + 4 : Math.max(8, anchor.top - maxHeight - 4),
+        left: anchor.left,
+        width: anchor.width,
+        maxHeight,
+      });
+    };
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,12 +121,22 @@ export default function InventoryLookupField({
           }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder || "Search..."}
-          className="h-[34px] w-full bg-transparent px-2 text-[14px] text-slate-700 outline-none"
+          className="h-[34px] w-full bg-transparent px-2 text-[14px] text-slate-700 outline-none focus:!border-transparent focus:!shadow-none"
         />
       </div>
 
-      {open && (
-        <div className="absolute left-0 right-0 top-[38px] z-40 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+      {open && menuPosition && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: "fixed",
+            top: menuPosition.top,
+            left: menuPosition.left,
+            width: menuPosition.width,
+            maxHeight: menuPosition.maxHeight,
+          }}
+          className="z-[100] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
+        >
           {loading ? (
             <div className="px-3 py-2 text-sm text-slate-500">Loading options...</div>
           ) : options.length ? (
@@ -113,7 +161,8 @@ export default function InventoryLookupField({
           ) : (
             <div className="px-3 py-2 text-sm text-slate-500">No matches found.</div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
