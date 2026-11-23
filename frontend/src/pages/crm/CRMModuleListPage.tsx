@@ -79,7 +79,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   rows,
   loading = false,
   pageSize = 10,
-  showNotes = true,
+  showNotes = false,
   showActivity = false,
   showActionsColumn = true,
   onDeleteRow,
@@ -150,7 +150,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
   const isFilterOpen = filterOpen ?? !hideFilterSidebar;

@@ -582,7 +582,7 @@ export default function ModuleToolbar({
         pinnedColumn={pinnedColumn ?? null}
         sortState={sortState}
         filterOpen={isFilterOpen}
-        showNotes={showNotes ?? true}
+        showNotes={showNotes ?? false}
         showActivity={showActivity ?? false}
         initialTab={pageSettingsInitialTab}
         onApply={(settings) => {
@@ -610,8 +610,8 @@ export default function ModuleToolbar({
           if (onDensityChange) onDensityChange("normal");
           if (onSetPinnedColumn) onSetPinnedColumn(null);
           if (onApplySort) onApplySort(null, "asc");
-          if (!isFilterOpen) onToggleFilter();
-          if (onToggleShowNotes) onToggleShowNotes(true);
+          if (isFilterOpen) onToggleFilter();
+          if (onToggleShowNotes) onToggleShowNotes(false);
           if (onToggleShowActivity) onToggleShowActivity(false);
         }}
       />

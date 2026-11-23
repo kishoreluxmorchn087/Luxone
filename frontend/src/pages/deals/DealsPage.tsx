@@ -56,7 +56,7 @@ export default function DealsPage() {
       config={dealModuleConfig}
       rows={rows}
       loading={loading}
-      showNotes={true}
+      showNotes={false}
       showActivity={false}
       onDeleteRow={handleDeleteRow}
       hideFilterSidebar={viewMode === "pipeline"}
