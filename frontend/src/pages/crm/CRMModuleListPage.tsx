@@ -326,6 +326,12 @@ export default function CRMModuleListPage<T extends CRMRecord>({
       return;
     }
 
+    if (config.module === "deals") {
+      const { addDealNote } = await import("../../lib/api/dealsApi");
+      await addDealNote(activeRow.id, note);
+      return;
+    }
+
     throw new Error("Notes are not enabled for this module.");
   };
 
