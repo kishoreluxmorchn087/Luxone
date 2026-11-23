@@ -577,7 +577,7 @@ export default function ModuleToolbar({
         moduleName={moduleName || singularModuleName}
         columns={columns || []}
         hiddenColumns={hiddenColumns || []}
-        pageSize={pageSize ?? 25}
+        pageSize={pageSize ?? 10}
         density={density ?? "normal"}
         pinnedColumn={pinnedColumn ?? null}
         sortState={sortState}
@@ -606,7 +606,7 @@ export default function ModuleToolbar({
         }}
         onResetDefaults={() => {
           if (onSetHiddenColumns) onSetHiddenColumns([]);
-          if (onPageSizeChange) onPageSizeChange(25);
+          if (onPageSizeChange) onPageSizeChange(10);
           if (onDensityChange) onDensityChange("normal");
           if (onSetPinnedColumn) onSetPinnedColumn(null);
           if (onApplySort) onApplySort(null, "asc");
