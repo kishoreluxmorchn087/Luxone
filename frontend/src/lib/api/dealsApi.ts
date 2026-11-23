@@ -239,6 +239,13 @@ export async function deleteDeal(id: string): Promise<void> {
   await apiRequest(`/deals/${id}`, { method: "DELETE" });
 }
 
+export async function addDealNote(id: string, note: string): Promise<void> {
+  await apiRequest(`/deals/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
 export async function createDealTask(
   id: string,
   payload: { subject: string; description?: string }
