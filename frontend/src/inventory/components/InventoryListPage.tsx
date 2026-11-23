@@ -100,7 +100,9 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
@@ -282,6 +284,10 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           sortFieldKeyMap={sortConfig.sortFieldKeyMap}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
+          showNotes={showNotes}
+          onToggleShowNotes={setShowNotes}
+          showActivity={showActivity}
+          onToggleShowActivity={setShowActivity}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
           onApplySort={(key, direction) => {
             setSortState(key ? { key, direction } : null);
@@ -454,8 +460,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   pinnedColumn={pinnedColumn}
                   columnFilters={columnFilters}
                   density={density}
-                  showNotes={moduleKey === "vendors"}
-                  showActivity={moduleKey === "vendors"}
+                  showNotes={showNotes && moduleKey === "vendors"}
+                  showActivity={showActivity && moduleKey === "vendors"}
                   onToggleAll={(checked) => {
                     setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                   }}

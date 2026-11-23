@@ -53,7 +53,7 @@ export default function AccountsPage() {
       config={accountModuleConfig}
       rows={rows}
       loading={loading}
-      showNotes={true}
+      showNotes={false}
       showActivity={false}
       showActionsColumn={false}
       onDeleteRow={handleDeleteRow}
