@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, Eye, ExternalLink, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import {
   deleteDocument,
   getDocuments,
@@ -266,9 +266,9 @@ export default function DocumentsSection({ module, relatedId }: Props) {
                     navigate(`/documents/${doc.id}`);
                   }}
                   title="View"
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
                 >
-                  <Eye size={13} />
+                  View
                 </button>
                 {doc.file_url && !canPreviewDocument(doc.file_name) ? (
                   <a
