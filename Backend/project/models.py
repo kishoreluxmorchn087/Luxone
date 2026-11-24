@@ -47,6 +47,27 @@ SEVERITY_CHOICES = [
 class Project(models.Model):
     project_code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
+    account = models.ForeignKey(
+        "accounts.Account",
+        on_delete=models.SET_NULL,
+        related_name="projects",
+        null=True,
+        blank=True,
+    )
+    contact = models.ForeignKey(
+        "contacts.Contact",
+        on_delete=models.SET_NULL,
+        related_name="projects",
+        null=True,
+        blank=True,
+    )
+    deal = models.ForeignKey(
+        "deals.Deal",
+        on_delete=models.SET_NULL,
+        related_name="projects",
+        null=True,
+        blank=True,
+    )
     account_name = models.CharField(max_length=255, blank=True)
     contact_name = models.CharField(max_length=255, blank=True)
     deal_name = models.CharField(max_length=255, blank=True)
