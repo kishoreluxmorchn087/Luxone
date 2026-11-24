@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { distributeChartPercentages, sortRecords } from "../src/lib/shared/crmHelpers.ts";
+import { formatProductType } from "../src/lib/shared/productType.ts";
 import { getInventorySortConfig } from "../src/inventory/config.ts";
+
+test("Product type display labels preserve title casing without changing unknown values", () => {
+  assert.equal(formatProductType("software"), "Software");
+  assert.equal(formatProductType("service"), "Service");
+  assert.equal(formatProductType("addon"), "Add-on");
+  assert.equal(formatProductType("bundle"), "Bundle");
+  assert.equal(formatProductType("Custom Type"), "Custom Type");
+});
 
 test("sortRecords sorts strings alphabetically and handles empty values", () => {
   const vendors = [

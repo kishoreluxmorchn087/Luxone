@@ -19,6 +19,7 @@ import { formatMoney } from "../utils";
 import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
+import { formatProductType } from "../../lib/shared/productType";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
 type InventoryListPageProps = {
@@ -192,6 +193,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     const getValue = (row: CRMRecord, field: string) => {
       const value = (row as Record<string, unknown>)[field];
       if (typeof value === "boolean") return value ? "Active" : "Inactive";
+      if (field === "productType") return formatProductType(value);
       if (typeof value === "string" || typeof value === "number") {
         return String(value).trim();
       }
@@ -393,7 +395,13 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   {paginatedRows.map((row) => {
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
-                    const badge = String(r.productCategory || r.category || r.status || r.productType || "");
+                    const badge = String(
+                      r.productCategory ||
+                        r.category ||
+                        r.status ||
+                        (moduleKey === "products" ? formatProductType(r.productType) : r.productType) ||
+                        ""
+                    );
                     const isSelected = selectedIds.includes(row.id);
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
                     const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
@@ -619,7 +627,13 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   {paginatedRows.map((row) => {
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
-                    const badge = String(r.productCategory || r.category || r.status || r.productType || "");
+                    const badge = String(
+                      r.productCategory ||
+                        r.category ||
+                        r.status ||
+                        (moduleKey === "products" ? formatProductType(r.productType) : r.productType) ||
+                        ""
+                    );
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
                     const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
 
