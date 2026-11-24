@@ -4,16 +4,6 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
 import { formatDateForDisplay, formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
-import {
-  fetchProjectRelatedRecords,
-  getAccountName,
-  getContactName,
-  getDealName,
-  type AccountOption,
-  type ContactOption,
-  type DealOption,
-  type RelatedRecordId,
-} from "./relatedRecords";
 import type {
   Project,
   ProjectTask,
@@ -104,19 +94,6 @@ export default function ProjectDetailPage() {
   const [meetingSaving, setMeetingSaving] = useState(false);
   const [meetingDeletingId, setMeetingDeletingId] = useState<string | number | null>(null);
   const [meetingActionError, setMeetingActionError] = useState<string | null>(null);
-  const [editingRelationships, setEditingRelationships] = useState(false);
-  const [savingRelationships, setSavingRelationships] = useState(false);
-  const [relationshipError, setRelationshipError] = useState<string | null>(null);
-  const [relationshipOptions, setRelationshipOptions] = useState<{
-    accounts: AccountOption[];
-    contacts: ContactOption[];
-    deals: DealOption[];
-  }>({ accounts: [], contacts: [], deals: [] });
-  const [relationshipValues, setRelationshipValues] = useState<{
-    account: RelatedRecordId | null | "";
-    contact: RelatedRecordId | null | "";
-    deal: RelatedRecordId | null | "";
-  }>({ account: "", contact: "", deal: "" });
   const currentUser = useMemo(() => getCurrentUserProfile(), []);
   const canManageMeetingAttendance = ["admin", "sub_admin", "manager"].includes(
     currentUser.role.trim().toLowerCase()
@@ -139,62 +116,6 @@ export default function ProjectDetailPage() {
     if (id) void fetchProject();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  const startEditingRelationships = async () => {
-    if (!project) return;
-    try {
-      setRelationshipError(null);
-      setSavingRelationships(true);
-      const options = await fetchProjectRelatedRecords();
-      const matchingId = <T extends { id: RelatedRecordId }>(
-        records: T[],
-        name: string,
-        getName: (record: T) => string
-      ) => records.find((record) => getName(record).trim().toLowerCase() === name.trim().toLowerCase())?.id;
-
-      setRelationshipOptions(options);
-      setRelationshipValues({
-        account: project.account ?? matchingId(options.accounts, project.account_name, getAccountName) ?? "",
-        contact: project.contact ?? matchingId(options.contacts, project.contact_name, getContactName) ?? "",
-        deal: project.deal ?? matchingId(options.deals, project.deal_name, getDealName) ?? "",
-      });
-      setEditingRelationships(true);
-    } catch (err) {
-      setRelationshipError(
-        err instanceof Error ? err.message : "Failed to load linked Account, Contact, and Deal records."
-      );
-    } finally {
-      setSavingRelationships(false);
-    }
-  };
-
-  const saveRelationships = async () => {
-    if (!id) return;
-    try {
-      setSavingRelationships(true);
-      setRelationshipError(null);
-      const updatedProject = await apiRequest<Project>(`/projects/${id}/`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          account: relationshipValues.account === "" || relationshipValues.account === null
-            ? null
-            : Number(relationshipValues.account),
-          contact: relationshipValues.contact === "" || relationshipValues.contact === null
-            ? null
-            : Number(relationshipValues.contact),
-          deal: relationshipValues.deal === "" || relationshipValues.deal === null
-            ? null
-            : Number(relationshipValues.deal),
-        }),
-      });
-      setProject(updatedProject);
-      setEditingRelationships(false);
-    } catch (err) {
-      setRelationshipError(err instanceof Error ? err.message : "Failed to update project links.");
-    } finally {
-      setSavingRelationships(false);
-    }
-  };
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
@@ -578,41 +499,6 @@ export default function ProjectDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <ProjectStatusBadge status={project.status} />
               <ProjectPriorityBadge priority={project.priority} />
-              {editingRelationships ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void saveRelationships()}
-                    disabled={savingRelationships}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
-                  >
-                    <Check className="h-4 w-4" />
-                    {savingRelationships ? "Saving..." : "Save links"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingRelationships(false);
-                      setRelationshipError(null);
-                    }}
-                    disabled={savingRelationships}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void startEditingRelationships()}
-                  disabled={savingRelationships}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                >
-                  <Pencil className="h-4 w-4" />
-                  {savingRelationships ? "Loading..." : "Edit links"}
-                </button>
-              )}
               <Link
                 to={`/projects/${project.id}/edit`}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -623,69 +509,13 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          {relationshipError && (
-            <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {relationshipError}
-            </div>
-          )}
-
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <InfoCard label="Assigned Manager" value={project.owner} />
             <InfoCard label="Start Date" value={formatDateForDisplay(project.start_date)} icon={<CalendarDays className="h-4 w-4" />} />
             <InfoCard label="Due Date" value={formatDateForDisplay(project.due_date)} icon={<CalendarDays className="h-4 w-4" />} />
-            {editingRelationships ? (
-              <>
-                <RelationshipSelectCard
-                  label="Account"
-                  value={relationshipValues.account}
-                  options={relationshipOptions.accounts.map((account) => ({
-                    id: account.id,
-                    name: getAccountName(account) || `Account #${account.id}`,
-                  }))}
-                  onChange={(value) => setRelationshipValues((previous) => ({ ...previous, account: value }))}
-                />
-                <RelationshipSelectCard
-                  label="Contact"
-                  value={relationshipValues.contact}
-                  options={relationshipOptions.contacts.map((contact) => ({
-                    id: contact.id,
-                    name: getContactName(contact) || `Contact #${contact.id}`,
-                  }))}
-                  onChange={(value) => {
-                    const selected = relationshipOptions.contacts.find((contact) => String(contact.id) === value);
-                    const accountId = selected?.account ?? null;
-                    setRelationshipValues((previous) => ({
-                      ...previous,
-                      contact: value || null,
-                      ...(accountId === null ? {} : { account: accountId }),
-                    }));
-                  }}
-                />
-                <RelationshipSelectCard
-                  label="Deal"
-                  value={relationshipValues.deal}
-                  options={relationshipOptions.deals.map((deal) => ({
-                    id: deal.id,
-                    name: getDealName(deal) || `Deal #${deal.id}`,
-                  }))}
-                  onChange={(value) => {
-                    const selected = relationshipOptions.deals.find((deal) => String(deal.id) === value);
-                    setRelationshipValues((previous) => ({
-                      ...previous,
-                      deal: value || null,
-                      ...(selected?.account == null ? {} : { account: selected.account }),
-                      ...(selected?.contact == null ? {} : { contact: selected.contact }),
-                    }));
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <InfoCard label="Account" value={project.account_name ?? ""} />
-                <InfoCard label="Contact" value={project.contact_name ?? ""} />
-                <InfoCard label="Deal" value={project.deal_name ?? ""} />
-              </>
-            )}
+            <InfoCard label="Account" value={project.account_name ?? ""} />
+            <InfoCard label="Contact" value={project.contact_name ?? ""} />
+            <InfoCard label="Deal" value={project.deal_name ?? ""} />
           </div>
 
           <div className="mt-6">
@@ -1204,38 +1034,6 @@ function InfoCard({
         <span>{label}</span>
       </div>
       <p className="text-sm font-medium text-slate-800">{value || "—"}</p>
-    </div>
-  );
-}
-
-function RelationshipSelectCard({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: RelatedRecordId | null | "";
-  options: { id: RelatedRecordId; name: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
-        {label}
-      </label>
-      <select
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500"
-      >
-        <option value="">{options.length ? `Select ${label.toLowerCase()}` : `No ${label.toLowerCase()} records available`}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

@@ -118,11 +118,8 @@ export interface Project {
   id: string | number;
   project_code: string;
   name: string;
-  account?: number | null;
   account_name: string;
-  contact?: number | null;
   contact_name: string;
-  deal?: number | null;
   deal_name: string;
   source_module?: string;
   source_record_id?: number | null;
@@ -150,11 +147,8 @@ export interface Project {
 export interface CreateProjectPayload {
   project_code: string;
   name: string;
-  account?: string | number | null;
   account_name: string;
-  contact?: string | number | null;
   contact_name: string;
-  deal?: string | number | null;
   deal_name: string;
   source_module?: string;
   source_record_id?: number | "";
