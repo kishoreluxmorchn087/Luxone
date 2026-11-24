@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { deleteCampaign, getCampaigns, type CampaignRecord } from "../../lib/api/campaignsApi";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 import { keepEmployeeOwnedRows } from "../../lib/shared/recordVisibility";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -126,8 +127,8 @@ export default function CampaignsPage() {
                             "-"
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{row.startDate || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.endDate || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.startDate) || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.endDate) || "-"}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
