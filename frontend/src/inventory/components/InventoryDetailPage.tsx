@@ -20,6 +20,7 @@ import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 import { formatDateTimeForDisplay, isDateLikeLabel } from "../../lib/dateUtils";
+import { formatProductType } from "../../lib/shared/productType";
 
 type InventoryDetailPageProps = {
   moduleKey: InventoryModuleKey;
@@ -80,6 +81,7 @@ function renderRelatedRecord(record: any, navigate: ReturnType<typeof useNavigat
 
 function formatDetailValue(label: string, value: unknown) {
   const text = String(value ?? "");
+  if (label === "Product Type") return formatProductType(value);
   return isDateLikeLabel(label) ? formatDateTimeForDisplay(text) : text;
 }
 
