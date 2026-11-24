@@ -180,7 +180,7 @@ export default function CalendarPage() {
                 setSelectedDate(date);
                 setViewDate(new Date(`${date}T00:00:00`));
               }}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
         </div>
