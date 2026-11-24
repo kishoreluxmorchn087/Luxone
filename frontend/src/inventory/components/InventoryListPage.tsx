@@ -5,7 +5,11 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
-import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
+import {
+  distributeChartPercentages as calculateChartPercentages,
+  filterRecords,
+  sortRecords,
+} from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -22,6 +26,10 @@ type InventoryListPageProps = {
 };
 
 const INVENTORY_CHART_COLORS = ["#ec4899", "#f97316", "#facc15", "#14b8a6", "#6366f1", "#8b5cf6"];
+
+export function distributeChartPercentages(counts: number[], total: number): number[] {
+  return calculateChartPercentages(counts, total);
+}
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
@@ -205,11 +213,17 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
     if (remainingCount > 0) sorted.push(["Other", remainingCount]);
 
+    const entries = sorted.map(([name, count]) => ({ name, count }));
+    const percentages = distributeChartPercentages(
+      entries.map((entry) => entry.count),
+      processedRows.length
+    );
+
     return {
       groupLabel: groupField
         ? groupField.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())
         : "Records",
-      data: sorted.map(([name, count]) => ({ name, count })),
+      data: entries.map((entry, index) => ({ ...entry, percentage: percentages[index] })),
     };
   }, [moduleKey, processedRows]);
 
@@ -754,9 +768,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                       </div>
                       <div className="space-y-3">
                         {chartDistribution.data.map((entry, index) => {
-                          const percentage = processedRows.length
-                            ? Math.round((entry.count / processedRows.length) * 100)
-                            : 0;
                           return (
                             <div
                               key={entry.name}
@@ -773,7 +784,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                                 <span className="truncate text-sm font-medium text-slate-700">{entry.name}</span>
                               </div>
                               <span className="shrink-0 text-sm font-semibold text-slate-900">
-                                {entry.count} <span className="font-normal text-slate-500">({percentage}%)</span>
+                                {entry.count} <span className="font-normal text-slate-500">({entry.percentage.toFixed(2)}%)</span>
                               </span>
                             </div>
                           );
