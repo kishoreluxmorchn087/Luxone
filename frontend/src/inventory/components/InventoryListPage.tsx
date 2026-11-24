@@ -396,11 +396,9 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
                     const badge = String(
-                      r.productCategory ||
-                        r.category ||
-                        r.status ||
-                        (moduleKey === "products" ? formatProductType(r.productType) : r.productType) ||
-                        ""
+                      moduleKey === "products"
+                        ? r.productType || ""
+                        : r.productCategory || r.category || r.status || r.productType || ""
                     );
                     const isSelected = selectedIds.includes(row.id);
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
@@ -628,11 +626,9 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
                     const badge = String(
-                      r.productCategory ||
-                        r.category ||
-                        r.status ||
-                        (moduleKey === "products" ? formatProductType(r.productType) : r.productType) ||
-                        ""
+                      moduleKey === "products"
+                        ? r.productType || ""
+                        : r.productCategory || r.category || r.status || r.productType || ""
                     );
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
                     const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
