@@ -4,6 +4,9 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
 import { validateDatePickerInputs } from "../../lib/dateUtils";
+import { getAccounts } from "../../lib/api/accountsApi";
+import { getContacts } from "../../lib/api/contactsApi";
+import { getDeals } from "../../lib/api/dealsApi";
 import type { CreateProjectPayload, Project } from "./types";
 
 const emptyForm: CreateProjectPayload = {
@@ -34,6 +37,36 @@ export default function CreateProjectPage() {
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateProjectPayload>(emptyForm);
+  const [accountOptions, setAccountOptions] = useState<string[]>([]);
+  const [contactOptions, setContactOptions] = useState<string[]>([]);
+  const [dealOptions, setDealOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLinkedRecords = async () => {
+      try {
+        const [accounts, contacts, deals] = await Promise.all([
+          getAccounts(),
+          getContacts(),
+          getDeals(),
+        ]);
+        if (cancelled) return;
+        setAccountOptions([...new Set(accounts.map((account) => account.accountName).filter(Boolean))]);
+        setContactOptions([...new Set(contacts.map((contact) => contact.contactName).filter(Boolean))]);
+        setDealOptions([...new Set(deals.map((deal) => deal.dealName).filter(Boolean))]);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load Account, Contact, and Deal records.");
+        }
+      }
+    };
+
+    void loadLinkedRecords();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (isEdit) return;
@@ -202,7 +235,7 @@ export default function CreateProjectPage() {
                 />
               </FormField>
 
-              <FormField label="Project Name">
+              <FormField label="Project Name" required>
                 <input
                   type="text"
                   name="name"
@@ -270,6 +303,47 @@ export default function CreateProjectPage() {
                 />
               </FormField>
 
+              <FormField label="Account">
+                <select
+                  name="account_name"
+                  value={formData.account_name}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select an account</option>
+                  {[...new Set([...accountOptions, formData.account_name].filter(Boolean))].map((account) => (
+                    <option key={account} value={account}>{account}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Contact">
+                <select
+                  name="contact_name"
+                  value={formData.contact_name}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select a contact</option>
+                  {[...new Set([...contactOptions, formData.contact_name].filter(Boolean))].map((contact) => (
+                    <option key={contact} value={contact}>{contact}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Deal">
+                <select
+                  name="deal_name"
+                  value={formData.deal_name}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select a deal</option>
+                  {[...new Set([...dealOptions, formData.deal_name].filter(Boolean))].map((deal) => (
+                    <option key={deal} value={deal}>{deal}</option>
+                  ))}
+                </select>
+              </FormField>
 
             </div>
 
@@ -307,10 +381,21 @@ export default function CreateProjectPage() {
   );
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  children,
+  required = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-600" aria-hidden="true">*</span>}
+      </label>
       {children}
     </div>
   );
