@@ -902,7 +902,7 @@ function serializeProduct(values: ProductFormValues) {
     usage_unit: values.usageUnit || "",
     default_user_seats: values.defaultUserSeats ?? 1,
     subscription_term_months: values.subscriptionTermMonths ?? 12,
-    renewal_required: values.renewalRequired ?? true,
+    renewal_required: values.renewalRequired ?? false,
     implementation_required: values.implementationRequired ?? false,
     support_start_date: values.supportStartDate || undefined,
     support_expiry_date: values.supportExpiryDate || undefined,
