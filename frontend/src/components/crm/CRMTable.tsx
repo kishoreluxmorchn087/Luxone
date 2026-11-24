@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDateTimeForDisplay, isDateLikeLabel } from "../../lib/dateUtils";
+import { formatProductType } from "../../lib/shared/productType";
 import { Phone, CalendarCheck, CalendarDays, Activity, Pencil, Trash2 } from "lucide-react";
 import type { CRMColumn, CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
 import CRMRowMoreOptionsMenu from "./CRMRowMoreOptionsMenu";
@@ -95,6 +96,7 @@ export default function CRMTable<T extends CRMRecord>({
   };
   const formatCellValue = (columnKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") return "-";
+    if (columnKey === "productType") return formatProductType(value);
     if (columnKey === "annualRevenue" || columnKey.toLowerCase().includes("revenue")) {
       const num = Number(String(value).replace(/,/g, ""));
       if (Number.isFinite(num)) {

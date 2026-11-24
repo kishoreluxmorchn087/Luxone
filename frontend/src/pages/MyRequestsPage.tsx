@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock3, Layers3, RefreshCw } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -102,6 +102,7 @@ export default function MyRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState<MyRequestsDashboardResponse>(initialCache?.state ?? EMPTY_STATE);
+  const focusedListRef = useRef<HTMLDivElement>(null);
   const focusedList =
     focus === "overdue"
       ? { title: "Overdue Requests", items: state.focus_requests.overdue }
@@ -112,6 +113,12 @@ export default function MyRequestsPage() {
           : null;
 
   useEffect(() => {
+    if (focus === "overdue" || focus === "due_today" || focus === "pending") {
+      focusedListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [focus]);
+
+  useEffect(() => {
     let active = true;
     const hasCachedState = Boolean(initialCache?.state);
 
@@ -120,7 +127,7 @@ export default function MyRequestsPage() {
         setError(null);
         setLoading(!hasCachedState);
         setRefreshing(hasCachedState || refreshKey > 0);
-        const nextState = await getMyRequestsDashboard(2 * 60 * 1000);
+        const nextState = await getMyRequestsDashboard(0);
         if (!active) return;
         setState(nextState);
         writeDashboardCache(MY_REQUESTS_CACHE_KEY, nextState);
@@ -237,9 +244,11 @@ export default function MyRequestsPage() {
         </div>
 
         {focusedList && (
-          <CRMSectionCard title={focusedList.title} subtitle="Select a request to open its details.">
-            <RequestList items={focusedList.items} emptyText="No matching requests right now." />
-          </CRMSectionCard>
+          <div ref={focusedListRef} className="scroll-mt-24">
+            <CRMSectionCard title={focusedList.title} subtitle="Select a request to open its details.">
+              <RequestList items={focusedList.items} emptyText="No matching requests right now." />
+            </CRMSectionCard>
+          </div>
         )}
 
         <CRMSectionCard title="Request Mix" subtitle="Current distribution across your assigned CRM work.">

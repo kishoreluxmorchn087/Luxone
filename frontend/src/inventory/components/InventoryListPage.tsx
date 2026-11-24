@@ -19,6 +19,7 @@ import { formatMoney } from "../utils";
 import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
+import { formatProductType } from "../../lib/shared/productType";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
 type InventoryListPageProps = {
@@ -192,6 +193,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     const getValue = (row: CRMRecord, field: string) => {
       const value = (row as Record<string, unknown>)[field];
       if (typeof value === "boolean") return value ? "Active" : "Inactive";
+      if (field === "productType") return formatProductType(value);
       if (typeof value === "string" || typeof value === "number") {
         return String(value).trim();
       }
