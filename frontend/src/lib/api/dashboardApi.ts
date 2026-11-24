@@ -92,6 +92,6 @@ export function getAnalyticsDashboard(cacheTtlMs = 5 * 60 * 1000) {
   return apiRequest<AnalyticsDashboardResponse>("/dashboard/analytics/", { cacheTtlMs });
 }
 
-export function getMyRequestsDashboard(cacheTtlMs = 2 * 60 * 1000) {
-  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", { cacheTtlMs });
+export function getMyRequestsDashboard(cacheTtlMs = 2 * 60 * 1000, signal?: AbortSignal) {
+  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", { cacheTtlMs, signal });
 }
