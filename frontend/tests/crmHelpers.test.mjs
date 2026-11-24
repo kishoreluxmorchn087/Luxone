@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sortRecords } from "../src/lib/shared/crmHelpers.ts";
+import { distributeChartPercentages, sortRecords } from "../src/lib/shared/crmHelpers.ts";
 import { getInventorySortConfig } from "../src/inventory/config.ts";
 
 test("sortRecords sorts strings alphabetically and handles empty values", () => {
@@ -73,4 +73,19 @@ test("Inventory sort fields are limited to each module's configured columns", ()
       );
     }
   }
+});
+
+test("Chart percentages distribute remainder so displayed totals equal 100%", () => {
+  const threeWay = distributeChartPercentages([1, 1, 1], 3);
+  assert.deepEqual(threeWay, [33.34, 33.33, 33.33]);
+  assert.equal(
+    Number(threeWay.reduce((total, percentage) => total + percentage, 0).toFixed(2)),
+    100
+  );
+
+  const sixWay = distributeChartPercentages([1, 1, 1, 1, 1, 1], 6);
+  assert.equal(
+    Number(sixWay.reduce((total, percentage) => total + percentage, 0).toFixed(2)),
+    100
+  );
 });

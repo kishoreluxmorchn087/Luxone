@@ -21,6 +21,29 @@ export function sortRecords<T extends CRMRecord>(
   return cloned;
 }
 
+export function distributeChartPercentages(counts: number[], total: number): number[] {
+  if (total <= 0 || counts.length === 0) return counts.map(() => 0);
+
+  const exactHundredths = counts.map((count) => {
+    const safeCount = Number.isFinite(count) && count > 0 ? count : 0;
+    return (safeCount / total) * 10000;
+  });
+  const percentages = exactHundredths.map((value) => Math.floor(value));
+  let remaining = 10000 - percentages.reduce((sum, value) => sum + value, 0);
+
+  const remainders = exactHundredths
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((left, right) => right.remainder - left.remainder || left.index - right.index);
+
+  for (const item of remainders) {
+    if (remaining <= 0) break;
+    percentages[item.index] += 1;
+    remaining -= 1;
+  }
+
+  return percentages.map((value) => value / 100);
+}
+
 export function filterRecords<T extends CRMRecord>(
   rows: T[],
   columns: CRMColumn<T>[],
