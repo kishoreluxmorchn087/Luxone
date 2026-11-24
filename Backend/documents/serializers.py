@@ -3,6 +3,12 @@ from rest_framework import serializers
 from .models import Document, DocumentVersion
 
 
+def validate_non_negative_related_id(value):
+    if value is not None and value < 0:
+        raise serializers.ValidationError("Linked record ID must be zero or greater.")
+    return value
+
+
 class DocumentVersionSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     file_name = serializers.SerializerMethodField()
@@ -69,6 +75,9 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
     # constraint), so we bypass DRF's choice validation here.
     document_type = serializers.CharField(max_length=100, default="other")
 
+    def validate_related_id(self, value):
+        return validate_non_negative_related_id(value)
+
     class Meta:
         model = Document
         fields = ["title", "description", "file", "document_type", "related_module", "related_id"]
@@ -84,6 +93,9 @@ class DocumentUpdateSerializer(serializers.ModelSerializer):
     file = serializers.FileField(required=False)
     # Same free-form override as DocumentCreateSerializer
     document_type = serializers.CharField(max_length=100, required=False)
+
+    def validate_related_id(self, value):
+        return validate_non_negative_related_id(value)
 
     class Meta:
         model = Document

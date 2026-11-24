@@ -58,6 +58,7 @@ function UploadModal({
     if (!title.trim()) { setError("Title is required."); return; }
     if (!file) { setError("Please select a file."); return; }
     if (docType === "other" && !customType.trim()) { setError("Please specify the document type."); return; }
+    if (relatedId && Number(relatedId) < 0) { setError("Linked record ID must be zero or greater."); return; }
     setError("");
     const resolvedType = docType === "other" && customType.trim() ? customType.trim() : docType;
     try {
@@ -175,6 +176,7 @@ function UploadModal({
               <input
                 className={inputCls}
                 type="number"
+                min="0"
                 value={relatedId}
                 onChange={(e) => setRelatedId(e.target.value)}
                 placeholder={`Enter ${MODULE_LABELS[relatedModule]} ID`}
