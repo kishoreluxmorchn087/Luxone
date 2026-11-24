@@ -191,3 +191,35 @@ class ReportDashboardTests(APITestCase):
         self.assertTrue(any(item["title"] == "Follow up proposal" for item in response.data["open_requests"]))
         self.assertEqual(response.data["summary_cards"]["due_today"], 0)
         self.assertEqual(response.data["focus_today"]["pending"], 0)
+
+    def test_my_requests_dashboard_returns_items_for_focus_card_filters(self):
+        Task.objects.create(
+            subject="Overdue follow up",
+            due_date=self.today - timedelta(days=1),
+            owner=self.user,
+            assigned_to=self.user,
+            status=Task.Status.NOT_STARTED,
+            priority=Task.Priority.HIGH,
+        )
+        Task.objects.create(
+            subject="Today's review",
+            due_date=self.today,
+            owner=self.user,
+            assigned_to=self.user,
+            status=Task.Status.NOT_STARTED,
+            priority=Task.Priority.NORMAL,
+        )
+        Task.objects.create(
+            subject="Waiting for approval",
+            owner=self.user,
+            assigned_to=self.user,
+            status=Task.Status.WAITING_INPUT,
+            priority=Task.Priority.NORMAL,
+        )
+
+        response = self.client.get("/api/dashboard/my-requests/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item["title"] for item in response.data["focus_requests"]["overdue"]], ["Overdue follow up"])
+        self.assertEqual([item["title"] for item in response.data["focus_requests"]["due_today"]], ["Today's review"])
+        self.assertEqual([item["title"] for item in response.data["focus_requests"]["pending"]], ["Waiting for approval"])

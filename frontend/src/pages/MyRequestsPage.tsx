@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock3, Layers3, RefreshCw } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CRMSectionCard from "../components/crm/CRMSectionCard";
@@ -12,13 +12,14 @@ import {
 import { readDashboardCache, writeDashboardCache } from "../lib/dashboardCache";
 import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
-const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v2";
+const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v3";
 const MY_REQUESTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const EMPTY_STATE: MyRequestsDashboardResponse = {
   updated: "",
   summary_cards: { created_today: 0, updated_today: 0, due_today: 0, closed_today: 0 },
   focus_today: { overdue: 0, due_today: 0, pending: 0 },
+  focus_requests: { overdue: [], due_today: [], pending: [] },
   request_mix: [],
   open_requests: [],
   upcoming_queue: [],
@@ -93,12 +94,22 @@ function RequestList({ items, emptyText }: { items: DashboardRequestItem[]; empt
 
 export default function MyRequestsPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const focus = searchParams.get("focus");
   const [initialCache] = useState(() => readDashboardCache<MyRequestsDashboardResponse>(MY_REQUESTS_CACHE_KEY, MY_REQUESTS_CACHE_TTL_MS));
   const [loading, setLoading] = useState(!initialCache?.state);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState<MyRequestsDashboardResponse>(initialCache?.state ?? EMPTY_STATE);
+  const focusedList =
+    focus === "overdue"
+      ? { title: "Overdue Requests", items: state.focus_requests.overdue }
+      : focus === "due_today"
+        ? { title: "Requests Due Today", items: state.focus_requests.due_today }
+        : focus === "pending"
+          ? { title: "Pending Requests", items: state.focus_requests.pending }
+          : null;
 
   useEffect(() => {
     let active = true;
@@ -199,31 +210,37 @@ export default function MyRequestsPage() {
         </div>
 
         <div className="grid items-stretch gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#fff9f9_0%,#fff2f3_100%)] px-4 py-4">
+          <Link to="?focus=overdue" className="block rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#fff9f9_0%,#fff2f3_100%)] px-4 py-4 transition hover:border-rose-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Overdue</div>
               <AlertTriangle className="h-5 w-5 text-rose-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.overdue}</div>
             <div className="mt-2 text-sm text-slate-500">Requests that need immediate attention.</div>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fffdf7_0%,#fff8ea_100%)] px-4 py-4">
+          </Link>
+          <Link to="?focus=due_today" className="block rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fffdf7_0%,#fff8ea_100%)] px-4 py-4 transition hover:border-amber-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Due Today</div>
               <Clock3 className="h-5 w-5 text-amber-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.due_today}</div>
             <div className="mt-2 text-sm text-slate-500">Queue items expected to move before today ends.</div>
-          </div>
-          <div className="rounded-2xl border border-violet-200 bg-[linear-gradient(180deg,#fbf9ff_0%,#f4efff_100%)] px-4 py-4">
+          </Link>
+          <Link to="?focus=pending" className="block rounded-2xl border border-violet-200 bg-[linear-gradient(180deg,#fbf9ff_0%,#f4efff_100%)] px-4 py-4 transition hover:border-violet-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Pending</div>
               <ClipboardList className="h-5 w-5 text-violet-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.pending}</div>
             <div className="mt-2 text-sm text-slate-500">Approvals or waiting states that may block progress.</div>
-          </div>
+          </Link>
         </div>
+
+        {focusedList && (
+          <CRMSectionCard title={focusedList.title} subtitle="Select a request to open its details.">
+            <RequestList items={focusedList.items} emptyText="No matching requests right now." />
+          </CRMSectionCard>
+        )}
 
         <CRMSectionCard title="Request Mix" subtitle="Current distribution across your assigned CRM work.">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

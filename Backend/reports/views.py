@@ -552,6 +552,11 @@ class MyRequestsDashboardView(APIView):
                 "due_today": len(due_today),
                 "pending": len(pending_items),
             },
+            "focus_requests": {
+                "overdue": overdue,
+                "due_today": due_today,
+                "pending": pending_items,
+            },
             "request_mix": [
                 {"module": "Task", "count": task_qs.count()},
                 {"module": "Meeting", "count": meeting_qs.count()},
