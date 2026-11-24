@@ -59,6 +59,11 @@ export type MyRequestsDashboardResponse = {
   updated: string;
   summary_cards: { created_today: number; updated_today: number; due_today: number; closed_today: number };
   focus_today: { overdue: number; due_today: number; pending: number };
+  focus_requests: {
+    overdue: DashboardRequestItem[];
+    due_today: DashboardRequestItem[];
+    pending: DashboardRequestItem[];
+  };
   request_mix: Array<{ module: string; count: number }>;
   open_requests: DashboardRequestItem[];
   upcoming_queue: DashboardRequestItem[];
