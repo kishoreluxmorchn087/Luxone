@@ -168,7 +168,7 @@ const sections: CRMCreateSection[] = [
       { name: "rating", label: "Rating", type: "select", options: RATING_OPTIONS },
       { name: "skypeId", label: "Skype ID", type: "text" },
       { name: "secondaryEmail", label: "Secondary Email", type: "email" },
-      { name: "twitter", label: "Twitter", type: "text" },
+      { name: "twitter", label: "Twitter", type: "text", prefix: "@", placeholder: "e.g. johndoe" },
     ],
   },
   {
