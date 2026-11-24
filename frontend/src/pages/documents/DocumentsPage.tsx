@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Download,
-  Eye,
   FileText,
   Loader2,
   Plus,
@@ -418,9 +417,9 @@ export default function DocumentsPage() {
                           <button
                             onClick={() => navigate(`/documents/${doc.id}`)}
                             title="View"
-                            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
                           >
-                            <Eye size={14} />
+                            View
                           </button>
                           {doc.file_url && (
                             <a
