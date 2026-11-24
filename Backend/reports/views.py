@@ -462,7 +462,7 @@ class MyRequestsDashboardView(APIView):
             "created_at",
             "updated_at",
         )
-        appointment_qs = ServiceAppointment.objects.filter(assigned_member=user)
+        appointment_qs = ServiceAppointment.objects.filter(assigned_member=user).select_related("service")
 
         items = []
         for task in task_qs:
