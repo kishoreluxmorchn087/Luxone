@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { apiRequest } from "../../api/client";
 import type { Project } from "./types";
@@ -177,6 +177,8 @@ function SummaryCard({ title, value }: { title: string; value: string }) {
 }
 
 function ProjectsTable({ projects }: { projects: Project[] }) {
+  const navigate = useNavigate();
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full">
@@ -194,11 +196,16 @@ function ProjectsTable({ projects }: { projects: Project[] }) {
         </thead>
         <tbody>
           {projects.map((project) => (
-            <tr key={project.id} className="border-b border-slate-100 text-sm">
+            <tr
+              key={project.id}
+              onClick={() => navigate(`/projects/${project.id}`)}
+              className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50"
+            >
               <td className="px-4 py-4 text-slate-700">{project.project_code || "—"}</td>
               <td className="px-4 py-4">
                 <Link
                   to={`/projects/${project.id}`}
+                  onClick={(event) => event.stopPropagation()}
                   className="font-medium text-blue-600 hover:text-blue-700"
                 >
                   {project.name}

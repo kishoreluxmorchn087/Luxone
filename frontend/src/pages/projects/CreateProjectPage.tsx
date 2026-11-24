@@ -5,6 +5,16 @@ import DatePicker from "../../components/common/DatePicker";
 import { apiRequest } from "../../api/client";
 import { validateDatePickerInputs } from "../../lib/dateUtils";
 import type { CreateProjectPayload, Project } from "./types";
+import {
+  fetchProjectRelatedRecords,
+  getAccountName,
+  getContactName,
+  getDealName,
+  type AccountOption,
+  type ContactOption,
+  type DealOption,
+  type RelatedRecordId,
+} from "./relatedRecords";
 
 const emptyForm: CreateProjectPayload = {
   project_code: "",
@@ -34,6 +44,50 @@ export default function CreateProjectPage() {
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateProjectPayload>(emptyForm);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [contacts, setContacts] = useState<ContactOption[]>([]);
+  const [deals, setDeals] = useState<DealOption[]>([]);
+  const [relatedRecordsError, setRelatedRecordsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRelatedRecords = async () => {
+      try {
+        const records = await fetchProjectRelatedRecords();
+        setAccounts(records.accounts);
+        setContacts(records.contacts);
+        setDeals(records.deals);
+      } catch (err) {
+        setRelatedRecordsError(
+          err instanceof Error ? err.message : "Failed to load Account, Contact, and Deal records."
+        );
+      }
+    };
+    void fetchRelatedRecords();
+  }, []);
+
+  useEffect(() => {
+    const matchingId = <T extends { id: RelatedRecordId }>(
+      records: T[],
+      name: string,
+      getName: (record: T) => string
+    ) => records.find((record) => getName(record).trim().toLowerCase() === name.trim().toLowerCase())?.id;
+
+    setFormData((previous) => {
+      const account = previous.account === null
+        ? null
+        : previous.account || matchingId(accounts, previous.account_name, getAccountName) || "";
+      const contact = previous.contact === null
+        ? null
+        : previous.contact || matchingId(contacts, previous.contact_name, getContactName) || "";
+      const deal = previous.deal === null
+        ? null
+        : previous.deal || matchingId(deals, previous.deal_name, getDealName) || "";
+      if (account === previous.account && contact === previous.contact && deal === previous.deal) {
+        return previous;
+      }
+      return { ...previous, account, contact, deal };
+    });
+  }, [accounts, contacts, deals, formData.account_name, formData.contact_name, formData.deal_name]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -71,8 +125,11 @@ export default function CreateProjectPage() {
         setFormData({
           project_code: project.project_code ?? "",
           name: project.name ?? "",
+          account: project.account ?? "",
           account_name: project.account_name ?? "",
+          contact: project.contact ?? "",
           contact_name: project.contact_name ?? "",
+          deal: project.deal ?? "",
           deal_name: project.deal_name ?? "",
           source_module: project.source_module ?? "",
           source_record_id: project.source_record_id ?? "",
@@ -109,6 +166,37 @@ export default function CreateProjectPage() {
     }));
   };
 
+  const handleContactChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedContact = contacts.find((contact) => String(contact.id) === event.target.value);
+    const selectedAccount = selectedContact?.account == null
+      ? undefined
+      : accounts.find((account) => String(account.id) === String(selectedContact.account));
+    setFormData((previous) => ({
+      ...previous,
+      contact: selectedContact?.id ?? null,
+      contact_name: selectedContact ? getContactName(selectedContact) : "",
+      ...(selectedAccount ? { account: selectedAccount.id, account_name: getAccountName(selectedAccount) } : {}),
+    }));
+  };
+
+  const handleDealChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedDeal = deals.find((deal) => String(deal.id) === event.target.value);
+    const selectedAccount = selectedDeal?.account == null
+      ? undefined
+      : accounts.find((account) => String(account.id) === String(selectedDeal.account));
+    const selectedContact = selectedDeal?.contact == null
+      ? undefined
+      : contacts.find((contact) => String(contact.id) === String(selectedDeal.contact));
+
+    setFormData((previous) => ({
+      ...previous,
+      deal: selectedDeal?.id ?? null,
+      deal_name: selectedDeal ? getDealName(selectedDeal) : "",
+      ...(selectedAccount ? { account: selectedAccount.id, account_name: getAccountName(selectedAccount) } : {}),
+      ...(selectedContact ? { contact: selectedContact.id, contact_name: getContactName(selectedContact) } : {}),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateDatePickerInputs()) return;
@@ -121,6 +209,12 @@ export default function CreateProjectPage() {
       source_record_id: formData.source_record_id === "" ? null : Number(formData.source_record_id),
       estimated_hours: formData.estimated_hours === "" ? 0 : formData.estimated_hours,
     };
+    if (formData.account === "") delete payload.account;
+    else if (formData.account !== null) payload.account = Number(formData.account);
+    if (formData.contact === "") delete payload.contact;
+    else if (formData.contact !== null) payload.contact = Number(formData.contact);
+    if (formData.deal === "") delete payload.deal;
+    else if (formData.deal !== null) payload.deal = Number(formData.deal);
     try {
       setLoading(true);
       setError(null);
@@ -176,6 +270,11 @@ export default function CreateProjectPage() {
                 {error}
               </div>
             )}
+            {relatedRecordsError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {relatedRecordsError}
+              </div>
+            )}
 
             {formData.source_module && formData.source_record_id ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
@@ -202,7 +301,7 @@ export default function CreateProjectPage() {
                 />
               </FormField>
 
-              <FormField label="Project Name">
+              <FormField label="Project Name" required>
                 <input
                   type="text"
                   name="name"
@@ -223,6 +322,61 @@ export default function CreateProjectPage() {
                   placeholder="Enter assigned manager"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 />
+              </FormField>
+
+              <FormField label="Account">
+                <select
+                  name="account"
+                  value={formData.account ?? ""}
+                  onChange={(event) => {
+                    const selected = accounts.find((account) => String(account.id) === event.target.value);
+                    setFormData((previous) => ({
+                      ...previous,
+                      account: selected?.id ?? null,
+                      account_name: selected ? getAccountName(selected) : "",
+                    }));
+                  }}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select an account</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {getAccountName(account) || `Account #${account.id}`}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Contact">
+                <select
+                  name="contact"
+                  value={formData.contact ?? ""}
+                  onChange={handleContactChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select a contact</option>
+                  {contacts.map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {getContactName(contact) || `Contact #${contact.id}`}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Deal">
+                <select
+                  name="deal"
+                  value={formData.deal ?? ""}
+                  onChange={handleDealChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select a deal</option>
+                  {deals.map((deal) => (
+                    <option key={deal.id} value={deal.id}>
+                      {getDealName(deal) || `Deal #${deal.id}`}
+                    </option>
+                  ))}
+                </select>
               </FormField>
 
               <FormField label="Status">
@@ -307,10 +461,21 @@ export default function CreateProjectPage() {
   );
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  children,
+  required = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
+      </label>
       {children}
     </div>
   );
