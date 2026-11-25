@@ -18,6 +18,7 @@ from integrations.services import (
     AUTO_SYNC_STALE_SECONDS,
     auto_sync_visible_email_providers,
     create_outgoing_crm_email,
+    email_send_error_detail,
     get_lead_connected_records,
     get_lead_emails,
     get_user_default_email_provider,
@@ -586,23 +587,30 @@ class LeadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        create_outgoing_crm_email(
-            provider_integration=provider,
-            subject=serializer.validated_data["subject"],
-            body=serializer.validated_data["body"],
-            to_emails=[recipient_email],
-            send_live=True,
-            owner=request.user,
-            lead=lead,
-            contact=lead.converted_contact,
-            account=lead.converted_account,
-            deal=lead.converted_deal,
-            thread_id=f"lead-{lead.pk}",
-            metadata={
-                "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                "company": lead.company,
-            },
-        )
+        try:
+            create_outgoing_crm_email(
+                provider_integration=provider,
+                subject=serializer.validated_data["subject"],
+                body=serializer.validated_data["body"],
+                to_emails=[recipient_email],
+                send_live=True,
+                owner=request.user,
+                lead=lead,
+                contact=lead.converted_contact,
+                account=lead.converted_account,
+                deal=lead.converted_deal,
+                thread_id=f"lead-{lead.pk}",
+                metadata={
+                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
+                    "company": lead.company,
+                },
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": email_send_error_detail(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         create_activity_log(
             lead=lead,
             action="Email sent",
