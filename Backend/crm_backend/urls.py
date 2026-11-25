@@ -64,9 +64,7 @@ urlpatterns = [
     path('api/', include('documents.urls')),
     path('api/', include('reports.urls')),
     path('api/send-email', send_email_view, name='send-email'),
-    path('api/send-email/', send_email_view, name='send-email-slash'),
     path('api/imports', import_file_view, name='import-file'),
-    path('api/imports/', import_file_view, name='import-file-slash'),
     
     # Swagger documentation URLs
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

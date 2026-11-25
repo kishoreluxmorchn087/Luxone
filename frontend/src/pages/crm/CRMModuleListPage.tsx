@@ -346,64 +346,36 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     }
 
     if (config.module === "contacts") {
-      try {
-        const { sendContactEmail } = await import("../../lib/api/contactsApi");
-        await sendContactEmail(activeRow.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        setCopyToast({ visible: true, message: "Email sent successfully!", type: "success" });
-        setTimeout(() => setCopyToast((prev) => ({ ...prev, visible: false })), 2500);
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
+      const { sendContactEmail } = await import("../../lib/api/contactsApi");
+      await sendContactEmail(activeRow.id, {
+        subject: payload.subject,
+        body: payload.body,
+        to: payload.to,
+      });
+      return;
     }
 
     if (config.module === "accounts") {
-      try {
-        const { sendAccountEmail } = await import("../../lib/api/accountsApi");
-        await sendAccountEmail(activeRow.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        setCopyToast({ visible: true, message: "Email sent successfully!", type: "success" });
-        setTimeout(() => setCopyToast((prev) => ({ ...prev, visible: false })), 2500);
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
+      const { sendAccountEmail } = await import("../../lib/api/accountsApi");
+      await sendAccountEmail(activeRow.id, {
+        subject: payload.subject,
+        body: payload.body,
+        to: payload.to,
+      });
+      return;
     }
 
     if (config.module === "leads") {
-      try {
-        const { sendLeadEmail } = await import("../../lib/api/leadsApi");
-        await sendLeadEmail(activeRow.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        setCopyToast({ visible: true, message: "Email sent successfully!", type: "success" });
-        setTimeout(() => setCopyToast((prev) => ({ ...prev, visible: false })), 2500);
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
-    }
-
-    await apiRequest("/send-email", {
-      method: "POST",
-      body: JSON.stringify({
-        to: payload.to,
+      const { sendLeadEmail } = await import("../../lib/api/leadsApi");
+      await sendLeadEmail(activeRow.id, {
         subject: payload.subject,
         body: payload.body,
-        from_email: payload.from_email,
-      }),
-    });
-    setCopyToast({ visible: true, message: "Email sent successfully!", type: "success" });
-    setTimeout(() => setCopyToast((prev) => ({ ...prev, visible: false })), 2500);
+        to: payload.to,
+      });
+      return;
+    }
+
+    throw new Error(`Send Email is not wired for the ${config.module} module yet.`);
   };
 
   const handleCreateTask = async (payload: {
