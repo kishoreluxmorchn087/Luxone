@@ -45,6 +45,7 @@ type CRMTableProps<T extends CRMRecord> = {
   columnFilters: Partial<Record<string, string>>;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActivityActions?: boolean;
   showActionsColumn?: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (id: string, checked: boolean) => void;
@@ -71,6 +72,7 @@ export default function CRMTable<T extends CRMRecord>({
   columnFilters,
   showNotes = true,
   showActivity = true,
+  showActivityActions = true,
   showActionsColumn = true,
   onToggleAll,
   onToggleRow,
@@ -250,12 +252,12 @@ export default function CRMTable<T extends CRMRecord>({
                       activity={(row as { nextActivity: ActivityBadge }).nextActivity}
                       onClick={() => onActivityBadgeClick?.(row)}
                     />
-                  ) : (
+                  ) : showActivityActions ? (
                     <CRMRowUtilityIcons
                       showNotes={false}
                       onOpenActivityAction={(actionKey) => onOpenActivityAction?.(row, actionKey)}
                     />
-                  )}
+                  ) : null}
                 </td>
               ) : null}
 
