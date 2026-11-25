@@ -1449,7 +1449,7 @@ export default function CRMImportPage({
                   </button>
                   <button
                     type="button"
-                    className="rounded-[6px] bg-[#359de9] px-6 py-2 text-[13px] font-medium text-white disabled:opacity-70"
+                    className="rounded-[6px] border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] px-6 py-2 text-[13px] font-medium text-white shadow-[0_10px_24px_rgba(40,74,210,0.20)] transition hover:brightness-105 disabled:opacity-70"
                     disabled={isProcessing || !noteText.trim()}
                     onClick={handleImport}
                   >
@@ -1520,7 +1520,11 @@ export default function CRMImportPage({
                   </button>
                   <button
                     type="button"
-                    className="rounded-[6px] bg-[#a9b7f7] px-6 py-2 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    className={`rounded-[6px] px-6 py-2 text-[13px] font-medium text-white transition ${
+                      mappingComplete
+                        ? "border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] shadow-[0_10px_24px_rgba(40,74,210,0.20)] hover:brightness-105"
+                        : "cursor-not-allowed bg-[#a9b7f7] opacity-70"
+                    }`}
                     disabled={!mappingComplete}
                     onClick={() => setStep(3)}
                   >
@@ -1571,7 +1575,7 @@ export default function CRMImportPage({
                   </button>
                   <button
                     type="button"
-                    className="rounded-[6px] bg-[#359de9] px-6 py-2 text-[13px] font-medium text-white disabled:opacity-70"
+                    className="rounded-[6px] border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] px-6 py-2 text-[13px] font-medium text-white shadow-[0_10px_24px_rgba(40,74,210,0.20)] transition hover:brightness-105 disabled:opacity-70"
                     disabled={isProcessing}
                     onClick={handleImport}
                   >
@@ -1628,7 +1632,7 @@ export default function CRMImportPage({
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="rounded-[6px] bg-[#359de9] px-6 py-2 text-[13px] font-medium text-white"
+                    className="rounded-[6px] border border-indigo-400/20 bg-[linear-gradient(135deg,#4537d4_0%,#176de5_68%,#10bde8_135%)] px-6 py-2 text-[13px] font-medium text-white shadow-[0_10px_24px_rgba(40,74,210,0.20)] transition hover:brightness-105"
                     onClick={() => navigate(backPath)}
                   >
                     Done
