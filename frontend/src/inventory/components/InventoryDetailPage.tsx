@@ -8,6 +8,7 @@ import CRMTabs from "../../components/crm/CRMTabs";
 import CRMTimeline from "../../components/crm/CRMTimeline";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { SendEmailModal } from "../../components/crm/CRMActionModals";
+import { apiRequest } from "../../api/client";
 import {
   addInventoryAttachment,
   convertQuoteToSalesOrder,
@@ -159,6 +160,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           actions={headerActions}
           onBack={() => navigate(meta.baseRoute)}
           onAction={async (action) => {
+            if (action === "Send Email" && moduleKey === "vendors") {
+              setEmailOpen(true);
+              return;
+            }
+
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
               return;
@@ -446,7 +452,18 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           allowAttachments
           onSend={async (email) => {
             if (!id) throw new Error("Vendor record is unavailable.");
-            await sendVendorEmail(id, email);
+            try {
+              await sendVendorEmail(id, email);
+            } catch {
+              await apiRequest("/send-email", {
+                method: "POST",
+                body: JSON.stringify({
+                  to: email.to,
+                  subject: email.subject,
+                  body: email.body,
+                }),
+              });
+            }
           }}
         />
       )}
