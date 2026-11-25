@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 import { login, storeAuthSession } from "../lib/api/authApi";
 import { getResolvedApiBaseUrl } from "../api/config";
 import luxmorWordmark from "../assets/1.jpg";
@@ -362,8 +363,19 @@ export default function LoginPage() {
                 </div>
 
                 {error && (
-                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600">
-                    {error}
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-600"
+                  >
+                    <span>{error}</span>
+                    <button
+                      type="button"
+                      onClick={() => setError("")}
+                      aria-label="Dismiss error"
+                      className="shrink-0 rounded p-1 text-red-500 hover:bg-red-100 hover:text-red-700"
+                    >
+                      <X size={16} aria-hidden="true" />
+                    </button>
                   </div>
                 )}
 
