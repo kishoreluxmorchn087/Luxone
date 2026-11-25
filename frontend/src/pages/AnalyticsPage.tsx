@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bar,
@@ -190,24 +190,42 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState<AnalyticsDashboardResponse>(initialCache?.state || EMPTY_STATE);
+  const refreshInProgressRef = useRef(false);
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const hasCachedState = Boolean(initialCache?.state);
+    const isManualRefresh = refreshKey > 0;
+    let delayTimer: number | undefined;
 
     const load = async () => {
       try {
-        setLoading(!hasCachedState);
-        setRefreshing(hasCachedState || refreshKey > 0);
+        refreshInProgressRef.current = true;
+        setLoading(!hasCachedState && !isManualRefresh);
+        setRefreshing(hasCachedState || isManualRefresh);
         setError(null);
-        const nextState = await getAnalyticsDashboard(5 * 60 * 1000);
+        const minDelayPromise = isManualRefresh
+          ? new Promise<void>((resolve) => {
+              delayTimer = window.setTimeout(resolve, 1000);
+            })
+          : Promise.resolve();
+        const [nextState] = await Promise.all([
+          getAnalyticsDashboard(
+            isManualRefresh ? 0 : 5 * 60 * 1000,
+            controller.signal,
+            isManualRefresh,
+          ),
+          minDelayPromise,
+        ]);
         if (!active) return;
         setState(nextState);
         writeDashboardCache(ANALYTICS_CACHE_KEY, nextState);
       } catch (loadError) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load analytics.");
       } finally {
+        refreshInProgressRef.current = false;
         if (active) {
           setLoading(false);
           setRefreshing(false);
@@ -218,6 +236,11 @@ export default function AnalyticsPage() {
     void load();
     return () => {
       active = false;
+      refreshInProgressRef.current = false;
+      if (delayTimer !== undefined) {
+        window.clearTimeout(delayTimer);
+      }
+      controller.abort();
     };
   }, [initialCache?.state, refreshKey]);
 
@@ -284,11 +307,17 @@ export default function AnalyticsPage() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">{monthLabel()}</div>
               <button
                 type="button"
-                onClick={() => setRefreshKey((current) => current + 1)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                disabled={loading || refreshing}
+                aria-busy={loading || refreshing}
+                onClick={() => {
+                  if (refreshInProgressRef.current) return;
+                  refreshInProgressRef.current = true;
+                  setRefreshKey((current) => current + 1);
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshing ? "Refreshing..." : "Refresh"}
+                <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+                {loading ? "Loading..." : refreshing ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           </div>
