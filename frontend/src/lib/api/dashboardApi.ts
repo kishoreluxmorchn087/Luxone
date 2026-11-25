@@ -88,8 +88,16 @@ export function getHomeDashboard(cacheTtlMs = 2 * 60 * 1000) {
   return apiRequest<HomeDashboardResponse>("/dashboard/home/", { cacheTtlMs });
 }
 
-export function getAnalyticsDashboard(cacheTtlMs = 5 * 60 * 1000) {
-  return apiRequest<AnalyticsDashboardResponse>("/dashboard/analytics/", { cacheTtlMs });
+export function getAnalyticsDashboard(
+  cacheTtlMs = 5 * 60 * 1000,
+  signal?: AbortSignal,
+  forceFresh = false,
+) {
+  return apiRequest<AnalyticsDashboardResponse>("/dashboard/analytics/", {
+    cacheTtlMs,
+    signal,
+    forceFresh,
+  });
 }
 
 export function getMyRequestsDashboard(cacheTtlMs = 2 * 60 * 1000, signal?: AbortSignal) {
