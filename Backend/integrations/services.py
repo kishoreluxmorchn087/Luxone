@@ -1150,45 +1150,15 @@ def get_lead_connected_records(lead_id: int):
 
 
 def get_user_default_email_provider(user) -> EmailProviderIntegration | None:
-    if not user or not getattr(user, "is_authenticated", False):
-        return None
     base_queryset = EmailProviderIntegration.objects.filter(
         is_active=True,
         crm_sync_enabled=True,
         created_by=user,
     )
-    existing = (
+    return (
         base_queryset.filter(is_default_from=True).first()
         or base_queryset.order_by("-updated_at", "-created_at").first()
     )
-    if existing:
-        return existing
-
-    any_active = EmailProviderIntegration.objects.filter(is_active=True, crm_sync_enabled=True).first()
-    if any_active:
-        return any_active
-
-    user_email = getattr(user, "email", "") or "admin@crms.com"
-    name = (
-        (getattr(user, "get_full_name", lambda: "")() if callable(getattr(user, "get_full_name", None)) else "")
-        or getattr(user, "first_name", "")
-        or "CRM Mail"
-    )
-    provider, _ = EmailProviderIntegration.objects.get_or_create(
-        email_address=user_email,
-        created_by=user,
-        defaults={
-            "provider_type": EmailProviderIntegration.ProviderType.OTHER,
-            "protocol_type": EmailProviderIntegration.ProtocolType.SMTP,
-            "display_name": name,
-            "is_default_from": True,
-            "is_active": True,
-            "crm_sync_enabled": True,
-            "smtp_host": "localhost",
-            "smtp_port": 587,
-        },
-    )
-    return provider
 
 
 def send_provider_email_live(
@@ -1291,19 +1261,16 @@ def create_outgoing_crm_email(
     cleaned_bcc_emails = [normalize_email(email) for email in (bcc_emails or []) if normalize_email(email)]
 
     if send_live:
-        try:
-            send_provider_email_live(
-                provider_integration=provider_integration,
-                subject=subject,
-                body=body,
-                to_emails=cleaned_to_emails,
-                cc_emails=cleaned_cc_emails,
-                bcc_emails=cleaned_bcc_emails,
-                reply_to=reply_to,
-                attachments=attachments,
-            )
-        except Exception as exc:
-            logger.warning("Live SMTP sending failed/skipped: %s", exc)
+        send_provider_email_live(
+            provider_integration=provider_integration,
+            subject=subject,
+            body=body,
+            to_emails=cleaned_to_emails,
+            cc_emails=cleaned_cc_emails,
+            bcc_emails=cleaned_bcc_emails,
+            reply_to=reply_to,
+            attachments=attachments,
+        )
 
     message = SyncedEmailMessage.objects.create(
         provider_integration=provider_integration,
