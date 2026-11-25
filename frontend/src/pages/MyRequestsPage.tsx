@@ -9,11 +9,11 @@ import {
   type DashboardRequestItem,
   type MyRequestsDashboardResponse,
 } from "../lib/api/dashboardApi";
-import { readDashboardCache, writeDashboardCache } from "../lib/dashboardCache";
+import { readDashboardCache, refreshLiveNow, useLiveNow, writeDashboardCache } from "../lib/dashboardCache";
 import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
 const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v4";
-const MY_REQUESTS_CACHE_TTL_MS = 5 * 60 * 1000;
+const MY_REQUESTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const EMPTY_STATE: MyRequestsDashboardResponse = {
   updated: "",
@@ -37,10 +37,10 @@ function formatDateTime(value?: string | null) {
   return formatDateTimeForDisplay(value) || "N/A";
 }
 
-function formatUpdatedAt(value?: string | null) {
+function formatUpdatedAt(value?: string | null, now = Date.now()) {
   const parsed = toDate(value);
   if (!parsed) return "Not updated yet";
-  const seconds = Math.max(1, Math.round((Date.now() - parsed.getTime()) / 1000));
+  const seconds = Math.max(1, Math.round((now - parsed.getTime()) / 1000));
   if (seconds < 60) return `Updated ${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `Updated ${minutes}m ago`;
@@ -102,9 +102,10 @@ export default function MyRequestsPage() {
     [cacheKey],
   );
   const [loading, setLoading] = useState(!initialCache?.state);
-  const [refreshing, setRefreshing] = useState(Boolean(initialCache?.state));
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const now = useLiveNow();
   const [requestState, setRequestState] = useState({
     cacheKey,
     value: initialCache?.state ?? EMPTY_STATE,
@@ -134,23 +135,43 @@ export default function MyRequestsPage() {
     let active = true;
     const controller = new AbortController();
     const hasCachedState = Boolean(initialCache?.state);
+    const isManualRefresh = refreshKey > 0;
+    let delayTimer: number | undefined;
+
+    if (hasCachedState && !isManualRefresh) {
+      setLoading(false);
+      setRefreshing(false);
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
 
     const load = async () => {
       try {
         refreshInProgressRef.current = true;
         setError(null);
-        setLoading(!hasCachedState);
-        setRefreshing(hasCachedState || refreshKey > 0);
-        const nextState = await getMyRequestsDashboard(0, controller.signal);
+        setLoading(!hasCachedState && !isManualRefresh);
+        setRefreshing(hasCachedState || isManualRefresh);
+        const minDelayPromise = isManualRefresh
+          ? new Promise<void>((resolve) => {
+              delayTimer = window.setTimeout(resolve, 1000);
+            })
+          : Promise.resolve();
+        const [nextState] = await Promise.all([
+          getMyRequestsDashboard(0, controller.signal, isManualRefresh),
+          minDelayPromise,
+        ]);
         if (!active) return;
         setRequestState({ cacheKey, value: nextState });
         writeDashboardCache(cacheKey, nextState);
+        refreshLiveNow();
       } catch (loadError) {
         if (!active || controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load your requests.");
       } finally {
+        refreshInProgressRef.current = false;
         if (active) {
-          refreshInProgressRef.current = false;
           setLoading(false);
           setRefreshing(false);
         }
@@ -160,6 +181,10 @@ export default function MyRequestsPage() {
     void load();
     return () => {
       active = false;
+      refreshInProgressRef.current = false;
+      if (delayTimer !== undefined) {
+        window.clearTimeout(delayTimer);
+      }
       controller.abort();
     };
   }, [cacheKey, initialCache, refreshKey]);
@@ -184,7 +209,7 @@ export default function MyRequestsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-2 text-sm font-medium text-slate-700">
-                {formatUpdatedAt(state.updated)}
+                {formatUpdatedAt(state.updated, now)}
               </div>
               <button
                 type="button"

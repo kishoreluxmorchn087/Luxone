@@ -100,6 +100,14 @@ export function getAnalyticsDashboard(
   });
 }
 
-export function getMyRequestsDashboard(cacheTtlMs = 2 * 60 * 1000, signal?: AbortSignal) {
-  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", { cacheTtlMs, signal });
+export function getMyRequestsDashboard(
+  cacheTtlMs = 2 * 60 * 1000,
+  signal?: AbortSignal,
+  forceFresh = false,
+) {
+  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", {
+    cacheTtlMs,
+    signal,
+    forceFresh,
+  });
 }
