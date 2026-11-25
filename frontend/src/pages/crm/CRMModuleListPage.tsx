@@ -34,6 +34,7 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActivityActions?: boolean;
   showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
@@ -81,6 +82,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   pageSize = 10,
   showNotes = false,
   showActivity = false,
+  showActivityActions = true,
   showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
@@ -665,6 +667,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               columnFilters={columnFilters}
               showNotes={currentShowNotes}
               showActivity={currentShowActivity}
+              showActivityActions={showActivityActions}
               showActionsColumn={showActionsColumn}
               density={density}
               onToggleAll={(checked) => {
