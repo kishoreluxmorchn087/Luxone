@@ -151,6 +151,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   useEffect(() => {
     setSortState(null);
     setPage(1);
+    setViewMode("table");
   }, [moduleKey]);
 
   const visibleColumns = useMemo(
@@ -324,6 +325,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           sortState={sortState}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          tableViewFirst
           onMassAction={setMassAction}
         />
 
