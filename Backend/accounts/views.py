@@ -11,7 +11,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
+from integrations.services import (
+    create_outgoing_crm_email,
+    email_send_error_detail,
+    get_user_default_email_provider,
+)
 from integrations.models import EmailRecordLink, SyncedEmailMessage
 from contacts.models import Contact
 from deals.models import Deal
@@ -534,20 +538,26 @@ class AccountViewSet(viewsets.ModelViewSet):
                 {"detail": "Provide a recipient email address or add an email to an active contact for this account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        create_outgoing_crm_email(
-            provider_integration=provider,
-            subject=serializer.validated_data["subject"],
-            body=serializer.validated_data["body"],
-            to_emails=[recipient_email],
-            send_live=True,
-            owner=request.user,
-            account=account,
-            thread_id=f"account-{account.pk}",
-            metadata={
-                "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                "account_name": account.account_name,
-            },
-        )
+        try:
+            create_outgoing_crm_email(
+                provider_integration=provider,
+                subject=serializer.validated_data["subject"],
+                body=serializer.validated_data["body"],
+                to_emails=[recipient_email],
+                send_live=True,
+                owner=request.user,
+                account=account,
+                thread_id=f"account-{account.pk}",
+                metadata={
+                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
+                    "account_name": account.account_name,
+                },
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": email_send_error_detail(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         account_service.log_activity(
             account=account,
             action="Email sent",

@@ -13,7 +13,11 @@ from rest_framework.views import APIView
 from accounts.models import Account
 from contacts.models import Contact
 from deals.models import Deal
-from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
+from integrations.services import (
+    create_outgoing_crm_email,
+    email_send_error_detail,
+    get_user_default_email_provider,
+)
 from support.models import SupportCase, SupportSolution
 from support.serializers import SupportCaseListSerializer, SupportSolutionListSerializer
 
@@ -395,20 +399,27 @@ class VendorViewSet(InventoryRelatedMixin, viewsets.ModelViewSet):
             }
             for attachment in email_data.get("attachments", [])
         ]
-        create_outgoing_crm_email(
-            provider_integration=provider,
-            subject=email_data["subject"],
-            body=email_data.get("body", ""),
-            to_emails=[recipient_email],
-            attachments=attachments,
-            send_live=True,
-            owner=request.user,
-            thread_id=f"vendor-{vendor.pk}",
-            metadata={
-                "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                "vendor_name": vendor.vendor_name,
-            },
-        )
+        try:
+            create_outgoing_crm_email(
+                provider_integration=provider,
+                subject=email_data["subject"],
+                body=email_data.get("body", ""),
+                to_emails=[recipient_email],
+                attachments=attachments,
+                send_live=True,
+                owner=request.user,
+                thread_id=f"vendor-{vendor.pk}",
+                metadata={
+                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
+                    "vendor_name": vendor.vendor_name,
+                },
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": email_send_error_detail(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         InventoryEmailLog.objects.create(
             vendor=vendor,
             sent_by=request.user,

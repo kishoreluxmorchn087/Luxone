@@ -11,7 +11,11 @@ from rest_framework.response import Response
 from deals.models import Deal
 from deals.serializers import DealListSerializer
 from accounts.models import Account
-from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
+from integrations.services import (
+    create_outgoing_crm_email,
+    email_send_error_detail,
+    get_user_default_email_provider,
+)
 
 from .filters import ContactFilter
 from .permissions import ContactPermission
@@ -562,21 +566,27 @@ class ContactViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        create_outgoing_crm_email(
-            provider_integration=provider,
-            subject=subject,
-            body=serializer.validated_data["body"],
-            to_emails=[recipient_email],
-            send_live=True,
-            owner=request.user,
-            contact=contact,
-            account=contact.account,
-            thread_id=f"contact-{contact.pk}",
-            metadata={
-                "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
-                "contact_name": getattr(contact, "contact_name", None) or f"{contact.first_name} {contact.last_name}".strip(),
-            },
-        )
+        try:
+            create_outgoing_crm_email(
+                provider_integration=provider,
+                subject=subject,
+                body=serializer.validated_data["body"],
+                to_emails=[recipient_email],
+                send_live=True,
+                owner=request.user,
+                contact=contact,
+                account=contact.account,
+                thread_id=f"contact-{contact.pk}",
+                metadata={
+                    "from_name": provider.display_name or getattr(request.user, "email", "") or "CRM User",
+                    "contact_name": getattr(contact, "contact_name", None) or f"{contact.first_name} {contact.last_name}".strip(),
+                },
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": email_send_error_detail(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         contact_service.log_activity(
             contact=contact,

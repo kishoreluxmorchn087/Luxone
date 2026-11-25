@@ -134,7 +134,7 @@ export function SendEmailModal({
   return (
     <CRMModalBase
       open={open}
-      title="Email Composer"
+      title="Email Compose"
       maxWidthClassName="max-w-3xl"
       footer={
         <>

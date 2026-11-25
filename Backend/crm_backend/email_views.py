@@ -1,37 +1,49 @@
-from django.core.mail import send_mail
-from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
+from integrations.services import (
+    create_outgoing_crm_email,
+    email_send_error_detail,
+    get_user_default_email_provider,
+)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_email_view(request):
-    to = request.data.get('to', '').strip()
-    subject = request.data.get('subject', '').strip()
-    body = request.data.get('body', '').strip()
-    from_email = (
-        request.data.get('from_email', '').strip()
-        or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or getattr(settings, 'EMAIL_HOST_USER', None)
-        or 'noreply@crms.com'
-    )
+    to = (request.data.get('to') or '').strip()
+    subject = (request.data.get('subject') or '').strip()
+    body = (request.data.get('body') or '').strip()
 
     if not to:
-        return Response({'error': 'Recipient email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Recipient email is required.'}, status=status.HTTP_400_BAD_REQUEST)
     if not subject:
-        return Response({'error': 'Subject is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Subject is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    provider = get_user_default_email_provider(request.user)
+    if not provider:
+        return Response(
+            {'detail': 'No active CRM-synced email provider is configured for this user.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
-        send_mail(
+        create_outgoing_crm_email(
+            provider_integration=provider,
             subject=subject,
-            message=body,
-            from_email=from_email,
-            recipient_list=[to],
-            fail_silently=False,
+            body=body,
+            to_emails=[to],
+            send_live=True,
+            owner=request.user,
+            metadata={
+                'from_name': provider.display_name or getattr(request.user, 'email', '') or 'CRM User',
+            },
         )
         return Response({'message': f'Email sent to {to}'}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError as exc:
+        return Response(
+            {'detail': email_send_error_detail(exc)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
