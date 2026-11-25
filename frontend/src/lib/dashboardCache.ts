@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from "react";
+
 export type DashboardCachePayload<T> = {
   savedAt: number;
   state: T;
@@ -40,4 +42,40 @@ export function removeDashboardCache(key: string) {
   } catch {
     // Ignore storage errors so cache invalidation never breaks the UI.
   }
+}
+
+let currentNow = Date.now();
+const liveNowListeners = new Set<() => void>();
+let liveNowStarted = false;
+
+function ensureLiveNowLoop() {
+  if (liveNowStarted || typeof window === "undefined") return;
+  liveNowStarted = true;
+  window.setInterval(() => {
+    currentNow = Date.now();
+    liveNowListeners.forEach((listener) => listener());
+  }, 60 * 1000);
+}
+
+export function refreshLiveNow() {
+  currentNow = Date.now();
+  liveNowListeners.forEach((listener) => listener());
+}
+
+function subscribeLiveNow(listener: () => void) {
+  currentNow = Date.now();
+  ensureLiveNowLoop();
+  liveNowListeners.add(listener);
+  return () => {
+    liveNowListeners.delete(listener);
+  };
+}
+
+function getLiveNowSnapshot() {
+  return currentNow;
+}
+
+/** Returns a timestamp updated once every minute by a continuous loop. */
+export function useLiveNow() {
+  return useSyncExternalStore(subscribeLiveNow, getLiveNowSnapshot, getLiveNowSnapshot);
 }
