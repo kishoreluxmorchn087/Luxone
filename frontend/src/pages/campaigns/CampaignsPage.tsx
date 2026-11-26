@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { deleteCampaign, getCampaigns, type CampaignRecord } from "../../lib/api/campaignsApi";
 import { keepEmployeeOwnedRows } from "../../lib/shared/recordVisibility";
-import { Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700",
@@ -95,7 +95,7 @@ export default function CampaignsPage() {
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Start Date</th>
                     <th className="px-4 py-3">End Date</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -128,8 +128,17 @@ export default function CampaignsPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">{row.startDate || "-"}</td>
                         <td className="px-4 py-3 text-slate-600">{row.endDate || "-"}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}`); }}
+                              className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+                              title="View"
+                              aria-label={`View ${row.campaignName}`}
+                            >
+                              <Eye size={15} />
+                            </button>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}/edit`); }}
