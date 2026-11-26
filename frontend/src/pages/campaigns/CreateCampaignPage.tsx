@@ -464,7 +464,7 @@ export default function CreateCampaignPage() {
               </div>
 
             </div>
-            <div className="flex min-h-0 flex-[0_0_35%] flex-col border-t border-[#e2e8f0] bg-white px-3 pt-4">
+            <div className="flex min-h-0 flex-[0_0_35%] flex-col border-t border-[#e2e8f0] bg-white px-3 pt-4 pb-4">
               <div className="mb-5 shrink-0 text-[13px] font-semibold text-[#1f2d3d]">
                 Description Information
               </div>
