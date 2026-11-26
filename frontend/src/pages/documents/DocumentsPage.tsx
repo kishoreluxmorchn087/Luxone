@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Download,
-  Eye,
   FileText,
   Loader2,
   Plus,
@@ -381,7 +380,7 @@ export default function DocumentsPage() {
                     <th className="px-5 py-3">Uploaded By</th>
                     <th className="px-5 py-3">Version</th>
                     <th className="px-5 py-3">Date</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
+                    <th className="px-5 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,13 +416,15 @@ export default function DocumentsPage() {
                         {formatDateForDisplay(doc.created_at)}
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <button
+                            type="button"
                             onClick={() => navigate(`/documents/${doc.id}`)}
                             title="View"
-                            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                            aria-label={`View ${doc.title}`}
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                           >
-                            <Eye size={14} />
+                            <span>View</span>
                           </button>
                           {doc.file_url && (
                             <a

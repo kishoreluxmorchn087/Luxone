@@ -2,7 +2,7 @@ import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
-import { NoteModal } from "../../components/crm/CRMActionModals";
+import { NoteModal, RichTextEmailEditor } from "../../components/crm/CRMActionModals";
 import { leadModuleConfig } from "../../components/modules/leads/leadsMockData";
 import { loadLeadLinkedData } from "../../lib/api/linkedRecordsApi";
 import { addLeadNote, getLeadById, getLeadNotes, getLeadTimeline } from "../../lib/api/leadsApi";
@@ -51,6 +51,7 @@ function SendEmailModal({
 }) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [bodyText, setBodyText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -59,7 +60,7 @@ function SendEmailModal({
       setError("Subject is required");
       return;
     }
-    if (!body.trim()) {
+    if (!bodyText.trim()) {
       setError("Body is required");
       return;
     }
@@ -89,7 +90,14 @@ function SendEmailModal({
           <input className={inputCls} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject" />
         </Field>
         <Field label="Body">
-          <textarea className={inputCls} rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Email body" />
+          <RichTextEmailEditor
+            placeholder="Email body"
+            valueText={bodyText}
+            onChange={(html, text) => {
+              setBody(html);
+              setBodyText(text);
+            }}
+          />
         </Field>
       </div>
       <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-3">
