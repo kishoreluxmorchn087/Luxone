@@ -79,7 +79,18 @@ def calculate_document_totals(items: list[dict[str, Any]], adjustment: Any = Non
 
 
 def generate_product_code(_product_id: int) -> str:
-    return f"{PRODUCT_CODE_PREFIX}{Product.objects.count() + 1:04d}"
+    existing_codes = Product.objects.filter(
+        product_code__startswith=PRODUCT_CODE_PREFIX,
+    ).values_list("product_code", flat=True)
+    highest_number = max(
+        (
+            int(code[len(PRODUCT_CODE_PREFIX):])
+            for code in existing_codes
+            if code[len(PRODUCT_CODE_PREFIX):].isdigit()
+        ),
+        default=0,
+    )
+    return f"{PRODUCT_CODE_PREFIX}{highest_number + 1:04d}"
 
 
 def _resolve_account_customer_number(account) -> str:
