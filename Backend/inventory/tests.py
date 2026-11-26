@@ -424,7 +424,7 @@ class InventoryLinkingTests(APITestCase):
         self.assertEqual(response.data[0]["subject"], "Product Linked Quote")
 
     def test_product_create_auto_generates_prd_code(self):
-        existing_count = Product.objects.count()
+        Product.objects.all().delete()
         response = self.client.post(
             "/api/products",
             {
@@ -436,7 +436,14 @@ class InventoryLinkingTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["product_code"], f"PRD{existing_count + 2:04d}")
+        self.assertEqual(response.data["product_code"], "PRD0001")
+
+        list_response = self.client.get("/api/products")
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            "PRD0001",
+            [product["product_code"] for product in list_response.data["results"]],
+        )
 
         second_response = self.client.post(
             "/api/products",
@@ -449,7 +456,25 @@ class InventoryLinkingTests(APITestCase):
         )
 
         self.assertEqual(second_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(second_response.data["product_code"], f"PRD{existing_count + 3:04d}")
+        self.assertEqual(second_response.data["product_code"], "PRD0002")
+
+        Product.objects.create(
+            owner=self.user,
+            product_name="Reserved SKU Product",
+            product_code="PRD0004",
+        )
+        third_response = self.client.post(
+            "/api/products",
+            {
+                "product_name": "Auto Code Product 3",
+                "unit_price": "3200.00",
+                "tax": "320.00",
+            },
+            format="json",
+        )
+
+        self.assertEqual(third_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(third_response.data["product_code"], "PRD0005")
 
     def test_product_rejects_negative_numeric_values(self):
         response = self.client.post(
