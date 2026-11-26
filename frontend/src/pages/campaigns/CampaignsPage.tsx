@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { deleteCampaign, getCampaigns, type CampaignRecord } from "../../lib/api/campaignsApi";
 import { formatDateForDisplay } from "../../lib/dateUtils";
 import { keepEmployeeOwnedRows } from "../../lib/shared/recordVisibility";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700",
@@ -96,7 +96,7 @@ export default function CampaignsPage() {
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Start Date</th>
                     <th className="px-4 py-3">End Date</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -138,7 +138,7 @@ export default function CampaignsPage() {
                               title="View"
                               aria-label={`View ${row.campaignName}`}
                             >
-                              <Eye size={15} />
+                              View
                             </button>
                             <button
                               type="button"

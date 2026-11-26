@@ -87,15 +87,23 @@ export function SendEmailModal({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bodyEditorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setTo(toEmail);
     setSubject(recordName ? `Re: ${recordName}` : "");
     setBody("");
+    if (bodyEditorRef.current) bodyEditorRef.current.innerHTML = "";
     setAttachments([]);
     setError(null);
   }, [open, toEmail, recordName]);
+
+  const applyBodyFormatting = (command: "bold" | "italic" | "underline") => {
+    bodyEditorRef.current?.focus();
+    document.execCommand(command);
+    if (bodyEditorRef.current) setBody(bodyEditorRef.current.innerHTML);
+  };
 
   const handleSend = async () => {
     if (!to.trim()) {
@@ -152,11 +160,20 @@ export function SendEmailModal({
       <label className="mt-3 grid gap-1 text-sm"><span>Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" /></label>
       <div className="mt-3 rounded-lg border border-slate-200">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600">
-          <button className="rounded border border-slate-200 px-2 py-1 font-bold">B</button>
-          <button className="rounded border border-slate-200 px-2 py-1 italic">I</button>
-          <button className="rounded border border-slate-200 px-2 py-1 underline">U</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("bold")} aria-label="Bold" className="rounded border border-slate-200 px-2 py-1 font-bold">B</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("italic")} aria-label="Italic" className="rounded border border-slate-200 px-2 py-1 italic">I</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("underline")} aria-label="Underline" className="rounded border border-slate-200 px-2 py-1 underline">U</button>
         </div>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="w-full resize-none rounded-b-lg px-3 py-2 text-sm outline-none" />
+        <div
+          ref={bodyEditorRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-label="Email body"
+          aria-multiline="true"
+          onInput={(event) => setBody(event.currentTarget.innerHTML)}
+          className="min-h-[168px] w-full rounded-b-lg px-3 py-2 text-sm outline-none"
+        />
       </div>
       {allowAttachments && (
         <>
