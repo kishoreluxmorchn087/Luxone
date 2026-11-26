@@ -89,7 +89,7 @@ export const inventoryModules = {
       "Add Related List",
       "Links",
     ],
-    rowActions: defaultRowActions,
+    rowActions: vendorRowActions,
   } satisfies InventoryModuleMeta<InventoryVendorRecord>,
   products: {
     key: "products",

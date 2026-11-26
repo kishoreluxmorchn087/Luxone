@@ -66,19 +66,15 @@ export default function SupportListPageCore({ moduleKey }: Props) {
     () => meta.rowColumns.filter((column) => !hiddenColumns.includes(column.key)),
     [hiddenColumns, meta.rowColumns]
   );
-  const tableColumns = visibleColumns.map((column) => ({
-    ...column,
-    key: column.key as keyof CRMRecord & string,
-  }));
 
   const processedRows = useMemo(() => {
     const combined = { ...sidebarFilters, ...columnFilters };
-    let output = filterRecords(rows, tableColumns, combined, globalSearch);
+    let output = filterRecords(rows, visibleColumns as any, combined, globalSearch);
     if (sortState) {
-      output = sortRecords(output, sortState.key as keyof CRMRecord & string, sortState.direction);
+      output = sortRecords(output as any, sortState.key as never, sortState.direction) as CRMRecord[];
     }
     return output;
-  }, [rows, tableColumns, sidebarFilters, columnFilters, sortState, globalSearch]);
+  }, [rows, visibleColumns, sidebarFilters, columnFilters, sortState]);
 
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * 10;
@@ -135,9 +131,9 @@ export default function SupportListPageCore({ moduleKey }: Props) {
             ) : null}
 
             <div className="min-w-0 flex-1 space-y-3">
-              <CRMTable<CRMRecord>
-                rows={paginatedRows}
-                columns={tableColumns}
+              <CRMTable
+                rows={paginatedRows as any}
+                columns={visibleColumns as any}
                 rowActions={rowActions}
                 selectedIds={selectedIds}
                 hiddenColumns={hiddenColumns}
@@ -145,7 +141,6 @@ export default function SupportListPageCore({ moduleKey }: Props) {
                 columnFilters={columnFilters}
                 showNotes={false}
                 showActivity={false}
-                showActionsColumn={false}
                 onToggleAll={(checked) => {
                   setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                 }}
@@ -174,3 +169,4 @@ export default function SupportListPageCore({ moduleKey }: Props) {
     </DashboardLayout>
   );
 }
+

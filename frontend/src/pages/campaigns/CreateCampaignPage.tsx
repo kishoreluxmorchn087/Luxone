@@ -286,8 +286,8 @@ export default function CreateCampaignPage() {
 
   return (
     <DashboardLayout>
-      <div className="h-full overflow-hidden bg-[#f3f5f9]">
-        <div className="border-b border-[#d9e1ef] bg-[#f7f9fc] px-7 py-3">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#f3f5f9]">
+        <div className="shrink-0 border-b border-[#d9e1ef] bg-[#f7f9fc] px-7 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-[16px] font-semibold text-[#1f2d3d]">
@@ -325,20 +325,20 @@ export default function CreateCampaignPage() {
           </div>
         </div>
 
-        <div className="h-[calc(100%-57px)] overflow-y-auto px-3 py-3">
-          <div className="bg-white">
-            <div className="px-3 pt-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-3">
+          <div className="flex min-h-0 flex-1 flex-col bg-white">
+            <div className="flex min-h-0 flex-1 flex-col px-3 pt-4">
               {error ? (
-                <div className="mb-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="mb-4 shrink-0 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
                 </div>
               ) : null}
               {successMessage ? (
-                <div className="mb-4 rounded-[10px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="mb-4 shrink-0 rounded-[10px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {successMessage}
                 </div>
               ) : null}
-              <div className="mb-8">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 <div className="mb-5 text-[13px] font-semibold text-[#1f2d3d]">
                   Campaign Information
                 </div>
@@ -463,21 +463,18 @@ export default function CreateCampaignPage() {
                 </div>
               </div>
 
-              <div className="mb-8">
-                <div className="mb-5 text-[13px] font-semibold text-[#1f2d3d]">
-                  Description Information
-                </div>
-
-                <div className="grid w-[75%] grid-cols-[180px_minmax(0,1fr)] items-start">
-                  <label className={`${labelClass} pt-2`}>Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="min-h-[34px] w-full rounded-[4px] border border-[#cfd7e6] bg-white px-3 py-2 text-[14px] text-slate-700 outline-none focus:border-[#6d8dff]"
-                  />
-                </div>
+            </div>
+            <div className="flex min-h-0 flex-[0_0_35%] flex-col border-t border-[#e2e8f0] bg-white px-3 pt-4 pb-4">
+              <div className="mb-5 shrink-0 text-[13px] font-semibold text-[#1f2d3d]">
+                Description Information
               </div>
+
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="min-h-0 w-full flex-1 resize-none rounded-[4px] border border-[#cfd7e6] bg-white px-3 py-2 text-[14px] text-slate-700 outline-none focus:border-[#6d8dff]"
+              />
             </div>
 
           </div>

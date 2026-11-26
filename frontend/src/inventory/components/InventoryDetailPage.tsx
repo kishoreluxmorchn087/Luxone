@@ -19,7 +19,8 @@ import { getInventoryMeta } from "../config";
 import { formatMoney } from "../utils";
 import type { InventoryModuleKey } from "../types";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
-import { formatDateTimeForDisplay } from "../../lib/dateUtils";
+import { formatDateTimeForDisplay, isDateLikeLabel } from "../../lib/dateUtils";
+import { formatProductType } from "../../lib/shared/productType";
 
 type InventoryDetailPageProps = {
   moduleKey: InventoryModuleKey;
@@ -80,7 +81,8 @@ function renderRelatedRecord(record: any, navigate: ReturnType<typeof useNavigat
 
 function formatDetailValue(label: string, value: unknown) {
   const text = String(value ?? "");
-  return /date/i.test(label) ? formatDateTimeForDisplay(text) : text;
+  if (label === "Product Type") return formatProductType(value);
+  return isDateLikeLabel(label) ? formatDateTimeForDisplay(text) : text;
 }
 
 export default function InventoryDetailPage({ moduleKey }: InventoryDetailPageProps) {
@@ -157,11 +159,6 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           actions={headerActions}
           onBack={() => navigate(meta.baseRoute)}
           onAction={async (action) => {
-            if (action === "Send Email" && moduleKey === "vendors") {
-              setEmailOpen(true);
-              return;
-            }
-
             if (action === "Edit" && id) {
               navigate(`${meta.baseRoute}/${id}/edit`);
               return;
@@ -174,6 +171,11 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
 
             if (action === "New" && moduleKey === "vendors") {
               navigate(`${meta.baseRoute}/create`);
+              return;
+            }
+
+            if (action === "Send Email" && moduleKey === "vendors") {
+              setEmailOpen(true);
               return;
             }
 
@@ -447,10 +449,6 @@ export default function InventoryDetailPage({ moduleKey }: InventoryDetailPagePr
           toEmail={String(detail.fields.find((field: { label: string }) => field.label === "Email")?.value || "")}
           recordName={detail.name}
           allowAttachments
-          errorHelpLink={{
-            href: "/integrations/email",
-            label: "Open Email Provider Settings",
-          }}
           onSend={async (email) => {
             if (!id) throw new Error("Vendor record is unavailable.");
             await sendVendorEmail(id, email);

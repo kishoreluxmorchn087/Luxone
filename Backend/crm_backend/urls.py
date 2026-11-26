@@ -64,6 +64,7 @@ urlpatterns = [
     path('api/', include('documents.urls')),
     path('api/', include('reports.urls')),
     path('api/send-email', send_email_view, name='send-email'),
+    path('api/send-email/', send_email_view, name='send-email-trailing-slash'),
     path('api/imports', import_file_view, name='import-file'),
     
     # Swagger documentation URLs

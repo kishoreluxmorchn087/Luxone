@@ -211,9 +211,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
           ? (data as { detail?: string; message?: string; error?: string })
           : null;
       const fallbackStatusMessage = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
-      const isHtmlError =
-        typeof data === "string" && /<!doctype html|<html\b|<body\b/i.test(data);
-      const flattenedMessages = isHtmlError ? [] : flattenErrorPayload(data);
+      const flattenedMessages = flattenErrorPayload(data);
       const message =
         errorPayload?.detail ||
         errorPayload?.message ||

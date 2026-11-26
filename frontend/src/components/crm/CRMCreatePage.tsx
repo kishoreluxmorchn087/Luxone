@@ -55,6 +55,7 @@ export type CRMCreateField = {
   secondaryHelperText?: string;
   digitsOnly?: boolean;
   placeholder?: string;
+  prefix?: string;
   rows?: number;
   readOnly?: boolean;
 };
@@ -299,6 +300,12 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
       if (typeof maxLength === "number") {
         nextValue = nextValue.slice(0, maxLength);
       }
+      if (field?.prefix) {
+        while (nextValue.startsWith(field.prefix)) {
+          nextValue = nextValue.slice(field.prefix.length);
+        }
+        nextValue = `${field.prefix}${nextValue}`;
+      }
       if (field?.type === "number" && field.min !== undefined && nextValue !== "") {
         const numericValue = Number(nextValue);
         if (Number.isFinite(numericValue) && numericValue < field.min) {
@@ -413,6 +420,9 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
 
   const renderField = (field: CRMCreateField) => {
     const value = String(formData[field.name] ?? "");
+    const inputValue = field.prefix && value.startsWith(field.prefix)
+      ? value.slice(field.prefix.length)
+      : value;
 
     if (field.type === "textarea") {
       return (
@@ -619,6 +629,7 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
                 event.preventDefault();
               }
             } : undefined}
+            inputMode={field.inputMode ?? "decimal"}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-600">
             Rs.
@@ -656,37 +667,44 @@ export default function CRMCreatePage<T extends Record<string, unknown>>({
 
     return (
       <div>
-        <input
-          type={
-            field.type === "email"
-              ? "email"
-              : field.type === "number"
-                ? "number"
-                : field.type === "phone" || field.type === "mobile"
-                  ? "tel"
-                  : "text"
-          }
-          name={field.name}
-          value={value}
-          onChange={handleChange}
-          onBlur={() => handleFieldBlur(field.name)}
-          placeholder={field.placeholder ?? ""}
-          className={inputClass}
-          readOnly={field.readOnly}
-          maxLength={
-            field.maxLength ??
-            (field.type === "mobile"
-              ? MOBILE_NUMBER_LENGTH
-              : field.type === "phone"
-                ? PHONE_NUMBER_MAX_LENGTH
-                : undefined)
-          }
-          min={field.type === "number" ? field.min : undefined}
-          inputMode={
-            field.inputMode ??
-            (field.type === "phone" || field.type === "mobile" ? "numeric" : undefined)
-          }
-        />
+        <div className={field.prefix ? "relative" : undefined}>
+          {field.prefix && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-slate-700">
+              {field.prefix}
+            </span>
+          )}
+          <input
+            type={
+              field.type === "email"
+                ? "email"
+                : field.type === "number"
+                  ? "number"
+                  : field.type === "phone" || field.type === "mobile"
+                    ? "tel"
+                    : "text"
+            }
+            name={field.name}
+            value={inputValue}
+            onChange={handleChange}
+            onBlur={() => handleFieldBlur(field.name)}
+            placeholder={field.placeholder ?? ""}
+            className={field.prefix ? `${inputClass} pl-7` : inputClass}
+            readOnly={field.readOnly}
+            maxLength={
+              field.maxLength ??
+              (field.type === "mobile"
+                ? MOBILE_NUMBER_LENGTH
+                : field.type === "phone"
+                  ? PHONE_NUMBER_MAX_LENGTH
+                  : undefined)
+            }
+            min={field.type === "number" ? field.min : undefined}
+            inputMode={
+              field.inputMode ??
+              (field.type === "phone" || field.type === "mobile" ? "numeric" : undefined)
+            }
+          />
+        </div>
         {getFieldMessage(field.name)}
         {field.helperText && (
           <p className="mt-1 text-[11px] leading-4 text-slate-500">{field.helperText}</p>

@@ -82,7 +82,7 @@ button[class*="from-[#359de9]"],
 button[class*="to-[#365eea]"] {
   border-color: transparent;
   background-color: var(--luxmor-indigo);
-  background-image: linear-gradient(135deg, var(--luxmor-indigo) 0%, var(--luxmor-blue) 60%, var(--luxmor-cyan) 130%);
+  background-image: linear-gradient(135deg, var(--luxmor-indigo) 0%, var(--luxmor-blue) 68%, var(--luxmor-cyan) 135%);
   color: #ffffff;
   box-shadow: 0 10px 24px rgb(40 74 210 / 20%);
 }
@@ -93,7 +93,7 @@ button[class*="from-blue-600"]:hover,
 button[class*="from-[#359de9]"]:hover,
 button[class*="to-[#365eea]"]:hover {
   background-color: #382bbd;
-  background-image: linear-gradient(135deg, #382bbd 0%, #1264d8 65%, #0daed5 130%);
+  background-image: linear-gradient(135deg, #382bbd 0%, #1264d8 68%, #0daed5 135%);
   box-shadow: 0 12px 28px rgb(40 74 210 / 26%);
   transform: translateY(-1px);
 }

@@ -340,7 +340,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
             <X size={18} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="space-y-4 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );
@@ -389,7 +389,7 @@ function CallFormModal({
 
   const handleSubmit = () => {
     if (!validateDatePickerInputs()) return;
-    onSubmit(buildPayload(formValues));
+    onSubmit(buildPayload(formValues, status));
   };
 
   return (
@@ -608,7 +608,7 @@ function CallDetailModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+        <div className="space-y-4 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-0.5">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Date</p>
@@ -795,7 +795,9 @@ export default function CallsPage() {
     <DashboardLayout>
       <div className="px-6 py-6">
         <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-slate-900">Calls</h1>
+          <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+            All Calls
+          </button>
 
           <div className="flex items-center gap-3">
             <button

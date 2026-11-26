@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Columns3,
   SlidersHorizontal,
@@ -58,8 +58,8 @@ export default function CRMPageSettingsModal({
   density: initialDensity,
   pinnedColumn: initialPinnedColumn,
   sortState: initialSortState,
-  filterOpen: initialFilterOpen = true,
-  showNotes: initialShowNotes = true,
+  filterOpen: initialFilterOpen = false,
+  showNotes: initialShowNotes = false,
   showActivity: initialShowActivity = false,
   initialTab = "columns",
   onApply,
@@ -78,11 +78,18 @@ export default function CRMPageSettingsModal({
   const [curFilterOpen, setCurFilterOpen] = useState<boolean>(initialFilterOpen);
   const [curShowNotes, setCurShowNotes] = useState<boolean>(initialShowNotes);
   const [curShowActivity, setCurShowActivity] = useState<boolean>(initialShowActivity);
+  const [resetAnimationKey, setResetAnimationKey] = useState(0);
+  const appliedColumnSettings = useRef(new Set<string>());
+  const settingsKey = `${moduleName}:${viewName}`;
 
   useEffect(() => {
     if (open) {
       setActiveTab(initialTab);
-      setHiddenCols(initialHiddenColumns);
+      setHiddenCols(
+        appliedColumnSettings.current.has(settingsKey) || initialHiddenColumns.length > 0
+          ? initialHiddenColumns
+          : columns.map((column) => column.key)
+      );
       setCurPageSize(initialPageSize);
       setCurDensity(initialDensity);
       setCurPinnedCol(initialPinnedColumn);
@@ -104,6 +111,8 @@ export default function CRMPageSettingsModal({
     initialFilterOpen,
     initialShowNotes,
     initialShowActivity,
+    columns,
+    settingsKey,
   ]);
 
   // Filter columns by search query
@@ -138,19 +147,21 @@ export default function CRMPageSettingsModal({
   };
 
   const handleResetToDefaults = () => {
+    setResetAnimationKey((key) => key + 1);
     setHiddenCols([]);
-    setCurPageSize(25);
+    setCurPageSize(10);
     setCurDensity("normal");
     setCurPinnedCol(null);
     setCurSortCol(null);
     setCurSortDir("asc");
-    setCurFilterOpen(true);
-    setCurShowNotes(true);
+    setCurFilterOpen(false);
+    setCurShowNotes(false);
     setCurShowActivity(false);
     onResetDefaults?.();
   };
 
   const handleSave = () => {
+    appliedColumnSettings.current.add(settingsKey);
     onApply({
       hiddenColumns: hiddenCols,
       pageSize: curPageSize,
@@ -178,7 +189,11 @@ export default function CRMPageSettingsModal({
             onClick={handleResetToDefaults}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
           >
-            <RotateCcw size={14} />
+            <RotateCcw
+              key={resetAnimationKey}
+              size={14}
+              className="animate-[spin_0.6s_ease-in-out]"
+            />
             <span>Reset to Defaults</span>
           </button>
           <div className="flex items-center gap-2">

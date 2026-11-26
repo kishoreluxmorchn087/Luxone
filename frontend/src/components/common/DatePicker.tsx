@@ -218,7 +218,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function DatePi
             </button>
           </div>
           <div className="mb-1 grid grid-cols-7 text-center text-xs text-slate-500">
-            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => <span key={day}>{day}</span>)}
+            {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => <span key={day}>{day}</span>)}
           </div>
           <div className="grid grid-cols-7 gap-1">
             {calendarCells.map((day, index) => {

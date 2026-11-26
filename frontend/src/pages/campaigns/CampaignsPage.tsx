@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { deleteCampaign, getCampaigns, type CampaignRecord } from "../../lib/api/campaignsApi";
+import { formatDateForDisplay } from "../../lib/dateUtils";
 import { keepEmployeeOwnedRows } from "../../lib/shared/recordVisibility";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -51,12 +52,11 @@ export default function CampaignsPage() {
   return (
     <DashboardLayout>
       <div className="h-full overflow-hidden bg-[#f5f7fb]">
-        <div className="border-b border-[#d9e1ef] bg-[#f7f9fc] px-4 py-3">
+        <div className="border-b border-slate-200 bg-white px-4 py-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-[18px] font-semibold text-[#1f2d3d]">Campaigns</h1>
-              <p className="text-sm text-slate-500">Manage sales campaigns from live CRM data.</p>
-            </div>
+            <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+              All Campaigns
+            </button>
             <div className="flex items-center gap-3">
               <input
                 type="search"
@@ -68,7 +68,7 @@ export default function CampaignsPage() {
               <button
                 type="button"
                 onClick={() => navigate("/campaigns/create")}
-                className="rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-[14px] font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
+                className="rounded-[6px] bg-blue-600 px-4 py-2 text-[14px] font-medium text-white transition"
               >
                 Create Campaign
               </button>
@@ -96,7 +96,7 @@ export default function CampaignsPage() {
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Start Date</th>
                     <th className="px-4 py-3">End Date</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -127,10 +127,19 @@ export default function CampaignsPage() {
                             "-"
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{row.startDate || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.endDate || "-"}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.startDate) || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.endDate) || "-"}</td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}`); }}
+                              className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+                              title="View"
+                              aria-label={`View ${row.campaignName}`}
+                            >
+                              View
+                            </button>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}/edit`); }}

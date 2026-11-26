@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Download,
-  Eye,
   FileText,
   Loader2,
   Plus,
@@ -58,6 +57,7 @@ function UploadModal({
     if (!title.trim()) { setError("Title is required."); return; }
     if (!file) { setError("Please select a file."); return; }
     if (docType === "other" && !customType.trim()) { setError("Please specify the document type."); return; }
+    if (relatedId && Number(relatedId) < 0) { setError("Linked record ID must be zero or greater."); return; }
     setError("");
     const resolvedType = docType === "other" && customType.trim() ? customType.trim() : docType;
     try {
@@ -175,6 +175,7 @@ function UploadModal({
               <input
                 className={inputCls}
                 type="number"
+                min="0"
                 value={relatedId}
                 onChange={(e) => setRelatedId(e.target.value)}
                 placeholder={`Enter ${MODULE_LABELS[relatedModule]} ID`}
@@ -301,19 +302,16 @@ export default function DocumentsPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#f5f7fb]">
       {/* Header */}
-      <div className="border-b border-[#d9e1ef] bg-[#f7f9fc] px-6 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[18px] font-semibold text-[#1f2d3d]">Documents</h1>
-            <p className="text-xs text-slate-500">Manage files linked to your CRM records</p>
-          </div>
-          <button
-            onClick={() => setShowUpload(true)}
-            className="flex items-center gap-1.5 rounded-[6px] border border-[#d7c5fb] bg-[linear-gradient(135deg,#a97df4_0%,#8b5cf6_100%)] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(139,92,246,0.24)] transition hover:brightness-105"
-          >
-            <Plus size={15} /> Upload Document
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2">
+        <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+          All Documents
+        </button>
+        <button
+          onClick={() => setShowUpload(true)}
+          className="flex items-center gap-1.5 rounded-[6px] bg-blue-600 px-4 py-2 text-sm font-medium text-white transition"
+        >
+          <Plus size={15} /> Upload Document
+        </button>
       </div>
 
       <div className="space-y-4 p-6">
@@ -417,13 +415,15 @@ export default function DocumentsPage() {
                         {formatDateForDisplay(doc.created_at)}
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <button
+                            type="button"
                             onClick={() => navigate(`/documents/${doc.id}`)}
                             title="View"
-                            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                            aria-label={`View ${doc.title}`}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                           >
-                            <Eye size={14} />
+                            <span>View</span>
                           </button>
                           {doc.file_url && (
                             <a

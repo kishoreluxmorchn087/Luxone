@@ -1161,6 +1161,16 @@ def get_user_default_email_provider(user) -> EmailProviderIntegration | None:
     )
 
 
+def email_send_error_detail(error: ValueError) -> str:
+    detail = str(error)
+    if detail == "This provider is missing live sending credentials.":
+        return (
+            "The configured email provider is missing live sending credentials. "
+            "Add its SMTP/app-password credentials in Email Integrations, then try again."
+        )
+    return detail
+
+
 def send_provider_email_live(
     *,
     provider_integration: EmailProviderIntegration,
@@ -1221,9 +1231,7 @@ def send_provider_email_live(
             auth_string = _smtp_oauth2_string(provider_integration.email_address, provider_integration.access_token)
             code, response = smtp.docmd("AUTH", "XOAUTH2 " + auth_string)
             if code not in (235, 250):
-                raise ValueError(
-                    "SMTP OAuth authentication failed. Reconnect the email provider and try again."
-                )
+                raise ValueError(f"SMTP OAuth authentication failed: {response!r}")
         else:
             smtp.login(provider_integration.email_address, live_secret)
         smtp.sendmail(provider_integration.email_address, recipients, mime_message.as_bytes())

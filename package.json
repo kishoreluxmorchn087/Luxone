@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "npm --prefix frontend run build",
-    "dev": "npm --prefix frontend run dev"
+    "dev": "npm --prefix frontend run dev",
+    "server": "py Backend/manage.py runserver 127.0.0.1:8000"
   },
   "dependencies": {
     "vite": "^8.2.1"

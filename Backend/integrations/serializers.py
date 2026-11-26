@@ -1,5 +1,6 @@
 from __future__ import annotations
 import html
+import re
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -211,7 +212,10 @@ class EmailProviderIntegrationWriteSerializer(serializers.ModelSerializer):
             if provider_type == EmailProviderIntegration.ProviderType.GMAIL:
                 domain_matches = domain == "gmail.com"
             else:
-                domain_matches = domain == "yahoo.com"
+                domain_matches = (
+                    re.fullmatch(r"yahoo\.[a-z]{2,}(?:\.[a-z]{2})?", domain) is not None
+                    or domain in {"ymail.com", "rocketmail.com"}
+                )
             if not domain_matches:
                 raise serializers.ValidationError({"email_address": provider_error})
 

@@ -1,6 +1,5 @@
 import { Lock, Paperclip, Phone, CalendarCheck, CalendarDays, Activity, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import CRMModalBase from "./CRMModalBase";
 import DatePicker from "../common/DatePicker";
 import { formatDateTimeForDisplay, validateDatePickerInputs } from "../../lib/dateUtils";
@@ -45,7 +44,7 @@ function FullCallModalShell({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">{children}</div>
+        <div className="overflow-y-auto px-6 py-6">{children}</div>
       </div>
     </div>
   );
@@ -73,13 +72,11 @@ export function SendEmailModal({
   toEmail = "",
   recordName = "",
   allowAttachments = false,
-  errorHelpLink,
   onSend,
 }: BaseModalProps & {
   toEmail?: string;
   recordName?: string;
   allowAttachments?: boolean;
-  errorHelpLink?: { href: string; label: string };
   onSend?: (payload: { to: string; subject: string; body: string; from_email?: string; attachments?: File[] }) => Promise<void>;
 }) {
   const [from, setFrom] = useState("");
@@ -90,15 +87,23 @@ export function SendEmailModal({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bodyEditorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setTo(toEmail);
     setSubject(recordName ? `Re: ${recordName}` : "");
     setBody("");
+    if (bodyEditorRef.current) bodyEditorRef.current.innerHTML = "";
     setAttachments([]);
     setError(null);
   }, [open, toEmail, recordName]);
+
+  const applyBodyFormatting = (command: "bold" | "italic" | "underline") => {
+    bodyEditorRef.current?.focus();
+    document.execCommand(command);
+    if (bodyEditorRef.current) setBody(bodyEditorRef.current.innerHTML);
+  };
 
   const handleSend = async () => {
     if (!to.trim()) {
@@ -137,7 +142,7 @@ export function SendEmailModal({
   return (
     <CRMModalBase
       open={open}
-      title="Email Composer"
+      title="Email Compose"
       maxWidthClassName="max-w-3xl"
       footer={
         <>
@@ -155,11 +160,20 @@ export function SendEmailModal({
       <label className="mt-3 grid gap-1 text-sm"><span>Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" /></label>
       <div className="mt-3 rounded-lg border border-slate-200">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600">
-          <button className="rounded border border-slate-200 px-2 py-1 font-bold">B</button>
-          <button className="rounded border border-slate-200 px-2 py-1 italic">I</button>
-          <button className="rounded border border-slate-200 px-2 py-1 underline">U</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("bold")} aria-label="Bold" className="rounded border border-slate-200 px-2 py-1 font-bold">B</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("italic")} aria-label="Italic" className="rounded border border-slate-200 px-2 py-1 italic">I</button>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyBodyFormatting("underline")} aria-label="Underline" className="rounded border border-slate-200 px-2 py-1 underline">U</button>
         </div>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="w-full resize-none rounded-b-lg px-3 py-2 text-sm outline-none" />
+        <div
+          ref={bodyEditorRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-label="Email body"
+          aria-multiline="true"
+          onInput={(event) => setBody(event.currentTarget.innerHTML)}
+          className="min-h-[168px] w-full rounded-b-lg px-3 py-2 text-sm outline-none"
+        />
       </div>
       {allowAttachments && (
         <>
@@ -205,19 +219,7 @@ export function SendEmailModal({
           )}
         </>
       )}
-      {error && (
-        <div className="mt-2">
-          <p className="text-sm text-rose-600">{error}</p>
-          {errorHelpLink && /oauth|provider|smtp|sending credentials|email could not be sent/i.test(error) && (
-            <Link
-              to={errorHelpLink.href}
-              className="mt-1 inline-block text-sm font-medium text-blue-700 underline hover:text-blue-800"
-            >
-              {errorHelpLink.label}
-            </Link>
-          )}
-        </div>
-      )}
+      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
     </CRMModalBase>
   );
 }
@@ -983,9 +985,8 @@ export function MassDeleteModal({
   open,
   onClose,
   count,
-  isSelection = false,
   onConfirm,
-}: BaseModalProps & { count: number; isSelection?: boolean; onConfirm: () => Promise<void> }) {
+}: BaseModalProps & { count: number; onConfirm: () => Promise<void> }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1031,8 +1032,7 @@ export function MassDeleteModal({
       }
     >
       <p className="text-sm text-slate-700">
-        Are you sure you want to delete {isSelection ? "the selected" : "all"}{" "}
-        <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
+        Are you sure you want to delete all <span className="font-semibold text-slate-900">{count} record{count !== 1 ? "s" : ""}</span>? This action cannot be undone.
       </p>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </CRMModalBase>

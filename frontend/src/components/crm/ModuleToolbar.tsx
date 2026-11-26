@@ -31,6 +31,7 @@ type ModuleToolbarProps = {
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
   viewMode?: "list" | "table" | "grid" | "kanban" | "chart";
   onViewModeChange?: (mode: "list" | "table" | "grid" | "kanban" | "chart") => void;
+  tableViewFirst?: boolean;
   columns?: Array<{ key: string; label: string; minWidth?: string }>;
   hiddenColumns?: string[];
   onSetHiddenColumns?: (hidden: string[]) => void;
@@ -85,6 +86,7 @@ export default function ModuleToolbar({
   onMassAction,
   viewMode = "table",
   onViewModeChange,
+  tableViewFirst = false,
   columns,
   hiddenColumns,
   onSetHiddenColumns,
@@ -183,13 +185,14 @@ export default function ModuleToolbar({
       }
 
       if (
-        ellipsisMenuRef.current &&
-        !ellipsisMenuRef.current.contains(event.target as Node)
+        topEllipsisRef.current &&
+        !topEllipsisRef.current.contains(event.target as Node)
       ) {
-        setEllipsisMenuOpen(false);
+        setTopEllipsisOpen(false);
       }
 
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+    if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setSortModalOpen(false);
         setFieldDropdownOpen(false);
         setOrderDropdownOpen(false);
    }
@@ -336,39 +339,6 @@ export default function ModuleToolbar({
           >
             {massDeleteLabel}
           </button>
-          <div className="relative" ref={ellipsisMenuRef}>
-            <button
-              type="button"
-              onClick={() => setEllipsisMenuOpen((prev) => !prev)}
-              className="cursor-pointer rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm"
-            >
-              <Ellipsis size={16} />
-            </button>
-
-            {ellipsisMenuOpen && (
-              <div className="absolute right-0 top-[42px] z-50 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                {(["Mass Delete", "Mass Update"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setEllipsisMenuOpen(false);
-                      const actionMap = {
-                        "Mass Delete": "mass-delete",
-                        "Mass Update": "mass-update",
-                      } as const;
-                      onMassAction?.(actionMap[item]);
-                    }}
-                    className={`block w-full px-4 py-2 text-left text-sm transition hover:bg-slate-100 ${
-                      item === "Mass Delete" ? "text-red-600 hover:bg-red-50" : "text-slate-700"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -400,14 +370,14 @@ export default function ModuleToolbar({
 
           {!hidePostSortIconStrip && (
             <>
-              <div className="mx-1 h-5 w-px bg-slate-200" />
+              <div className="mx-1.5 h-5 w-px bg-slate-200" />
 
               <button
                 type="button"
                 id="module-toolbar-list-view"
                 aria-label="List View"
                 onClick={() => onViewModeChange?.("list")}
-                className={`group ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-2" : "order-1"} ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ListFilter size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -421,7 +391,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-panels-view"
                 aria-label="Panels View"
                 onClick={() => onViewModeChange?.("kanban")}
-                className={`group ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-3" : "order-2"} ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <PanelsTopLeft size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -435,7 +405,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-table-view"
                 aria-label="Table View"
                 onClick={() => onViewModeChange?.("table")}
-                className={`group ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-1" : "order-3"} ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <Table size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -449,7 +419,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-chart-view"
                 aria-label="Chart View"
                 onClick={() => onViewModeChange?.("chart")}
-                className={`group ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group order-4 ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ChartPie size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -463,7 +433,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-grid-view"
                 aria-label="Grid View"
                 onClick={() => onViewModeChange?.("grid")}
-                className={`group ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group order-5 ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <LayoutGrid size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -609,12 +579,12 @@ export default function ModuleToolbar({
         moduleName={moduleName || singularModuleName}
         columns={columns || []}
         hiddenColumns={hiddenColumns || []}
-        pageSize={pageSize ?? 25}
+        pageSize={pageSize ?? 10}
         density={density ?? "normal"}
         pinnedColumn={pinnedColumn ?? null}
         sortState={sortState}
         filterOpen={isFilterOpen}
-        showNotes={showNotes ?? true}
+        showNotes={showNotes ?? false}
         showActivity={showActivity ?? false}
         initialTab={pageSettingsInitialTab}
         onApply={(settings) => {
@@ -638,12 +608,12 @@ export default function ModuleToolbar({
         }}
         onResetDefaults={() => {
           if (onSetHiddenColumns) onSetHiddenColumns([]);
-          if (onPageSizeChange) onPageSizeChange(25);
+          if (onPageSizeChange) onPageSizeChange(10);
           if (onDensityChange) onDensityChange("normal");
           if (onSetPinnedColumn) onSetPinnedColumn(null);
           if (onApplySort) onApplySort(null, "asc");
-          if (!isFilterOpen) onToggleFilter();
-          if (onToggleShowNotes) onToggleShowNotes(true);
+          if (isFilterOpen) onToggleFilter();
+          if (onToggleShowNotes) onToggleShowNotes(false);
           if (onToggleShowActivity) onToggleShowActivity(false);
         }}
       />

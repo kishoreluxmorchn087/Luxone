@@ -34,6 +34,7 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActivityActions?: boolean;
   showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
@@ -74,48 +75,14 @@ function getRecordEmail(row: CRMRecord): string {
   return String(r.email ?? "");
 }
 
-function readModuleSetting(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writeModuleSetting(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    return;
-  }
-}
-
-function removeModuleSetting(key: string): void {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    return;
-  }
-}
-
-function parseHiddenColumns(value: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.every((column) => typeof column === "string")
-      ? parsed
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function CRMModuleListPage<T extends CRMRecord>({
   config,
   rows,
   loading = false,
-  pageSize = 1000,
-  showNotes = true,
+  pageSize = 10,
+  showNotes = false,
   showActivity = false,
+  showActivityActions = true,
   showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
@@ -131,86 +98,110 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     direction: "asc" | "desc";
   } | null>(null);
   const [density, setDensity] = useState<DensityMode>(() => {
-    const saved = readModuleSetting(`crm_density_${config.module}`);
-    if (saved === "compact" || saved === "normal" || saved === "comfortable") {
-      return saved;
-    }
+    try {
+      const saved = localStorage.getItem(`crm_density_${config.module}`);
+      if (saved === "compact" || saved === "normal" || saved === "comfortable") {
+        return saved;
+      }
+    } catch {}
     return "normal";
   });
 
   const [currentPageSize, setCurrentPageSize] = useState<number>(() => {
-    const saved = readModuleSetting(`crm_pageSize_${config.module}`);
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!isNaN(parsed) && parsed > 0) return parsed;
-    }
+    try {
+      const saved = localStorage.getItem(`crm_pageSize_${config.module}`);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    } catch {}
     return pageSize;
   });
 
   const [currentShowNotes, setCurrentShowNotes] = useState<boolean>(() => {
-    const saved = readModuleSetting(`crm_showNotes_${config.module}`);
-    if (saved !== null) return saved === "true";
+    try {
+      const saved = localStorage.getItem(`crm_showNotes_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
     return showNotes;
   });
 
   const [currentShowActivity, setCurrentShowActivity] = useState<boolean>(() => {
-    const saved = readModuleSetting(`crm_showActivity_${config.module}`);
-    if (saved !== null) return saved === "true";
+    try {
+      const saved = localStorage.getItem(`crm_showActivity_${config.module}`);
+      if (saved !== null) return saved === "true";
+    } catch {}
     return showActivity;
   });
 
   const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
-    const saved = readModuleSetting(`crm_hiddenCols_${config.module}`);
-    if (saved) return parseHiddenColumns(saved);
+    try {
+      const saved = localStorage.getItem(`crm_hiddenCols_${config.module}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
     return [];
   });
 
   const [pinnedColumn, setPinnedColumn] = useState<string | null>(() => {
-    const saved = readModuleSetting(`crm_pinnedCol_${config.module}`);
-    if (saved) return saved;
+    try {
+      const saved = localStorage.getItem(`crm_pinnedCol_${config.module}`);
+      if (saved) return saved;
+    } catch {}
     return null;
   });
 
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
   const isFilterOpen = filterOpen ?? !hideFilterSidebar;
 
   const handleSetHiddenColumns = (hidden: string[]) => {
     setHiddenColumns(hidden);
-    writeModuleSetting(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
+    try {
+      localStorage.setItem(`crm_hiddenCols_${config.module}`, JSON.stringify(hidden));
+    } catch {}
   };
 
   const handleSetPinnedColumn = (pinned: string | null) => {
     setPinnedColumn(pinned);
-    if (pinned) {
-      writeModuleSetting(`crm_pinnedCol_${config.module}`, pinned);
-    } else {
-      removeModuleSetting(`crm_pinnedCol_${config.module}`);
-    }
+    try {
+      if (pinned) {
+        localStorage.setItem(`crm_pinnedCol_${config.module}`, pinned);
+      } else {
+        localStorage.removeItem(`crm_pinnedCol_${config.module}`);
+      }
+    } catch {}
   };
 
   const handlePageSizeChange = (newSize: number) => {
     setCurrentPageSize(newSize);
     setPage(1);
-    writeModuleSetting(`crm_pageSize_${config.module}`, String(newSize));
+    try {
+      localStorage.setItem(`crm_pageSize_${config.module}`, String(newSize));
+    } catch {}
   };
 
   const handleDensityChange = (newDensity: DensityMode) => {
     setDensity(newDensity);
-    writeModuleSetting(`crm_density_${config.module}`, newDensity);
+    try {
+      localStorage.setItem(`crm_density_${config.module}`, newDensity);
+    } catch {}
   };
 
   const handleToggleShowNotes = (show: boolean) => {
     setCurrentShowNotes(show);
-    writeModuleSetting(`crm_showNotes_${config.module}`, String(show));
+    try {
+      localStorage.setItem(`crm_showNotes_${config.module}`, String(show));
+    } catch {}
   };
 
   const handleToggleShowActivity = (show: boolean) => {
     setCurrentShowActivity(show);
-    writeModuleSetting(`crm_showActivity_${config.module}`, String(show));
+    try {
+      localStorage.setItem(`crm_showActivity_${config.module}`, String(show));
+    } catch {}
   };
 
   const visibleColumns = useMemo(
@@ -220,13 +211,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const processedRows = useMemo(() => {
     const combined = { ...columnFilters, ...sidebarFilters };
-    const stringFilters = Object.fromEntries(
-      Object.entries(combined).map(([key, value]) => [
-        key,
-        Array.isArray(value) ? value.join("\u001f") : value,
-      ])
-    );
-    let output = filterRecords(rows, visibleColumns, stringFilters);
+    let output = filterRecords(rows, visibleColumns, combined);
 
     if (sortState) {
       output = sortRecords(
@@ -340,6 +325,12 @@ export default function CRMModuleListPage<T extends CRMRecord>({
     if (config.module === "contacts") {
       const { addContactNote } = await import("../../lib/api/contactsApi");
       await addContactNote(activeRow.id, note);
+      return;
+    }
+
+    if (config.module === "deals") {
+      const { addDealNote } = await import("../../lib/api/dealsApi");
+      await addDealNote(activeRow.id, note);
       return;
     }
 
@@ -676,6 +667,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               columnFilters={columnFilters}
               showNotes={currentShowNotes}
               showActivity={currentShowActivity}
+              showActivityActions={showActivityActions}
               showActionsColumn={showActionsColumn}
               density={density}
               onToggleAll={(checked) => {

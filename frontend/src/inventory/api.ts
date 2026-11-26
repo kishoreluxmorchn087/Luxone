@@ -1,5 +1,6 @@
 import { apiRequest } from "../api/client";
 import { integrationsApi } from "../integrations/api";
+import { normalizeDateForApi } from "../lib/dateUtils";
 import type {
   Activity,
   Attachment,
@@ -488,21 +489,41 @@ function normalizeConfigurators(items: any[]): InventoryListRecord[] {
 
 export async function getInventoryList(
   moduleKey: InventoryModuleKey,
-  options?: { pageSize?: number; cacheTtlMs?: number }
+  options?: { pageSize?: number; cacheTtlMs?: number; forceFresh?: boolean }
 ): Promise<InventoryListRecord[]> {
+  const fetchAllPages = async (path: string) => {
+    const items: any[] = [];
+    let page = 1;
+
+    while (page <= 1000) {
+      const data = await apiRequest<any[] | Paginated<any>>(path, {
+        query: {
+          page,
+          ...(options?.pageSize ? { page_size: options.pageSize } : {}),
+        },
+        cacheTtlMs: options?.cacheTtlMs,
+        forceFresh: options?.forceFresh,
+      });
+
+      if (Array.isArray(data)) {
+        items.push(...data);
+        break;
+      }
+
+      items.push(...data.results);
+      if (!data.next) break;
+      page += 1;
+    }
+
+    return dedupeBy(items, (item) => asString(item.id));
+  };
+
   if (moduleKey === "configurator") {
-    const data = await apiRequest<any[] | Paginated<any>>("/inventory/configurator", {
-      query: options?.pageSize ? { page_size: options.pageSize } : undefined,
-      cacheTtlMs: options?.cacheTtlMs,
-    });
-    return normalizeConfigurators(toList(data));
+    const items = await fetchAllPages("/inventory/configurator");
+    return normalizeConfigurators(items);
   }
 
-  const data = await apiRequest<any[] | Paginated<any>>(INVENTORY_ENDPOINTS[moduleKey], {
-    query: options?.pageSize ? { page_size: options.pageSize } : undefined,
-    cacheTtlMs: options?.cacheTtlMs,
-  });
-  const items = toList(data);
+  const items = await fetchAllPages(INVENTORY_ENDPOINTS[moduleKey]);
   if (moduleKey === "products") return normalizeProducts(items);
   if (moduleKey === "vendors") return normalizeVendors(items);
   if (moduleKey === "price-books") return normalizePriceBooks(items);
@@ -881,7 +902,7 @@ function serializeProduct(values: ProductFormValues) {
     usage_unit: values.usageUnit || "",
     default_user_seats: values.defaultUserSeats ?? 1,
     subscription_term_months: values.subscriptionTermMonths ?? 12,
-    renewal_required: values.renewalRequired ?? true,
+    renewal_required: values.renewalRequired ?? false,
     implementation_required: values.implementationRequired ?? false,
     support_start_date: values.supportStartDate || undefined,
     support_expiry_date: values.supportExpiryDate || undefined,
@@ -936,16 +957,16 @@ function serializeQuote(values: QuoteFormValues) {
     carrier: values.carrier || "",
     price_book: values.priceBook ? Number(values.priceBook) : undefined,
     deal: values.deal ? Number(values.deal) : undefined,
-    valid_until: values.validUntil || undefined,
+    valid_until: normalizeDateForApi(values.validUntil),
     contact: values.contact ? Number(values.contact) : undefined,
     account: values.account ? Number(values.account) : undefined,
     billing_cycle: values.billingCycle || "custom",
     license_type: values.licenseType || "named",
     licensed_users: values.licensedUsers ?? 1,
     implementation_required: values.implementationRequired ?? false,
-    subscription_start_date: values.subscriptionStartDate || undefined,
-    subscription_end_date: values.subscriptionEndDate || undefined,
-    renewal_due_date: values.renewalDueDate || undefined,
+    subscription_start_date: normalizeDateForApi(values.subscriptionStartDate),
+    subscription_end_date: normalizeDateForApi(values.subscriptionEndDate),
+    renewal_due_date: normalizeDateForApi(values.renewalDueDate),
     subtotal: values.subtotal,
     discount: values.discount,
     tax: values.tax,
@@ -969,15 +990,15 @@ function serializeSalesOrder(values: SalesOrderFormValues) {
     sales_commission: values.salesCommission,
     account: values.account ? Number(values.account) : undefined,
     deal: values.deal ? Number(values.deal) : undefined,
-    due_date: values.dueDate || undefined,
+    due_date: normalizeDateForApi(values.dueDate),
     contact: values.contact ? Number(values.contact) : undefined,
     billing_cycle: values.billingCycle || "custom",
     license_type: values.licenseType || "named",
     licensed_users: values.licensedUsers ?? 1,
     implementation_required: values.implementationRequired ?? false,
-    subscription_start_date: values.subscriptionStartDate || undefined,
-    subscription_end_date: values.subscriptionEndDate || undefined,
-    renewal_due_date: values.renewalDueDate || undefined,
+    subscription_start_date: normalizeDateForApi(values.subscriptionStartDate),
+    subscription_end_date: normalizeDateForApi(values.subscriptionEndDate),
+    renewal_due_date: normalizeDateForApi(values.renewalDueDate),
     excise_duty: values.exciseDuty,
     status: values.status || "",
     subtotal: values.subtotal,
@@ -998,13 +1019,13 @@ function serializePurchaseOrder(values: PurchaseOrderFormValues) {
     subject: values.subject,
     requisition_number: values.requisitionNumber || "",
     contact: values.contact ? Number(values.contact) : undefined,
-    due_date: values.dueDate || undefined,
+    due_date: normalizeDateForApi(values.dueDate),
     excise_duty: values.exciseDuty,
     status: values.status || "",
     po_number: values.poNumber || "",
     vendor: values.vendor ? Number(values.vendor) : undefined,
     tracking_number: values.trackingNumber || "",
-    po_date: values.poDate || undefined,
+    po_date: normalizeDateForApi(values.poDate),
     carrier: values.carrier || "",
     sales_commission: values.salesCommission,
     subtotal: values.subtotal,
@@ -1023,8 +1044,8 @@ function serializeInvoice(values: InvoiceFormValues) {
   return {
     owner: values.owner ? Number(values.owner) : undefined,
     subject: values.subject,
-    invoice_date: values.invoiceDate || undefined,
-    due_date: values.dueDate || undefined,
+    invoice_date: normalizeDateForApi(values.invoiceDate),
+    due_date: normalizeDateForApi(values.dueDate),
     sales_commission: values.salesCommission,
     account: values.account ? Number(values.account) : undefined,
     contact: values.contact ? Number(values.contact) : undefined,
@@ -1035,9 +1056,9 @@ function serializeInvoice(values: InvoiceFormValues) {
     license_type: values.licenseType || "named",
     licensed_users: values.licensedUsers ?? 1,
     implementation_required: values.implementationRequired ?? false,
-    subscription_start_date: values.subscriptionStartDate || undefined,
-    subscription_end_date: values.subscriptionEndDate || undefined,
-    renewal_due_date: values.renewalDueDate || undefined,
+    subscription_start_date: normalizeDateForApi(values.subscriptionStartDate),
+    subscription_end_date: normalizeDateForApi(values.subscriptionEndDate),
+    renewal_due_date: normalizeDateForApi(values.renewalDueDate),
     excise_duty: values.exciseDuty,
     status: values.status || "",
     subtotal: values.subtotal,

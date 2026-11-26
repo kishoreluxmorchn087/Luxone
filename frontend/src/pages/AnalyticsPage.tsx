@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bar,
@@ -18,11 +18,11 @@ import { AlertTriangle, ArrowUpRight, Building2, CircleDollarSign, Clock3, Funne
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CRMSectionCard from "../components/crm/CRMSectionCard";
 import { getAnalyticsDashboard, type AnalyticsDashboardResponse } from "../lib/api/dashboardApi";
-import { readDashboardCache, writeDashboardCache } from "../lib/dashboardCache";
+import { readDashboardCache, refreshLiveNow, useLiveNow, writeDashboardCache } from "../lib/dashboardCache";
 
 const PIE_COLORS = ["#76d68a", "#6daac9", "#4f6ecf", "#ef5130", "#ffbd36", "#c069c5", "#1bc5c3", "#a7b2c8"];
 const ANALYTICS_CACHE_KEY = "analytics-page-cache-v3";
-const ANALYTICS_CACHE_TTL_MS = 10 * 60 * 1000;
+const ANALYTICS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const EMPTY_STATE: AnalyticsDashboardResponse = {
   hero: { updated: "", revenue_today: 0, leads_today: 0, deals_today: 0 },
@@ -86,11 +86,11 @@ function metricDelta(current: number, previous: number) {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-function formatLastUpdated(value?: string | null) {
+function formatLastUpdated(value?: string | null, now = Date.now()) {
   if (!value) return "Not updated yet";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Not updated yet";
-  const seconds = Math.max(1, Math.round((Date.now() - parsed.getTime()) / 1000));
+  const seconds = Math.max(1, Math.round((now - parsed.getTime()) / 1000));
   if (seconds < 60) return `Updated ${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `Updated ${minutes}m ago`;
@@ -189,25 +189,54 @@ export default function AnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const now = useLiveNow();
   const [state, setState] = useState<AnalyticsDashboardResponse>(initialCache?.state || EMPTY_STATE);
+  const refreshInProgressRef = useRef(false);
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const hasCachedState = Boolean(initialCache?.state);
+    const isManualRefresh = refreshKey > 0;
+    let delayTimer: number | undefined;
+
+    if (hasCachedState && !isManualRefresh) {
+      setLoading(false);
+      setRefreshing(false);
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
 
     const load = async () => {
       try {
-        setLoading(!hasCachedState);
-        setRefreshing(hasCachedState || refreshKey > 0);
+        refreshInProgressRef.current = true;
+        setLoading(!hasCachedState && !isManualRefresh);
+        setRefreshing(hasCachedState || isManualRefresh);
         setError(null);
-        const nextState = await getAnalyticsDashboard(5 * 60 * 1000);
+        const minDelayPromise = isManualRefresh
+          ? new Promise<void>((resolve) => {
+              delayTimer = window.setTimeout(resolve, 1000);
+            })
+          : Promise.resolve();
+        const [nextState] = await Promise.all([
+          getAnalyticsDashboard(
+            isManualRefresh ? 0 : 5 * 60 * 1000,
+            controller.signal,
+            isManualRefresh,
+          ),
+          minDelayPromise,
+        ]);
         if (!active) return;
         setState(nextState);
         writeDashboardCache(ANALYTICS_CACHE_KEY, nextState);
+        refreshLiveNow();
       } catch (loadError) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load analytics.");
       } finally {
+        refreshInProgressRef.current = false;
         if (active) {
           setLoading(false);
           setRefreshing(false);
@@ -218,6 +247,11 @@ export default function AnalyticsPage() {
     void load();
     return () => {
       active = false;
+      refreshInProgressRef.current = false;
+      if (delayTimer !== undefined) {
+        window.clearTimeout(delayTimer);
+      }
+      controller.abort();
     };
   }, [initialCache?.state, refreshKey]);
 
@@ -284,18 +318,24 @@ export default function AnalyticsPage() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">{monthLabel()}</div>
               <button
                 type="button"
-                onClick={() => setRefreshKey((current) => current + 1)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                disabled={loading || refreshing}
+                aria-busy={loading || refreshing}
+                onClick={() => {
+                  if (refreshInProgressRef.current) return;
+                  refreshInProgressRef.current = true;
+                  setRefreshKey((current) => current + 1);
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshing ? "Refreshing..." : "Refresh"}
+                <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+                {loading ? "Loading..." : refreshing ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           </div>
           <div className="grid items-stretch gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl bg-slate-50 px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Updated</div>
-              <div className="mt-2 text-lg font-semibold text-slate-900">{formatLastUpdated(state.hero.updated).replace("Updated ", "")}</div>
+              <div className="mt-2 text-lg font-semibold text-slate-900">{formatLastUpdated(state.hero.updated, now).replace("Updated ", "")}</div>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Revenue Today</div>

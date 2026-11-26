@@ -462,7 +462,7 @@ class MyRequestsDashboardView(APIView):
             "created_at",
             "updated_at",
         )
-        appointment_qs = ServiceAppointment.objects.filter(assigned_member=user)
+        appointment_qs = ServiceAppointment.objects.filter(assigned_member=user).select_related("service")
 
         items = []
         for task in task_qs:
@@ -551,6 +551,11 @@ class MyRequestsDashboardView(APIView):
                 "overdue": len(overdue),
                 "due_today": len(due_today),
                 "pending": len(pending_items),
+            },
+            "focus_requests": {
+                "overdue": overdue,
+                "due_today": due_today,
+                "pending": pending_items,
             },
             "request_mix": [
                 {"module": "Task", "count": task_qs.count()},

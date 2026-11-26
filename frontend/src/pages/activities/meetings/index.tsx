@@ -172,7 +172,9 @@ export default function MeetingsPage() {
     <DashboardLayout>
       <div className="px-6 py-6">
         <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-slate-900">Meetings</h1>
+          <button type="button" className="cursor-pointer rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition duration-150 hover:bg-slate-200 hover:shadow-sm">
+            All Meetings
+          </button>
 
           <div className="flex items-center gap-3">
             <button

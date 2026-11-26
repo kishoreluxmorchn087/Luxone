@@ -57,7 +57,7 @@ function nonNegativeNumber(value: unknown, minimum = 0): number {
 
 function getInitialValues(moduleKey: InventoryModuleKey): InventoryFormValues {
   const currentUserId = String(getLoggedInUser()?.id || "");
-  if (moduleKey === "products") return { owner: currentUserId, productName: "", productCode: "", vendor: "", vendorLabel: "", manufacturer: "", productCategory: "", productType: "software", deploymentModel: "cloud", billingCycle: "yearly", licenseType: "named", unitPrice: 0, commissionRate: 0, tax: 0, quantityInStock: 0, quantityInDemand: 0, reorderLevel: 0, usageUnit: "users", defaultUserSeats: 1, subscriptionTermMonths: 12, renewalRequired: true, implementationRequired: false, supportStartDate: "", supportExpiryDate: "", description: "" } as ProductFormValues;
+  if (moduleKey === "products") return { owner: currentUserId, productName: "", productCode: "", vendor: "", vendorLabel: "", manufacturer: "", productCategory: "", productType: "software", deploymentModel: "cloud", billingCycle: "yearly", licenseType: "named", unitPrice: 0, commissionRate: 0, tax: 0, quantityInStock: 0, quantityInDemand: 0, reorderLevel: 0, usageUnit: "users", defaultUserSeats: 1, subscriptionTermMonths: 12, renewalRequired: false, implementationRequired: false, supportStartDate: "", supportExpiryDate: "", description: "" } as ProductFormValues;
   if (moduleKey === "vendors") return { vendorOwner: currentUserId, vendorName: "", email: "", phone: "", website: "", category: "", description: "", billingStreet: "", billingCity: "", billingState: "", billingCountry: "", billingZipCode: "", shippingStreet: "", shippingCity: "", shippingState: "", shippingCountry: "", shippingZipCode: "" } as VendorFormValues;
   if (moduleKey === "price-books") return { owner: currentUserId, name: "", active: true, pricingModel: "fixed", description: "", ranges: [{ fromRange: 1, toRange: 10, discountPercentage: 0 }], productLinks: [] } as PriceBookFormValues;
   if (moduleKey === "quotes") return { owner: currentUserId, subject: "", quoteStage: "", team: "", carrier: "", priceBook: "", priceBookLabel: "", deal: "", dealLabel: "", validUntil: "", contact: "", contactLabel: "", account: "", accountLabel: "", billingCycle: "yearly", licenseType: "named", licensedUsers: 1, implementationRequired: false, subscriptionStartDate: "", subscriptionEndDate: "", renewalDueDate: "", subtotal: 0, discount: 0, tax: 0, adjustment: 0, grandTotal: 0, termsAndConditions: "", description: "", billingStreet: "", billingCity: "", billingState: "", billingCountry: "", billingZipCode: "", shippingStreet: "", shippingCity: "", shippingState: "", shippingCountry: "", shippingZipCode: "", items: [emptyLineItem()] } as QuoteFormValues;
@@ -1001,8 +1001,8 @@ export default function InventoryFormPage({ moduleKey }: Props) {
                   <Field label="Usage Unit"><input className={inputClass} value={anyForm.usageUnit || ""} onChange={(e) => setForm({ ...anyForm, usageUnit: e.target.value })} /></Field>
                   <Field label="Default User Seats"><input type="number" min={1} step={1} className={inputClass} value={anyForm.defaultUserSeats ?? 1} onChange={(e) => setForm({ ...anyForm, defaultUserSeats: nonNegativeNumber(e.target.value, 1) })} /></Field>
                   <Field label="Subscription Term (Months)"><input type="number" min={1} step={1} className={inputClass} value={anyForm.subscriptionTermMonths ?? 12} onChange={(e) => setForm({ ...anyForm, subscriptionTermMonths: nonNegativeNumber(e.target.value, 1) })} /></Field>
-                  <Field label="Renewal Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired ?? true)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} />Renewal Required</label></Field>
-                  <Field label="Implementation Required"><label className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} />Implementation Needed</label></Field>
+                  <Field label="Renewal Required"><div className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.renewalRequired)} onChange={(e) => setForm({ ...anyForm, renewalRequired: e.target.checked })} /><span>Renewal Required</span></div></Field>
+                  <Field label="Implementation Required"><div className="flex h-[38px] items-center gap-2 rounded-md border border-slate-300 px-3"><input type="checkbox" checked={Boolean(anyForm.implementationRequired)} onChange={(e) => setForm({ ...anyForm, implementationRequired: e.target.checked })} /><span>Implementation Needed</span></div></Field>
                   <Field label="Support Start Date"><DatePicker className={inputClass} value={anyForm.supportStartDate || ""} onChange={(supportStartDate) => setForm({ ...anyForm, supportStartDate })} /></Field>
                   <Field label="Support Expiry Date"><DatePicker className={inputClass} value={anyForm.supportExpiryDate || ""} onChange={(supportExpiryDate) => setForm({ ...anyForm, supportExpiryDate })} /></Field>
                   <div className="md:col-span-2"><Field label="Description"><textarea className={textareaClass} value={anyForm.description || ""} onChange={(e) => setForm({ ...anyForm, description: e.target.value })} /></Field></div>
@@ -1432,8 +1432,31 @@ export default function InventoryFormPage({ moduleKey }: Props) {
             <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
               <InventoryDocumentItemsTable title={moduleKey === "quotes" ? "Quoted Items" : moduleKey === "sales-orders" ? "Ordered Items" : moduleKey === "purchase-orders" ? "Purchase Items" : "Invoiced Items"} items={anyForm.items as InventoryLineItem[]} onChange={syncItems} showDescription={moduleKey === "invoices"} />
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4"><Field label="Adjustment"><input type="number" className={inputClass} value={anyForm.adjustment || 0} onChange={(e) => { const next = recalculateDocument(anyForm.items as InventoryLineItem[], Number(e.target.value)); setForm({ ...anyForm, ...next }); }} /></Field></div>
-                <InventoryTotalsPanel subtotal={totals?.subtotal || 0} discount={totals?.discount || 0} tax={totals?.tax || 0} adjustment={totals?.adjustment || 0} grandTotal={totals?.grandTotal || 0} />
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <Field label="Adjustment">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0.00"
+                      className={inputClass}
+                      value={anyForm.adjustment ?? ""}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const numericValue = e.target.value === "" ? 0 : Number(e.target.value);
+                        const next = recalculateDocument(anyForm.items as InventoryLineItem[], numericValue);
+                        setForm({ ...anyForm, ...next, adjustment: numericValue });
+                      }}
+                    />
+                  </Field>
+                </div>
+                <InventoryTotalsPanel
+                  subtotal={Number(totals?.subtotal ?? 0)}
+                  discount={Number(totals?.discount ?? 0)}
+                  tax={Number(totals?.tax ?? 0)}
+                  adjustment={Number(totals?.adjustment ?? 0)}
+                  grandTotal={Number(totals?.grandTotal ?? 0)}
+                />
               </div>
             </div>
 

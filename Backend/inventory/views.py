@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import logging
 import mimetypes
-import smtplib
 
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
@@ -15,7 +13,11 @@ from rest_framework.views import APIView
 from accounts.models import Account
 from contacts.models import Contact
 from deals.models import Deal
-from integrations.services import create_outgoing_crm_email, get_user_default_email_provider
+from integrations.services import (
+    create_outgoing_crm_email,
+    email_send_error_detail,
+    get_user_default_email_provider,
+)
 from support.models import SupportCase, SupportSolution
 from support.serializers import SupportCaseListSerializer, SupportSolutionListSerializer
 
@@ -91,8 +93,6 @@ from .services import (
     sales_order_service,
     vendor_service,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class InventoryRelatedMixin:
@@ -415,14 +415,11 @@ class VendorViewSet(InventoryRelatedMixin, viewsets.ModelViewSet):
                 },
             )
         except ValueError as exc:
-            logger.warning("Vendor email could not be sent for vendor %s.", vendor.pk)
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except (smtplib.SMTPException, OSError):
-            logger.exception("Vendor email delivery failed for vendor %s", vendor.pk)
             return Response(
-                {"detail": "Email could not be sent. Check the configured email provider and try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {"detail": email_send_error_detail(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
         InventoryEmailLog.objects.create(
             vendor=vendor,
             sent_by=request.user,
