@@ -5,7 +5,11 @@ import ModuleToolbar from "../../components/crm/ModuleToolbar";
 import FilterSidebar from "../../components/crm/FilterSidebar";
 import CRMTable from "../../components/crm/CRMTable";
 import CRMPagination from "../../components/crm/CRMPagination";
-import { filterRecords, sortRecords } from "../../lib/shared/crmHelpers";
+import {
+  distributeChartPercentages as calculateChartPercentages,
+  filterRecords,
+  sortRecords,
+} from "../../lib/shared/crmHelpers";
 import type { CRMColumn, CRMRecord } from "../../lib/shared/crmTypes";
 import type { DensityMode } from "../../components/crm/CRMPageSettingsModal";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -15,6 +19,7 @@ import { formatMoney } from "../utils";
 import { DeleteModal, LogCallModal, MassDeleteModal, MassUpdateModal, NoteModal, ScheduleCallModal } from "../../components/crm/CRMActionModals";
 import { apiRequest } from "../../api/client";
 import type { InventoryDetailResponse, InventoryModuleKey } from "../types";
+import { formatProductType } from "../../lib/shared/productType";
 import InventoryDocumentPreviewModal from "./InventoryDocumentPreviewModal";
 
 type InventoryListPageProps = {
@@ -22,6 +27,10 @@ type InventoryListPageProps = {
 };
 
 const INVENTORY_CHART_COLORS = ["#ec4899", "#f97316", "#facc15", "#14b8a6", "#6366f1", "#8b5cf6"];
+
+export function distributeChartPercentages(counts: number[], total: number): number[] {
+  return calculateChartPercentages(counts, total);
+}
 
 function sampleDocument(moduleKey: "invoices" | "purchase-orders"): InventoryDetailResponse {
   const isInvoice = moduleKey === "invoices";
@@ -100,7 +109,9 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [samplePreviewOpen, setSamplePreviewOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "table" | "grid" | "kanban" | "chart">("table");
@@ -140,6 +151,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
   useEffect(() => {
     setSortState(null);
     setPage(1);
+    setViewMode("table");
   }, [moduleKey]);
 
   const visibleColumns = useMemo(
@@ -182,6 +194,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
     const getValue = (row: CRMRecord, field: string) => {
       const value = (row as Record<string, unknown>)[field];
       if (typeof value === "boolean") return value ? "Active" : "Inactive";
+      if (field === "productType") return formatProductType(value);
       if (typeof value === "string" || typeof value === "number") {
         return String(value).trim();
       }
@@ -203,11 +216,17 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
 
     if (remainingCount > 0) sorted.push(["Other", remainingCount]);
 
+    const entries = sorted.map(([name, count]) => ({ name, count }));
+    const percentages = distributeChartPercentages(
+      entries.map((entry) => entry.count),
+      processedRows.length
+    );
+
     return {
       groupLabel: groupField
         ? groupField.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())
         : "Records",
-      data: sorted.map(([name, count]) => ({ name, count })),
+      data: entries.map((entry, index) => ({ ...entry, percentage: percentages[index] })),
     };
   }, [moduleKey, processedRows]);
 
@@ -282,6 +301,10 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           sortFieldKeyMap={sortConfig.sortFieldKeyMap}
           isFilterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((prev) => !prev)}
+          showNotes={showNotes}
+          onToggleShowNotes={setShowNotes}
+          showActivity={showActivity}
+          onToggleShowActivity={setShowActivity}
           onCreateClick={() => navigate(meta.createRoute || `${meta.baseRoute}/create`)}
           onApplySort={(key, direction) => {
             setSortState(key ? { key, direction } : null);
@@ -302,6 +325,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
           sortState={sortState}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          tableViewFirst
           onMassAction={setMassAction}
         />
 
@@ -373,7 +397,11 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   {paginatedRows.map((row) => {
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
-                    const badge = String(r.productCategory || r.category || r.status || r.productType || "");
+                    const badge = String(
+                      moduleKey === "products"
+                        ? r.productType || ""
+                        : r.productCategory || r.category || r.status || r.productType || ""
+                    );
                     const isSelected = selectedIds.includes(row.id);
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
                     const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
@@ -454,8 +482,8 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   pinnedColumn={pinnedColumn}
                   columnFilters={columnFilters}
                   density={density}
-                  showNotes={moduleKey === "vendors"}
-                  showActivity={moduleKey === "vendors"}
+                  showNotes={showNotes && moduleKey === "vendors"}
+                  showActivity={showActivity && moduleKey === "vendors"}
                   onToggleAll={(checked) => {
                     setSelectedIds(checked ? paginatedRows.map((row) => row.id) : []);
                   }}
@@ -599,7 +627,11 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                   {paginatedRows.map((row) => {
                     const r = row as Record<string, unknown>;
                     const title = String(r.productName || r.name || r.subject || r.vendorName || `Record #${row.id}`);
-                    const badge = String(r.productCategory || r.category || r.status || r.productType || "");
+                    const badge = String(
+                      moduleKey === "products"
+                        ? r.productType || ""
+                        : r.productCategory || r.category || r.status || r.productType || ""
+                    );
                     const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : undefined;
                     const grandTotal = r.grandTotal !== undefined ? Number(r.grandTotal) : undefined;
 
@@ -748,9 +780,6 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                       </div>
                       <div className="space-y-3">
                         {chartDistribution.data.map((entry, index) => {
-                          const percentage = processedRows.length
-                            ? Math.round((entry.count / processedRows.length) * 100)
-                            : 0;
                           return (
                             <div
                               key={entry.name}
@@ -767,7 +796,7 @@ export default function InventoryListPage({ moduleKey }: InventoryListPageProps)
                                 <span className="truncate text-sm font-medium text-slate-700">{entry.name}</span>
                               </div>
                               <span className="shrink-0 text-sm font-semibold text-slate-900">
-                                {entry.count} <span className="font-normal text-slate-500">({percentage}%)</span>
+                                {entry.count} <span className="font-normal text-slate-500">({entry.percentage.toFixed(2)}%)</span>
                               </span>
                             </div>
                           );

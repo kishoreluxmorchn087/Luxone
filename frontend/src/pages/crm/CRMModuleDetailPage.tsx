@@ -231,45 +231,33 @@ export default function CRMModuleDetailPage<T extends CRMRecord>({
     if (!record?.id) throw new Error("No record selected.");
 
     if (config.module === "accounts") {
-      try {
-        await sendAccountEmail(record.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        showToast("Email sent successfully!");
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
+      await sendAccountEmail(record.id, {
+        subject: payload.subject,
+        body: payload.body,
+        to: payload.to,
+      });
+      showToast("Email sent successfully!");
+      return;
     }
 
     if (config.module === "contacts") {
-      try {
-        await sendContactEmail(record.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        showToast("Email sent successfully!");
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
+      await sendContactEmail(record.id, {
+        subject: payload.subject,
+        body: payload.body,
+        to: payload.to,
+      });
+      showToast("Email sent successfully!");
+      return;
     }
 
     if (config.module === "leads") {
-      try {
-        await sendLeadEmail(record.id, {
-          subject: payload.subject,
-          body: payload.body,
-          to: payload.to,
-        });
-        showToast("Email sent successfully!");
-        return;
-      } catch {
-        // Fallback to general email endpoint
-      }
+      await sendLeadEmail(record.id, {
+        subject: payload.subject,
+        body: payload.body,
+        to: payload.to,
+      });
+      showToast("Email sent successfully!");
+      return;
     }
 
     await apiRequest("/send-email", {

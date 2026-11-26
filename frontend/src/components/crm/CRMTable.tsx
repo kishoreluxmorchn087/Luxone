@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDateTimeForDisplay, isDateLikeLabel } from "../../lib/dateUtils";
+import { formatProductType } from "../../lib/shared/productType";
 import { Phone, CalendarCheck, CalendarDays, Activity, Pencil, Trash2 } from "lucide-react";
 import type { CRMColumn, CRMRecord, CRMRowAction } from "../../lib/shared/crmTypes";
 import CRMRowMoreOptionsMenu from "./CRMRowMoreOptionsMenu";
@@ -44,6 +45,7 @@ type CRMTableProps<T extends CRMRecord> = {
   columnFilters: Partial<Record<string, string>>;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActivityActions?: boolean;
   showActionsColumn?: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (id: string, checked: boolean) => void;
@@ -70,6 +72,7 @@ export default function CRMTable<T extends CRMRecord>({
   columnFilters,
   showNotes = true,
   showActivity = true,
+  showActivityActions = true,
   showActionsColumn = true,
   onToggleAll,
   onToggleRow,
@@ -95,6 +98,7 @@ export default function CRMTable<T extends CRMRecord>({
   };
   const formatCellValue = (columnKey: string, value: unknown) => {
     if (value === null || value === undefined || value === "") return "-";
+    if (columnKey === "productType") return formatProductType(value);
     if (columnKey === "annualRevenue" || columnKey.toLowerCase().includes("revenue")) {
       const num = Number(String(value).replace(/,/g, ""));
       if (Number.isFinite(num)) {
@@ -248,12 +252,12 @@ export default function CRMTable<T extends CRMRecord>({
                       activity={(row as { nextActivity: ActivityBadge }).nextActivity}
                       onClick={() => onActivityBadgeClick?.(row)}
                     />
-                  ) : (
+                  ) : showActivityActions ? (
                     <CRMRowUtilityIcons
                       showNotes={false}
                       onOpenActivityAction={(actionKey) => onOpenActivityAction?.(row, actionKey)}
                     />
-                  )}
+                  ) : null}
                 </td>
               ) : null}
 

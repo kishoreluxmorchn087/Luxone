@@ -34,6 +34,7 @@ type CRMModuleListPageProps<T extends CRMRecord> = {
   pageSize?: number;
   showNotes?: boolean;
   showActivity?: boolean;
+  showActivityActions?: boolean;
   showActionsColumn?: boolean;
   onDeleteRow?: (id: string) => Promise<void>;
   renderTopContent?: (context: {
@@ -79,8 +80,9 @@ export default function CRMModuleListPage<T extends CRMRecord>({
   rows,
   loading = false,
   pageSize = 10,
-  showNotes = true,
+  showNotes = false,
   showActivity = false,
+  showActivityActions = true,
   showActionsColumn = true,
   onDeleteRow,
   renderTopContent,
@@ -150,7 +152,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
 
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, string>>>({});
   const [sidebarFilters, setSidebarFilters] = useState<Record<string, string | string[]>>({});
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalState>(null);
   const [activeRow, setActiveRow] = useState<T | null>(null);
   const isFilterOpen = filterOpen ?? !hideFilterSidebar;
@@ -665,6 +667,7 @@ export default function CRMModuleListPage<T extends CRMRecord>({
               columnFilters={columnFilters}
               showNotes={currentShowNotes}
               showActivity={currentShowActivity}
+              showActivityActions={showActivityActions}
               showActionsColumn={showActionsColumn}
               density={density}
               onToggleAll={(checked) => {

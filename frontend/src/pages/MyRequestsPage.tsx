@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock3, Layers3, RefreshCw } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import CRMSectionCard from "../components/crm/CRMSectionCard";
@@ -9,16 +9,17 @@ import {
   type DashboardRequestItem,
   type MyRequestsDashboardResponse,
 } from "../lib/api/dashboardApi";
-import { readDashboardCache, writeDashboardCache } from "../lib/dashboardCache";
+import { readDashboardCache, refreshLiveNow, useLiveNow, writeDashboardCache } from "../lib/dashboardCache";
 import { formatDateTimeForDisplay } from "../lib/dateUtils";
 
-const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v2";
-const MY_REQUESTS_CACHE_TTL_MS = 5 * 60 * 1000;
+const MY_REQUESTS_CACHE_KEY = "my-requests-cache-v4";
+const MY_REQUESTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const EMPTY_STATE: MyRequestsDashboardResponse = {
   updated: "",
   summary_cards: { created_today: 0, updated_today: 0, due_today: 0, closed_today: 0 },
   focus_today: { overdue: 0, due_today: 0, pending: 0 },
+  focus_requests: { overdue: [], due_today: [], pending: [] },
   request_mix: [],
   open_requests: [],
   upcoming_queue: [],
@@ -36,10 +37,10 @@ function formatDateTime(value?: string | null) {
   return formatDateTimeForDisplay(value) || "N/A";
 }
 
-function formatUpdatedAt(value?: string | null) {
+function formatUpdatedAt(value?: string | null, now = Date.now()) {
   const parsed = toDate(value);
   if (!parsed) return "Not updated yet";
-  const seconds = Math.max(1, Math.round((Date.now() - parsed.getTime()) / 1000));
+  const seconds = Math.max(1, Math.round((now - parsed.getTime()) / 1000));
   if (seconds < 60) return `Updated ${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `Updated ${minutes}m ago`;
@@ -93,30 +94,83 @@ function RequestList({ items, emptyText }: { items: DashboardRequestItem[]; empt
 
 export default function MyRequestsPage() {
   const { user } = useAuth();
-  const [initialCache] = useState(() => readDashboardCache<MyRequestsDashboardResponse>(MY_REQUESTS_CACHE_KEY, MY_REQUESTS_CACHE_TTL_MS));
+  const [searchParams] = useSearchParams();
+  const focus = searchParams.get("focus");
+  const cacheKey = `${MY_REQUESTS_CACHE_KEY}:${user?.id ?? user?.email ?? "anonymous"}`;
+  const initialCache = useMemo(
+    () => readDashboardCache<MyRequestsDashboardResponse>(cacheKey, MY_REQUESTS_CACHE_TTL_MS),
+    [cacheKey],
+  );
   const [loading, setLoading] = useState(!initialCache?.state);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [state, setState] = useState<MyRequestsDashboardResponse>(initialCache?.state ?? EMPTY_STATE);
+  const now = useLiveNow();
+  const [requestState, setRequestState] = useState({
+    cacheKey,
+    value: initialCache?.state ?? EMPTY_STATE,
+  });
+  const state =
+    requestState.cacheKey === cacheKey
+      ? requestState.value
+      : initialCache?.state ?? EMPTY_STATE;
+  const focusedListRef = useRef<HTMLDivElement>(null);
+  const refreshInProgressRef = useRef(false);
+  const focusedList =
+    focus === "overdue"
+      ? { title: "Overdue Requests", items: state.focus_requests.overdue }
+      : focus === "due_today"
+        ? { title: "Requests Due Today", items: state.focus_requests.due_today }
+        : focus === "pending"
+          ? { title: "Pending Requests", items: state.focus_requests.pending }
+          : null;
+
+  useEffect(() => {
+    if (focus === "overdue" || focus === "due_today" || focus === "pending") {
+      focusedListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [focus]);
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const hasCachedState = Boolean(initialCache?.state);
+    const isManualRefresh = refreshKey > 0;
+    let delayTimer: number | undefined;
+
+    if (hasCachedState && !isManualRefresh) {
+      setLoading(false);
+      setRefreshing(false);
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
 
     const load = async () => {
       try {
+        refreshInProgressRef.current = true;
         setError(null);
-        setLoading(!hasCachedState);
-        setRefreshing(hasCachedState || refreshKey > 0);
-        const nextState = await getMyRequestsDashboard(2 * 60 * 1000);
+        setLoading(!hasCachedState && !isManualRefresh);
+        setRefreshing(hasCachedState || isManualRefresh);
+        const minDelayPromise = isManualRefresh
+          ? new Promise<void>((resolve) => {
+              delayTimer = window.setTimeout(resolve, 1000);
+            })
+          : Promise.resolve();
+        const [nextState] = await Promise.all([
+          getMyRequestsDashboard(0, controller.signal, isManualRefresh),
+          minDelayPromise,
+        ]);
         if (!active) return;
-        setState(nextState);
-        writeDashboardCache(MY_REQUESTS_CACHE_KEY, nextState);
+        setRequestState({ cacheKey, value: nextState });
+        writeDashboardCache(cacheKey, nextState);
+        refreshLiveNow();
       } catch (loadError) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load your requests.");
       } finally {
+        refreshInProgressRef.current = false;
         if (active) {
           setLoading(false);
           setRefreshing(false);
@@ -127,20 +181,22 @@ export default function MyRequestsPage() {
     void load();
     return () => {
       active = false;
+      refreshInProgressRef.current = false;
+      if (delayTimer !== undefined) {
+        window.clearTimeout(delayTimer);
+      }
+      controller.abort();
     };
-  }, [initialCache?.state, refreshKey]);
-
-  if (error) {
-    return (
-      <DashboardLayout>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-600">{error}</div>
-      </DashboardLayout>
-    );
-  }
+  }, [cacheKey, initialCache, refreshKey]);
 
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-[1400px] space-y-6">
+        {error && (
+          <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
         <div className="relative overflow-hidden rounded-[34px] border border-[#d6d9f6] bg-[linear-gradient(135deg,#faf8ff_0%,#f1efff_46%,#ffffff_100%)] shadow-[0_18px_42px_rgba(101,87,180,0.10)]">
           <div className="pointer-events-none absolute -right-6 top-0 h-40 w-40 rounded-full bg-violet-300/25 blur-3xl" />
           <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -153,15 +209,21 @@ export default function MyRequestsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-2 text-sm font-medium text-slate-700">
-                {formatUpdatedAt(state.updated)}
+                {formatUpdatedAt(state.updated, now)}
               </div>
               <button
                 type="button"
-                onClick={() => setRefreshKey((current) => current + 1)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                disabled={loading || refreshing}
+                aria-busy={loading || refreshing}
+                onClick={() => {
+                  if (refreshInProgressRef.current) return;
+                  refreshInProgressRef.current = true;
+                  setRefreshKey((current) => current + 1);
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshing ? "Refreshing..." : "Refresh"}
+                <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+                {loading ? "Loading..." : refreshing ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           </div>
@@ -199,31 +261,39 @@ export default function MyRequestsPage() {
         </div>
 
         <div className="grid items-stretch gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#fff9f9_0%,#fff2f3_100%)] px-4 py-4">
+          <Link to="?focus=overdue" className="block rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#fff9f9_0%,#fff2f3_100%)] px-4 py-4 transition hover:border-rose-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Overdue</div>
               <AlertTriangle className="h-5 w-5 text-rose-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.overdue}</div>
             <div className="mt-2 text-sm text-slate-500">Requests that need immediate attention.</div>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fffdf7_0%,#fff8ea_100%)] px-4 py-4">
+          </Link>
+          <Link to="?focus=due_today" className="block rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fffdf7_0%,#fff8ea_100%)] px-4 py-4 transition hover:border-amber-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Due Today</div>
               <Clock3 className="h-5 w-5 text-amber-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.due_today}</div>
             <div className="mt-2 text-sm text-slate-500">Queue items expected to move before today ends.</div>
-          </div>
-          <div className="rounded-2xl border border-violet-200 bg-[linear-gradient(180deg,#fbf9ff_0%,#f4efff_100%)] px-4 py-4">
+          </Link>
+          <Link to="?focus=pending" className="block rounded-2xl border border-violet-200 bg-[linear-gradient(180deg,#fbf9ff_0%,#f4efff_100%)] px-4 py-4 transition hover:border-violet-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-900">Pending</div>
               <ClipboardList className="h-5 w-5 text-violet-600" />
             </div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{state.focus_today.pending}</div>
             <div className="mt-2 text-sm text-slate-500">Approvals or waiting states that may block progress.</div>
-          </div>
+          </Link>
         </div>
+
+        {focusedList && (
+          <div ref={focusedListRef} className="scroll-mt-24">
+            <CRMSectionCard title={focusedList.title} subtitle="Select a request to open its details.">
+              <RequestList items={focusedList.items} emptyText="No matching requests right now." />
+            </CRMSectionCard>
+          </div>
+        )}
 
         <CRMSectionCard title="Request Mix" subtitle="Current distribution across your assigned CRM work.">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

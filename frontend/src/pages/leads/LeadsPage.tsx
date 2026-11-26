@@ -46,8 +46,9 @@ export default function LeadsPage() {
       config={leadModuleConfig}
       rows={rows}
       loading={loading}
-      showNotes={true}
+      showNotes={false}
       showActivity={true}
+      showActivityActions={false}
       onDeleteRow={handleDeleteRow}
     />
   );

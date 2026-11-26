@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -92,6 +95,32 @@ class LeadDetailActionsTests(APITestCase):
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(list_response.data), 1)
         self.assertEqual(list_response.data[0]["note"], "Customer asked for a pricing follow-up.")
+
+    @patch(
+        "leads.views.create_outgoing_crm_email",
+        side_effect=ValueError("This provider is missing live sending credentials."),
+    )
+    @patch("leads.views.get_user_default_email_provider")
+    def test_send_email_reports_missing_smtp_credentials(self, get_provider, _send_email):
+        get_provider.return_value = SimpleNamespace(display_name="LuxOne CRM")
+
+        response = self.client.post(
+            f"/api/leads/{self.lead.pk}/send-email/",
+            {
+                "to_email": self.lead.email,
+                "subject": "Follow-up",
+                "body": "Checking in about your request.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "The configured email provider is missing live sending credentials. "
+            "Add its SMTP/app-password credentials in Email Integrations, then try again.",
+        )
+        self.assertFalse(self.lead.activities.filter(action="Email sent").exists())
 
     def test_convert_creates_account_contact_and_deal(self):
         response = self.client.post(

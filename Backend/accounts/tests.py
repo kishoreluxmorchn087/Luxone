@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
@@ -118,4 +121,29 @@ class AccountRelatedModuleFlagsTests(APITestCase):
                 "has_quotes": False,
                 "has_sales_orders": False,
             },
+        )
+
+    @patch(
+        "accounts.views.create_outgoing_crm_email",
+        side_effect=ValueError("This provider is missing live sending credentials."),
+    )
+    @patch("accounts.views.get_user_default_email_provider")
+    def test_account_send_email_returns_vendor_style_smtp_error(self, get_provider, _send_email):
+        get_provider.return_value = SimpleNamespace(display_name="LuxOne CRM")
+
+        response = self.client.post(
+            f"/api/accounts/{self.account_without_records.pk}/send-email/",
+            {
+                "to_email": "recipient@example.com",
+                "subject": "Account update",
+                "body": "Checking in.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "The configured email provider is missing live sending credentials. "
+            "Add its SMTP/app-password credentials in Email Integrations, then try again.",
         )

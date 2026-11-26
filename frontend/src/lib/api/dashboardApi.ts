@@ -59,6 +59,11 @@ export type MyRequestsDashboardResponse = {
   updated: string;
   summary_cards: { created_today: number; updated_today: number; due_today: number; closed_today: number };
   focus_today: { overdue: number; due_today: number; pending: number };
+  focus_requests: {
+    overdue: DashboardRequestItem[];
+    due_today: DashboardRequestItem[];
+    pending: DashboardRequestItem[];
+  };
   request_mix: Array<{ module: string; count: number }>;
   open_requests: DashboardRequestItem[];
   upcoming_queue: DashboardRequestItem[];
@@ -83,10 +88,26 @@ export function getHomeDashboard(cacheTtlMs = 2 * 60 * 1000) {
   return apiRequest<HomeDashboardResponse>("/dashboard/home/", { cacheTtlMs });
 }
 
-export function getAnalyticsDashboard(cacheTtlMs = 5 * 60 * 1000) {
-  return apiRequest<AnalyticsDashboardResponse>("/dashboard/analytics/", { cacheTtlMs });
+export function getAnalyticsDashboard(
+  cacheTtlMs = 5 * 60 * 1000,
+  signal?: AbortSignal,
+  forceFresh = false,
+) {
+  return apiRequest<AnalyticsDashboardResponse>("/dashboard/analytics/", {
+    cacheTtlMs,
+    signal,
+    forceFresh,
+  });
 }
 
-export function getMyRequestsDashboard(cacheTtlMs = 2 * 60 * 1000) {
-  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", { cacheTtlMs });
+export function getMyRequestsDashboard(
+  cacheTtlMs = 2 * 60 * 1000,
+  signal?: AbortSignal,
+  forceFresh = false,
+) {
+  return apiRequest<MyRequestsDashboardResponse>("/dashboard/my-requests/", {
+    cacheTtlMs,
+    signal,
+    forceFresh,
+  });
 }

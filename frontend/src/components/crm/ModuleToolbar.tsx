@@ -31,6 +31,7 @@ type ModuleToolbarProps = {
   onMassAction?: (action: "mass-delete" | "mass-update") => void;
   viewMode?: "list" | "table" | "grid" | "kanban" | "chart";
   onViewModeChange?: (mode: "list" | "table" | "grid" | "kanban" | "chart") => void;
+  tableViewFirst?: boolean;
   columns?: Array<{ key: string; label: string; minWidth?: string }>;
   hiddenColumns?: string[];
   onSetHiddenColumns?: (hidden: string[]) => void;
@@ -85,6 +86,7 @@ export default function ModuleToolbar({
   onMassAction,
   viewMode = "table",
   onViewModeChange,
+  tableViewFirst = false,
   columns,
   hiddenColumns,
   onSetHiddenColumns,
@@ -375,7 +377,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-list-view"
                 aria-label="List View"
                 onClick={() => onViewModeChange?.("list")}
-                className={`group ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-2" : "order-1"} ${viewMode === "list" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ListFilter size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -389,7 +391,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-panels-view"
                 aria-label="Panels View"
                 onClick={() => onViewModeChange?.("kanban")}
-                className={`group ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-3" : "order-2"} ${viewMode === "kanban" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <PanelsTopLeft size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -403,7 +405,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-table-view"
                 aria-label="Table View"
                 onClick={() => onViewModeChange?.("table")}
-                className={`group ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group ${tableViewFirst ? "order-1" : "order-3"} ${viewMode === "table" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <Table size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -417,7 +419,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-chart-view"
                 aria-label="Chart View"
                 onClick={() => onViewModeChange?.("chart")}
-                className={`group ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group order-4 ${viewMode === "chart" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <ChartPie size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -431,7 +433,7 @@ export default function ModuleToolbar({
                 id="module-toolbar-grid-view"
                 aria-label="Grid View"
                 onClick={() => onViewModeChange?.("grid")}
-                className={`group ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
+                className={`group order-5 ${viewMode === "grid" ? toolbarIconActiveClass : toolbarIconButtonClass}`}
               >
                 <LayoutGrid size={16} />
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-all duration-200 group-hover:-top-10 group-hover:opacity-100 z-50">
@@ -582,7 +584,7 @@ export default function ModuleToolbar({
         pinnedColumn={pinnedColumn ?? null}
         sortState={sortState}
         filterOpen={isFilterOpen}
-        showNotes={showNotes ?? true}
+        showNotes={showNotes ?? false}
         showActivity={showActivity ?? false}
         initialTab={pageSettingsInitialTab}
         onApply={(settings) => {
@@ -610,8 +612,8 @@ export default function ModuleToolbar({
           if (onDensityChange) onDensityChange("normal");
           if (onSetPinnedColumn) onSetPinnedColumn(null);
           if (onApplySort) onApplySort(null, "asc");
-          if (!isFilterOpen) onToggleFilter();
-          if (onToggleShowNotes) onToggleShowNotes(true);
+          if (isFilterOpen) onToggleFilter();
+          if (onToggleShowNotes) onToggleShowNotes(false);
           if (onToggleShowActivity) onToggleShowActivity(false);
         }}
       />

@@ -57,6 +57,7 @@ function UploadModal({
     if (!title.trim()) { setError("Title is required."); return; }
     if (!file) { setError("Please select a file."); return; }
     if (docType === "other" && !customType.trim()) { setError("Please specify the document type."); return; }
+    if (relatedId && Number(relatedId) < 0) { setError("Linked record ID must be zero or greater."); return; }
     setError("");
     const resolvedType = docType === "other" && customType.trim() ? customType.trim() : docType;
     try {
@@ -174,6 +175,7 @@ function UploadModal({
               <input
                 className={inputCls}
                 type="number"
+                min="0"
                 value={relatedId}
                 onChange={(e) => setRelatedId(e.target.value)}
                 placeholder={`Enter ${MODULE_LABELS[relatedModule]} ID`}
@@ -422,6 +424,9 @@ export default function DocumentsPage() {
                             className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                           >
                             <span>View</span>
+                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+                          >
+                            View
                           </button>
                           {doc.file_url && (
                             <a
