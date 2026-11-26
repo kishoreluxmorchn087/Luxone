@@ -424,9 +424,6 @@ export default function DocumentsPage() {
                             className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                           >
                             <span>View</span>
-                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
-                          >
-                            View
                           </button>
                           {doc.file_url && (
                             <a

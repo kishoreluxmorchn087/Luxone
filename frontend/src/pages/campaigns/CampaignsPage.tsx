@@ -127,8 +127,8 @@ export default function CampaignsPage() {
                             "-"
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{row.startDate || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.endDate || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.startDate) || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.endDate) || "-"}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -140,10 +140,6 @@ export default function CampaignsPage() {
                             >
                               <Eye size={15} />
                             </button>
-                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.startDate) || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatDateForDisplay(row.endDate) || "-"}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}/edit`); }}
