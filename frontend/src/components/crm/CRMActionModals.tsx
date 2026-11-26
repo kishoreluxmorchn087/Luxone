@@ -61,115 +61,6 @@ function CallFormRow({ label, children }: { label: string; children: React.React
 
 const fieldCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
-function escapeEmailText(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\r\n?|\n/g, "<br>");
-}
-
-function serializeEmailBody(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) {
-    return escapeEmailText(node.textContent || "");
-  }
-  if (node.nodeType !== Node.ELEMENT_NODE) {
-    return "";
-  }
-
-  const element = node as HTMLElement;
-  const tag = element.tagName.toLowerCase();
-  const content = Array.from(element.childNodes, serializeEmailBody).join("");
-  if (tag === "br") {
-    return "<br>";
-  }
-  if (["b", "strong", "i", "em", "u", "p", "div"].includes(tag)) {
-    return `<${tag}>${content}</${tag}>`;
-  }
-  return content;
-}
-
-export function RichTextEmailEditor({
-  onChange,
-  resetKey,
-  placeholder,
-  valueText,
-}: {
-  onChange: (html: string, text: string) => void;
-  resetKey?: boolean | string | number;
-  placeholder?: string;
-  valueText: string;
-}) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const onChangeRef = useRef(onChange);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-    editorRef.current.innerHTML = "";
-    onChangeRef.current("", "");
-  }, [resetKey]);
-
-  const updateBody = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const text = editor.innerText || editor.textContent || "";
-    onChangeRef.current(serializeEmailBody(editor), text);
-  };
-
-  return (
-    <div className="rounded-lg border border-slate-200">
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600">
-        {([
-          { command: "bold", label: "Bold", text: "B", className: "font-bold" },
-          { command: "italic", label: "Italic", text: "I", className: "italic" },
-          { command: "underline", label: "Underline", text: "U", className: "underline" },
-        ] as const).map(({ command, label, text, className }) => (
-          <button
-            key={command}
-            type="button"
-            aria-label={label}
-            title={label}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              editorRef.current?.focus();
-              document.execCommand(command, false);
-              updateBody();
-            }}
-            className={`rounded border border-slate-200 px-2 py-1 ${className}`}
-          >
-            {text}
-          </button>
-        ))}
-      </div>
-      <div className="relative">
-        <div
-          ref={editorRef}
-          contentEditable
-          role="textbox"
-          aria-label="Email body"
-          aria-multiline="true"
-          onInput={updateBody}
-          onPaste={(event) => {
-            event.preventDefault();
-            document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
-            updateBody();
-          }}
-          className="min-h-[168px] w-full whitespace-pre-wrap rounded-b-lg px-3 py-2 text-sm outline-none"
-        />
-        {!valueText.trim() && placeholder && (
-          <span className="pointer-events-none absolute left-3 top-2 text-sm text-slate-400">
-            {placeholder}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 type BaseModalProps = {
   open: boolean;
   onClose: () => void;
@@ -192,7 +83,6 @@ export function SendEmailModal({
   const [to, setTo] = useState(toEmail);
   const [subject, setSubject] = useState(recordName ? `Re: ${recordName}` : "");
   const [body, setBody] = useState("");
-  const [bodyText, setBodyText] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +93,6 @@ export function SendEmailModal({
     setTo(toEmail);
     setSubject(recordName ? `Re: ${recordName}` : "");
     setBody("");
-    setBodyText("");
     setAttachments([]);
     setError(null);
   }, [open, toEmail, recordName]);
@@ -261,15 +150,13 @@ export function SendEmailModal({
         <label className="grid gap-1 text-sm"><span>To</span><input value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" /></label>
       </div>
       <label className="mt-3 grid gap-1 text-sm"><span>Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" /></label>
-      <div className="mt-3">
-        <RichTextEmailEditor
-          resetKey={open}
-          valueText={bodyText}
-          onChange={(html, text) => {
-            setBody(html);
-            setBodyText(text);
-          }}
-        />
+      <div className="mt-3 rounded-lg border border-slate-200">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600">
+          <button className="rounded border border-slate-200 px-2 py-1 font-bold">B</button>
+          <button className="rounded border border-slate-200 px-2 py-1 italic">I</button>
+          <button className="rounded border border-slate-200 px-2 py-1 underline">U</button>
+        </div>
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="w-full resize-none rounded-b-lg px-3 py-2 text-sm outline-none" />
       </div>
       {allowAttachments && (
         <>
