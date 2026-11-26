@@ -379,7 +379,7 @@ export default function DocumentsPage() {
                     <th className="px-5 py-3">Uploaded By</th>
                     <th className="px-5 py-3">Version</th>
                     <th className="px-5 py-3">Date</th>
-                    <th className="px-5 py-3 text-center">Actions</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,15 +415,10 @@ export default function DocumentsPage() {
                         {formatDateForDisplay(doc.created_at)}
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            type="button"
                             onClick={() => navigate(`/documents/${doc.id}`)}
                             title="View"
-                            aria-label={`View ${doc.title}`}
-                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-                          >
-                            <span>View</span>
                             className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
                           >
                             View
